@@ -4,6 +4,9 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import MainPage from "./pages/MainPage";
+import ShopPage from "./pages/ShopPage";
+import CartPage from "./pages/CartPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import VisionScreeningPage from "./pages/VisionScreeningPage"; 
 
 function App() {
@@ -13,6 +16,9 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/main" element={<MainPage />} />
+      <Route path="/shop" element={<ShopPage />} />
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/product/:id" element={<ProductDetailPage />} />
       <Route
         path="/vision-screening"
         element={
