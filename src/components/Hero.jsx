@@ -1,4 +1,5 @@
 import heroImage from "../assets/image.jpg";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 export default function Hero() {
   return (
@@ -17,9 +18,11 @@ export default function Hero() {
             your needs.
           </p>
           <div className="flex flex-wrap gap-4">
+            < Link to= "/shop">
             <button className="bg-[#D32F2F] text-white px-8 py-3 rounded-lg font-semibold hover:bg-[#B71C1C] transition shadow-md">
               Explore Collection
             </button>
+            </Link>
             <button className="border border-gray-300 text-[#212529] px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition">
               Visit Store
             </button>
