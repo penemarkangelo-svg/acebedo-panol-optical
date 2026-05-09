@@ -3,7 +3,7 @@ import { useNavigate, Link} from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import loginImage from "../assets/image3.jpg";
+import loginImage from "../assets/bg.png";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");

@@ -6,8 +6,9 @@ import RegisterPage from "./pages/RegisterPage";
 import MainPage from "./pages/MainPage";
 import ShopPage from "./pages/ShopPage";
 import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
 import ProductDetailPage from "./pages/ProductDetailPage";
-import VisionScreeningPage from "./pages/VisionScreeningPage"; 
+import VisionScreeningPage from "./pages/VisionScreeningPage";
 
 function App() {
   return (
@@ -17,8 +18,10 @@ function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/main" element={<MainPage />} />
       <Route path="/shop" element={<ShopPage />} />
-      <Route path="/cart" element={<CartPage />} />
       <Route path="/product/:id" element={<ProductDetailPage />} />
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/checkout" element={<CheckoutPage />} />
+
       <Route
         path="/vision-screening"
         element={

@@ -10,11 +10,13 @@ export const CartProvider = ({ children }) => {
   // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem("cart");
+
     if (savedCart) {
       try {
         setCartItems(JSON.parse(savedCart));
-      } catch (e) {
-        console.error("Failed to parse cart", e);
+      } catch (error) {
+        console.error("Failed to parse cart:", error);
+        localStorage.removeItem("cart");
       }
     }
   }, []);
@@ -24,7 +26,7 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem("cart", JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // Add item to cart (or increase quantity if already exists)
+  // Add item to cart or increase quantity if same product + same options
   const addToCart = (product, quantity = 1, selectedOptions = {}) => {
     setCartItems((prev) => {
       const existingIndex = prev.findIndex(
@@ -33,23 +35,32 @@ export const CartProvider = ({ children }) => {
           JSON.stringify(item.selectedOptions) ===
             JSON.stringify(selectedOptions),
       );
+
       if (existingIndex !== -1) {
         const updated = [...prev];
-        updated[existingIndex].quantity += quantity;
+
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + quantity,
+        };
+
         return updated;
-      } else {
-        return [
-          ...prev,
-          {
-            id: product.id,
-            name: product.name,
-            price: product.price,
-            image: product.image || product.product_images?.[0]?.image_url,
-            quantity,
-            selectedOptions,
-          },
-        ];
       }
+
+      return [
+        ...prev,
+        {
+          id: product.id,
+          name: product.name,
+          price: Number(product.price),
+          image: product.image || product.product_images?.[0]?.image_url,
+          brand: product.brand || "No brand",
+          shape: product.shape || "Shape not specified",
+          material: product.material || "Material not specified",
+          quantity,
+          selectedOptions,
+        },
+      ];
     });
   };
 
@@ -64,20 +75,33 @@ export const CartProvider = ({ children }) => {
       removeFromCart(index);
       return;
     }
+
     setCartItems((prev) => {
       const updated = [...prev];
-      updated[index].quantity = newQuantity;
+
+      updated[index] = {
+        ...updated[index],
+        quantity: newQuantity,
+      };
+
       return updated;
     });
   };
 
   // Clear entire cart
-  const clearCart = () => setCartItems([]);
+  const clearCart = () => {
+    setCartItems([]);
+    localStorage.removeItem("cart");
+  };
 
   // Compute totals
-  const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = cartItems.reduce(
+    (sum, item) => sum + Number(item.quantity || 0),
+    0,
+  );
+
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
     0,
   );
 

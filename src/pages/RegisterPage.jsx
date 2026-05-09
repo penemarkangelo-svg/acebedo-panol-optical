@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import registerImage from "../assets/image3.jpg";
+import registerImage from "../assets/bg.png";
 
 export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
