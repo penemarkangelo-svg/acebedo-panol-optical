@@ -32,34 +32,36 @@ export default function ShopPage() {
     const fetchShopData = async () => {
       setLoading(true);
 
+      // Products query with proper joins to new tables
       const productsQuery = supabase
         .from("products")
         .select(
           `
           *,
           brands (id, name),
-          frame_shape:categories!products_frame_shape_id_fkey(id, name, type),
-          frame_material:categories!products_frame_material_id_fkey(id, name, type),
+          frame_shape:frame_shapes (id, name),
+          frame_material:frame_materials (id, name),
           product_images (image_url, is_primary)
         `,
         )
         .order("created_at", { ascending: false });
 
+      // Brands (unchanged)
       const brandsQuery = supabase
         .from("brands")
         .select("id, name")
         .order("name", { ascending: true });
 
+      // Frame shapes (new table)
       const shapesQuery = supabase
-        .from("categories")
-        .select("id, name, type")
-        .eq("type", "shape")
+        .from("frame_shapes")
+        .select("id, name")
         .order("name", { ascending: true });
 
+      // Frame materials (new table)
       const materialsQuery = supabase
-        .from("categories")
-        .select("id, name, type")
-        .eq("type", "material")
+        .from("frame_materials")
+        .select("id, name")
         .order("name", { ascending: true });
 
       const [productsResult, brandsResult, shapesResult, materialsResult] =
@@ -153,7 +155,6 @@ export default function ShopPage() {
 
   const getPrimaryImage = (product) => {
     const primary = product.product_images?.find((img) => img.is_primary);
-
     return (
       primary?.image_url ||
       product.product_images?.[0]?.image_url ||

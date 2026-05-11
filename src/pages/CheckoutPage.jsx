@@ -1,49 +1,56 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { useCart } from "../context/CartContext";
 
 export default function CheckoutPage() {
-  const { cartItems, subtotal, totalItems } = useCart();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const selectedItems = location.state?.selectedItems || [];
 
   const [fulfillmentMethod, setFulfillmentMethod] = useState("pickup");
+  const [formData, setFormData] = useState({
+    fullName: "",
+    contactNumber: "",
+    email: "",
+    address: "",
+    deliveryNotes: "",
+  });
 
-  const formatPrice = (price) => {
-    return `₱${Number(price || 0).toFixed(2)}`;
+  useEffect(() => {
+    if (selectedItems.length === 0) {
+      navigate("/cart");
+    }
+  }, [selectedItems, navigate]);
+
+  const formatPrice = (price) => `₱${Number(price || 0).toFixed(2)}`;
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  if (cartItems.length === 0) {
-    return (
-      <>
-        <Header />
+  const totalItems = selectedItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+  const subtotal = selectedItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+  const shippingFee = 0; // simple for now
+  const total = subtotal + shippingFee;
 
-        <main className="bg-white min-h-screen py-12 px-6 md:px-12 lg:px-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-3xl font-bold text-[#212529] mb-4">Checkout</h1>
+  const handlePlaceOrder = async () => {
+    // TODO: Insert order and order_items into Supabase using selectedItems
+    alert("Order saving will be implemented next.");
+  };
 
-            <p className="text-gray-500 mb-6">
-              Your cart is empty. Add frames first before checking out.
-            </p>
-
-            <Link
-              to="/shop"
-              className="inline-block bg-[#D32F2F] text-white px-6 py-3 rounded-lg hover:bg-[#B71C1C] transition"
-            >
-              Continue Shopping
-            </Link>
-          </div>
-        </main>
-
-        <Footer />
-      </>
-    );
-  }
+  if (selectedItems.length === 0) return null; // redirect happens
 
   return (
     <>
       <Header />
-
       <main className="bg-white min-h-screen py-12 px-6 md:px-12 lg:px-20">
         <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold text-[#212529] mb-8">Checkout</h1>
@@ -56,7 +63,6 @@ export default function CheckoutPage() {
                 <h2 className="text-xl font-semibold text-[#212529] mb-4">
                   Contact Information
                 </h2>
-
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -64,30 +70,40 @@ export default function CheckoutPage() {
                     </label>
                     <input
                       type="text"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
                       placeholder="Enter your full name"
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D32F2F]"
+                      required
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Contact Number
                     </label>
                     <input
                       type="text"
+                      name="contactNumber"
+                      value={formData.contactNumber}
+                      onChange={handleInputChange}
                       placeholder="09XXXXXXXXX"
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D32F2F]"
+                      required
                     />
                   </div>
-
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Email Address
                     </label>
                     <input
                       type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
                       placeholder="example@email.com"
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D32F2F]"
+                      required
                     />
                   </div>
                 </div>
@@ -98,7 +114,6 @@ export default function CheckoutPage() {
                 <h2 className="text-xl font-semibold text-[#212529] mb-4">
                   Fulfillment Method
                 </h2>
-
                 <div className="grid md:grid-cols-2 gap-4">
                   <button
                     type="button"
@@ -116,7 +131,6 @@ export default function CheckoutPage() {
                       Customer will pick up the order at Acebedo Panol Optical.
                     </p>
                   </button>
-
                   <button
                     type="button"
                     onClick={() => setFulfillmentMethod("delivery")}
@@ -140,25 +154,29 @@ export default function CheckoutPage() {
                   <h2 className="text-xl font-semibold text-[#212529] mb-4">
                     Delivery Address
                   </h2>
-
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Complete Address
                       </label>
                       <textarea
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
                         rows="4"
                         placeholder="House no., street, barangay, city, province"
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D32F2F]"
                       ></textarea>
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Notes for Delivery
                       </label>
                       <input
                         type="text"
+                        name="deliveryNotes"
+                        value={formData.deliveryNotes}
+                        onChange={handleInputChange}
                         placeholder="Optional delivery instruction"
                         className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#D32F2F]"
                       />
@@ -168,21 +186,19 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            {/* Order Summary */}
+            {/* Order Summary - using selected items */}
             <aside className="bg-gray-50 p-6 rounded-xl h-fit border border-gray-200">
               <h2 className="text-xl font-semibold text-[#212529] mb-4">
                 Order Summary
               </h2>
-
-              <div className="space-y-4 mb-4">
-                {cartItems.map((item, index) => {
+              <div className="space-y-4 mb-4 max-h-80 overflow-y-auto">
+                {selectedItems.map((item, idx) => {
                   const selectedOptions = item.selectedOptions || {};
                   const coatings = selectedOptions.coatings || [];
                   const itemTotal = Number(item.price || 0) * item.quantity;
-
                   return (
                     <div
-                      key={`${item.id}-${index}`}
+                      key={`${item.id}-${idx}`}
                       className="flex gap-3 border-b border-gray-200 pb-4"
                     >
                       <img
@@ -190,28 +206,23 @@ export default function CheckoutPage() {
                         alt={item.name}
                         className="w-16 h-16 object-cover rounded-lg"
                       />
-
                       <div className="flex-1">
                         <p className="font-semibold text-sm text-[#212529]">
                           {item.name}
                         </p>
-
                         <p className="text-xs text-gray-500">
                           Qty: {item.quantity}
                         </p>
-
                         {selectedOptions.color && (
                           <p className="text-xs text-gray-500">
                             Color: {selectedOptions.color}
                           </p>
                         )}
-
                         {coatings.length > 0 && (
                           <p className="text-xs text-gray-500">
                             Coating: {coatings.join(", ")}
                           </p>
                         )}
-
                         <p className="text-sm font-semibold text-[#D32F2F] mt-1">
                           {formatPrice(itemTotal)}
                         </p>
@@ -226,12 +237,11 @@ export default function CheckoutPage() {
                   <span>Subtotal ({totalItems} items)</span>
                   <span>{formatPrice(subtotal)}</span>
                 </div>
-
                 <div className="flex justify-between text-gray-500">
                   <span>Shipping</span>
                   <span>
                     {fulfillmentMethod === "pickup"
-                      ? "Pickup"
+                      ? "Pickup (Free)"
                       : "To be calculated"}
                   </span>
                 </div>
@@ -240,20 +250,17 @@ export default function CheckoutPage() {
               <div className="border-t border-gray-200 mt-4 pt-4">
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>{formatPrice(total)}</span>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() =>
-                  alert("Order saving to Supabase will be added next.")
-                }
+                onClick={handlePlaceOrder}
                 className="w-full mt-6 bg-[#D32F2F] text-white py-3 rounded-lg hover:bg-[#B71C1C] transition font-semibold"
               >
                 Place Order
               </button>
-
               <Link
                 to="/cart"
                 className="block text-center text-[#D32F2F] mt-3 text-sm hover:underline"
@@ -264,7 +271,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </main>
-
       <Footer />
     </>
   );
