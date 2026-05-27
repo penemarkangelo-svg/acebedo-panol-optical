@@ -234,7 +234,7 @@ export default function CartPage() {
                   }}
                   className="block text-center bg-[#D32F2F] text-white py-3 rounded-lg hover:bg-[#B71C1C] transition font-semibold mt-4"
                 >
-                  Proceed to Checkout ({selectedTotalQuantity} items)
+                  Proceed to Checkout
                 </Link>
               ) : (
                 <button

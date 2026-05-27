@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link} from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
@@ -10,19 +10,36 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
- const handleSubmit = async (e) => {
-   e.preventDefault();
-   const { data, error } = await supabase.auth.signInWithPassword({
-     email: email,
-     password: password,
-   });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
     if (error) {
       alert(error.message);
     } else {
-      // Redirect to main page after successful login
-      navigate("/main");
+      // After login, check user role
+      const { data: roleData, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", data.user.id)
+        .maybeSingle();
+
+      if (roleError) {
+        console.error(roleError);
+        navigate("/main");
+        return;
+      }
+
+      if (roleData?.role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/main");
+      }
     }
- };
+  };
+
   const handleGuestLogin = () => {
     navigate("/main");
   };
@@ -53,7 +70,6 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-[#212529] mb-1">
                   Email address
@@ -67,8 +83,6 @@ export default function LoginPage() {
                   required
                 />
               </div>
-
-              {/* Password */}
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="block text-sm font-medium text-[#212529]">
@@ -90,8 +104,6 @@ export default function LoginPage() {
                   required
                 />
               </div>
-
-              {/* Login Button */}
               <button
                 type="submit"
                 className="w-full bg-[#D32F2F] text-white py-2 rounded-lg font-semibold hover:bg-[#B71C1C] transition shadow-md"
@@ -100,14 +112,12 @@ export default function LoginPage() {
               </button>
             </form>
 
-            {/* Divider */}
             <div className="flex items-center my-6">
               <div className="flex-1 border-t border-gray-300"></div>
               <span className="px-3 text-[#212529]/50 text-sm">or</span>
               <div className="flex-1 border-t border-gray-300"></div>
             </div>
 
-            {/* Guest Button */}
             <button
               onClick={handleGuestLogin}
               className="w-full border border-gray-300 text-[#212529] py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
@@ -119,7 +129,6 @@ export default function LoginPage() {
               test.
             </p>
 
-            {/* Sign Up Link */}
             <p className="text-center text-sm text-[#212529]/70 mt-6">
               Don't have an account?{" "}
               <Link

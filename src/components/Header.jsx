@@ -5,10 +5,11 @@ import { useCart } from "../context/CartContext";
 import logoSvg from "../assets/logo.svg";
 
 export default function Header() {
-  const { totalItems } = useCart();
+  const { totalItems, resetCartOnLogout } = useCart(); // Destructured our reset handler here
   const { user, signOut } = useAuth();
   const location = useLocation();
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isAuthPage =
+    location.pathname === "/login" || location.pathname === "/register";
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
@@ -24,9 +25,19 @@ export default function Header() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut();
-    navigate("/");
-    setDropdownOpen(false);
+    try {
+      // 1. Instantly reset the cart state back to clean local storage guest defaults
+      resetCartOnLogout();
+
+      // 2. Clear out the database token credentials
+      await signOut();
+
+      // 3. Clear menu UI and gracefully drop back to landing
+      setDropdownOpen(false);
+      navigate("/");
+    } catch (error) {
+      console.error("Error during structural logout sequence:", error);
+    }
   };
 
   // Get user's first name or fallback
@@ -36,7 +47,7 @@ export default function Header() {
     "User";
 
   return (
-    <header className=" sticky top-0 z-50 w-full bg-white px-8 py-4 shadow-s border-b border-gray-200 flex items-center justify-between">
+    <header className="sticky top-0 z-50 w-full bg-white px-8 py-4 shadow-sm border-b border-gray-200 flex items-center justify-between">
       {/* Logo + Brand Name */}
       <Link to="/" className="flex items-center gap-3">
         <img
@@ -67,7 +78,7 @@ export default function Header() {
                 Home
               </Link>
               <Link
-                to="/main"
+                to="/shop" // Synchronized to match the secure user routing path
                 className="text-[#212529] hover:text-[#D32F2F] transition-colors"
               >
                 Shop Frames
@@ -131,7 +142,7 @@ export default function Header() {
               <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-[#D32F2F] text-[8px] text-white">
                 {totalItems}
               </span>
-            )}  
+            )}
           </Link>
         )}
 

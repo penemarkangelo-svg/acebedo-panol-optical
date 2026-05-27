@@ -15,7 +15,8 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedCoatings, setSelectedCoatings] = useState([]); // store full objects
+  const [selectedCoatings, setSelectedCoatings] = useState([]);
+  const [mainImage, setMainImage] = useState(""); // for gallery
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -40,13 +41,20 @@ export default function ProductDetailPage() {
         navigate("/shop");
       } else {
         setProduct(data);
+        // Set main image: primary or first
+        const primary = data.product_images?.find((img) => img.is_primary);
+        setMainImage(
+          primary?.image_url ||
+            data.product_images?.[0]?.image_url ||
+            "https://placehold.co/600x400?text=No+Image",
+        );
       }
       setLoading(false);
     };
     fetchProduct();
   }, [id, navigate]);
 
-  // Fetch lens coatings (include additional_price)
+  // Fetch lens coatings
   useEffect(() => {
     const fetchCoatings = async () => {
       const { data, error } = await supabase
@@ -56,7 +64,6 @@ export default function ProductDetailPage() {
         .order("name");
       if (!error && data) setCoatings(data);
       else {
-        // fallback
         setCoatings([
           {
             name: "Blue-block",
@@ -91,21 +98,13 @@ export default function ProductDetailPage() {
   }
   if (!product) return null;
 
-  const primaryImage =
-    product.product_images?.find((img) => img.is_primary)?.image_url ||
-    product.product_images?.[0]?.image_url ||
-    "https://placehold.co/600x400?text=No+Image";
-
   const brandName = product.brands?.name || "No brand";
   const shapeName = product.frame_shape?.name || "Shape not specified";
   const materialName = product.frame_material?.name || "Material not specified";
   const availableColors = product.product_colors || [];
 
-  // Get stock for selected color
   const selectedColorStock = selectedColor?.stock || 0;
   const totalStock = product.stock || 0;
-
-  // Determine max quantity (use color stock if selected, else global stock)
   const maxQuantity = selectedColor ? selectedColorStock : totalStock;
   const canAddToCart =
     selectedColor !== null && maxQuantity > 0 && quantity <= maxQuantity;
@@ -144,7 +143,6 @@ export default function ProductDetailPage() {
       return;
     }
 
-    // Calculate total price including coatings
     const coatingExtra = selectedCoatings.reduce(
       (sum, coating) => sum + (Number(coating.additional_price) || 0),
       0,
@@ -156,7 +154,7 @@ export default function ProductDetailPage() {
         id: product.id,
         name: product.name,
         price: finalUnitPrice,
-        image: primaryImage,
+        image: mainImage, // use current main image as cart thumbnail
         brand: brandName,
         shape: shapeName,
         material: materialName,
@@ -202,14 +200,38 @@ export default function ProductDetailPage() {
               </svg>
             </button>
           </div>
+
           <div className="grid md:grid-cols-2 gap-12">
-            {/* Left: Image */}
+            {/* Left: Image Gallery */}
             <div>
-              <img
-                src={primaryImage}
-                alt={product.name}
-                className="w-full rounded-2xl shadow-md"
-              />
+              <div className="w-full aspect-[4/3] rounded-2xl shadow-md overflow-hidden mb-4">
+                <img
+                  src={mainImage}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {product.product_images && product.product_images.length > 1 && (
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {product.product_images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setMainImage(img.image_url)}
+                      className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 ${
+                        mainImage === img.image_url
+                          ? "border-[#D32F2F]"
+                          : "border-gray-200"
+                      }`}
+                    >
+                      <img
+                        src={img.image_url}
+                        alt={`${product.name} view ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right: Details */}
@@ -237,7 +259,6 @@ export default function ProductDetailPage() {
                 )}
               </div>
 
-              {/* Overall stock indicator */}
               <div className="mt-3">
                 <span
                   className={`text-xs px-3 py-1 rounded-full ${
@@ -250,7 +271,6 @@ export default function ProductDetailPage() {
                 </span>
               </div>
 
-              {/* Color selection (with individual stock) */}
               {availableColors.length > 0 && (
                 <div className="mt-6">
                   <label className="block text-sm font-medium text-[#212529] mb-2">
@@ -292,7 +312,6 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Lens coatings (with price shown) */}
               <div className="mt-6">
                 <label className="block text-sm font-medium text-[#212529] mb-2">
                   Lens Coating
@@ -302,7 +321,7 @@ export default function ProductDetailPage() {
                     <button
                       key={coating.name}
                       onClick={() => handleCoatingToggle(coating)}
-                      className={`px-4 py-2 rounded-full border text-sm transition ${
+                      className={`px-4 py-2 rounded-lg border text-sm transition ${
                         selectedCoatings.some((c) => c.name === coating.name)
                           ? "bg-[#D32F2F] text-white border-[#D32F2F]"
                           : "border-gray-300 text-gray-700 hover:border-[#D32F2F]"
@@ -314,7 +333,6 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Quantity */}
               <div className="mt-6">
                 <label className="block text-sm font-medium text-[#212529] mb-2">
                   Quantity
@@ -346,17 +364,30 @@ export default function ProductDetailPage() {
                 )}
               </div>
 
-              {/* Action buttons */}
               <div className="mt-8 flex flex-wrap gap-4">
                 <button
                   onClick={handleAddToCart}
                   disabled={!canAddToCart}
-                  className={`px-8 py-3 rounded-lg font-semibold transition shadow-md ${
+                  className={`flex items-center gap-2 px-20 py-3 rounded-lg font-semibold transition shadow-md ${
                     canAddToCart
                       ? "bg-[#D32F2F] text-white hover:bg-[#B71C1C]"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
                 >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    className="w-6 h-6"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"
+                    />
+                  </svg>
                   Add to Cart
                 </button>
                 <button
@@ -367,7 +398,6 @@ export default function ProductDetailPage() {
                 </button>
               </div>
 
-              {/* Description */}
               <div className="mt-8 border-t pt-6">
                 <h3 className="text-lg font-semibold text-[#212529] mb-2">
                   Description
