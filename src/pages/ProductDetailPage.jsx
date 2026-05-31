@@ -1,23 +1,262 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useCart } from "../context/CartContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
+// ----- Static package list (names, descriptions, lensType) – prices are overridden by DB -----
+const ALL_PACKAGES = [
+  // Single Vision (SV)
+  {
+    id: "sv_ord",
+    lensType: "sv",
+    displayName: "Single Vision + Clear Basic (ORD)",
+    description: "Standard clear single vision lens.",
+    price: 500,
+  },
+  {
+    id: "sv_mc",
+    lensType: "sv",
+    displayName: "Single Vision + Anti‑Glare (MC)",
+    description: "Multi‑coated anti‑reflective.",
+    price: 1000,
+  },
+  {
+    id: "sv_bb",
+    lensType: "sv",
+    displayName: "Single Vision + Screen Shield (BB)",
+    description: "Blue‑light blocking.",
+    price: 2500,
+  },
+  {
+    id: "sv_trg",
+    lensType: "sv",
+    displayName: "Single Vision + Sun‑Adaptive (TRG)",
+    description: "Photochromic transitions.",
+    price: 2500,
+  },
+  {
+    id: "sv_bb_trg",
+    lensType: "sv",
+    displayName: "Single Vision + Ultimate Dual Shield",
+    description: "BB + photochromic combo.",
+    price: 4500,
+  },
+
+  // Kryptok Bifocal (KK)
+  {
+    id: "kk_ord",
+    lensType: "kk",
+    displayName: "Kryptok Bifocal + Clear Basic",
+    description: "Visible round segment.",
+    price: 500,
+  },
+  {
+    id: "kk_mc",
+    lensType: "kk",
+    displayName: "Kryptok Bifocal + Anti‑Glare",
+    description: "Multi‑coated bifocal.",
+    price: 700,
+  },
+  {
+    id: "kk_bb",
+    lensType: "kk",
+    displayName: "Kryptok Bifocal + Screen Shield",
+    description: "Blue‑block bifocal.",
+    price: 3000,
+  },
+  {
+    id: "kk_trg",
+    lensType: "kk",
+    displayName: "Kryptok Bifocal + Sun‑Adaptive",
+    description: "Photochromic bifocal.",
+    price: 2500,
+  },
+  {
+    id: "kk_bb_trg",
+    lensType: "kk",
+    displayName: "Kryptok Bifocal + Ultimate Dual Shield",
+    description: "BB + photochromic bifocal.",
+    price: 5000,
+  },
+
+  // Flat-Top Bifocal (FT)
+  {
+    id: "ft_ord",
+    lensType: "ft",
+    displayName: "Flat-Top Bifocal + Clear Basic",
+    description: "Straight‑line reading split.",
+    price: 1500,
+  },
+  {
+    id: "ft_mc",
+    lensType: "ft",
+    displayName: "Flat-Top Bifocal + Anti‑Glare",
+    description: "Multi‑coated flat‑top.",
+    price: 2000,
+  },
+  {
+    id: "ft_bb",
+    lensType: "ft",
+    displayName: "Flat-Top Bifocal + Screen Shield",
+    description: "Blue‑block flat‑top.",
+    price: 4000,
+  },
+  {
+    id: "ft_trg",
+    lensType: "ft",
+    displayName: "Flat-Top Bifocal + Sun‑Adaptive",
+    description: "Photochromic flat‑top.",
+    price: 4000,
+  },
+  {
+    id: "ft_bb_trg",
+    lensType: "ft",
+    displayName: "Flat-Top Bifocal + Ultimate Dual Shield",
+    description: "BB + photochromic flat‑top.",
+    price: 6500,
+  },
+
+  // Progressive (PROG)
+  {
+    id: "prog_ord",
+    lensType: "prog",
+    displayName: "Progressive + Clear Basic",
+    description: "No‑line multifocal.",
+    price: 2500,
+  },
+  {
+    id: "prog_mc",
+    lensType: "prog",
+    displayName: "Progressive + Anti‑Glare",
+    description: "Multi‑coated progressive.",
+    price: 3000,
+  },
+  {
+    id: "prog_bb",
+    lensType: "prog",
+    displayName: "Progressive + Screen Shield",
+    description: "Blue‑block progressive.",
+    price: 5000,
+  },
+  {
+    id: "prog_trg",
+    lensType: "prog",
+    displayName: "Progressive + Sun‑Adaptive",
+    description: "Photochromic progressive.",
+    price: 5000,
+  },
+  {
+    id: "prog_bb_trg",
+    lensType: "prog",
+    displayName: "Progressive + Ultimate Dual Shield",
+    description: "BB + photochromic progressive.",
+    price: 6500,
+  },
+
+  // Ultra Thin 1.61 (SV_161)
+  {
+    id: "sv161_ord",
+    lensType: "sv_161",
+    displayName: "Ultra Thin 1.61 + Clear Basic",
+    description: "High‑index single vision.",
+    price: 1500,
+  },
+  {
+    id: "sv161_mc",
+    lensType: "sv_161",
+    displayName: "Ultra Thin 1.61 + Anti‑Glare",
+    description: "Multi‑coated high‑index.",
+    price: 2000,
+  },
+  {
+    id: "sv161_bb",
+    lensType: "sv_161",
+    displayName: "Ultra Thin 1.61 + Screen Shield",
+    description: "Blue‑block high‑index.",
+    price: 4000,
+  },
+  {
+    id: "sv161_trg",
+    lensType: "sv_161",
+    displayName: "Ultra Thin 1.61 + Sun‑Adaptive",
+    description: "Photochromic high‑index.",
+    price: 4000,
+  },
+  {
+    id: "sv161_bb_trg",
+    lensType: "sv_161",
+    displayName: "Ultra Thin 1.61 + Ultimate Dual Shield",
+    description: "BB + photochromic high‑index.",
+    price: 6000,
+  },
+
+  // Super Thin 1.67 (SV_167)
+  {
+    id: "sv167_ord",
+    lensType: "sv_167",
+    displayName: "Super Thin 1.67 + Clear Basic",
+    description: "Extra high‑index.",
+    price: 2000,
+  },
+  {
+    id: "sv167_mc",
+    lensType: "sv_167",
+    displayName: "Super Thin 1.67 + Anti‑Glare",
+    description: "Multi‑coated super thin.",
+    price: 2500,
+  },
+  {
+    id: "sv167_bb",
+    lensType: "sv_167",
+    displayName: "Super Thin 1.67 + Screen Shield",
+    description: "Blue‑block super thin.",
+    price: 4500,
+  },
+  {
+    id: "sv167_trg",
+    lensType: "sv_167",
+    displayName: "Super Thin 1.67 + Sun‑Adaptive",
+    description: "Photochromic super thin.",
+    price: 4500,
+  },
+  {
+    id: "sv167_bb_trg",
+    lensType: "sv_167",
+    displayName: "Super Thin 1.67 + Ultimate Dual Shield",
+    description: "BB + photochromic super thin.",
+    price: 6500,
+  },
+];
+
 export default function ProductDetailPage() {
   const { addToCart } = useCart();
   const { id } = useParams();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
 
+  // Common state
   const [product, setProduct] = useState(null);
-  const [coatings, setCoatings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(null);
-  const [selectedCoatings, setSelectedCoatings] = useState([]);
-  const [mainImage, setMainImage] = useState(""); // for gallery
+  const [mainImage, setMainImage] = useState("");
 
+  // Frame-specific state
+  const [visionMode, setVisionMode] = useState("plano");
+  const [selectedPackageId, setSelectedPackageId] = useState(null);
+  const [rx, setRx] = useState({
+    odSphere: "0.00",
+    odCylinder: "0.00",
+    odAxis: "0",
+    osSphere: "0.00",
+    osCylinder: "0.00",
+    osAxis: "0",
+    pd: "64",
+  });
+  const [dynamicPrices, setDynamicPrices] = useState({});
+
+  // Fetch product data
   useEffect(() => {
     const fetchProduct = async () => {
       setLoading(true);
@@ -26,22 +265,20 @@ export default function ProductDetailPage() {
         .select(
           `
           *,
-          brands (id, name),
-          frame_shape:frame_shapes (id, name),
-          frame_material:frame_materials (id, name),
+          brands (name),
+          frame_shape:frame_shapes (name),
+          frame_material:frame_materials (name),
           product_images (image_url, is_primary),
           product_colors (id, color_name, color_code, stock)
         `,
         )
         .eq("id", id)
         .single();
-
       if (error) {
-        console.error("Product detail error:", error);
+        console.error(error);
         navigate("/shop");
       } else {
         setProduct(data);
-        // Set main image: primary or first
         const primary = data.product_images?.find((img) => img.is_primary);
         setMainImage(
           primary?.image_url ||
@@ -54,37 +291,39 @@ export default function ProductDetailPage() {
     fetchProduct();
   }, [id, navigate]);
 
-  // Fetch lens coatings
+  // Fetch dynamic lens prices (only used for frames)
   useEffect(() => {
-    const fetchCoatings = async () => {
+    const fetchPrices = async () => {
       const { data, error } = await supabase
-        .from("lens_coatings")
-        .select("name, additional_price, description")
-        .eq("is_available", true)
-        .order("name");
-      if (!error && data) setCoatings(data);
-      else {
-        setCoatings([
-          {
-            name: "Blue-block",
-            additional_price: 500,
-            description: "Helps reduce blue light",
-          },
-          {
-            name: "Anti-reflective",
-            additional_price: 300,
-            description: "Reduces glare",
-          },
-          {
-            name: "Photochromic",
-            additional_price: 1000,
-            description: "Darkens outdoors",
-          },
-        ]);
+        .from("lens_pricing_matrix")
+        .select("lens_type_id, coating_id, price");
+      if (error) {
+        console.error("Failed to fetch lens prices:", error);
+        return;
       }
+      const priceMap = {};
+      data.forEach((row) => {
+        const pkgId = `${row.lens_type_id}_${row.coating_id}`;
+        priceMap[pkgId] = row.price;
+      });
+      setDynamicPrices(priceMap);
     };
-    fetchCoatings();
+    fetchPrices();
   }, []);
+
+  // Build available packages for frames (using dynamic prices)
+  const availablePackages = useMemo(() => {
+    if (!product || product.type !== "frame") return [];
+    let filtered = ALL_PACKAGES;
+    if (visionMode === "plano") {
+      filtered = ALL_PACKAGES.filter((pkg) => pkg.lensType === "sv");
+    }
+    return filtered.map((pkg) => ({
+      ...pkg,
+      price:
+        dynamicPrices[pkg.id] !== undefined ? dynamicPrices[pkg.id] : pkg.price,
+    }));
+  }, [product, visionMode, dynamicPrices]);
 
   if (loading) {
     return (
@@ -98,134 +337,216 @@ export default function ProductDetailPage() {
   }
   if (!product) return null;
 
-  const brandName = product.brands?.name || "No brand";
-  const shapeName = product.frame_shape?.name || "Shape not specified";
-  const materialName = product.frame_material?.name || "Material not specified";
-  const availableColors = product.product_colors || [];
-
-  const selectedColorStock = selectedColor?.stock || 0;
-  const totalStock = product.stock || 0;
-  const maxQuantity = selectedColor ? selectedColorStock : totalStock;
-  const canAddToCart =
-    selectedColor !== null && maxQuantity > 0 && quantity <= maxQuantity;
-
-  const handleColorSelect = (color) => {
-    setSelectedColor(color);
-    setQuantity(1);
-  };
-
-  const handleQuantityChange = (delta) => {
-    const newQty = quantity + delta;
-    if (newQty >= 1 && newQty <= Math.min(maxQuantity, 99)) {
-      setQuantity(newQty);
-    }
-  };
-
-  const handleCoatingToggle = (coating) => {
-    setSelectedCoatings((prev) =>
-      prev.some((c) => c.name === coating.name)
-        ? prev.filter((c) => c.name !== coating.name)
-        : [...prev, coating],
-    );
-  };
-
+  // Helper: Add to cart (unified for frames and accessories)
   const handleAddToCart = () => {
-    if (!selectedColor) {
-      alert("Please select a color first.");
-      return;
-    }
-    if (selectedColorStock <= 0) {
-      alert(`Selected color "${selectedColor.color_name}" is out of stock.`);
-      return;
-    }
-    if (quantity > selectedColorStock) {
-      alert(`Only ${selectedColorStock} items available for this color.`);
-      return;
-    }
-
-    const coatingExtra = selectedCoatings.reduce(
-      (sum, coating) => sum + (Number(coating.additional_price) || 0),
-      0,
-    );
-    const finalUnitPrice = product.price + coatingExtra;
-
-    addToCart(
-      {
-        id: product.id,
-        name: product.name,
-        price: finalUnitPrice,
-        image: mainImage, // use current main image as cart thumbnail
-        brand: brandName,
-        shape: shapeName,
-        material: materialName,
-      },
-      quantity,
-      {
+    if (product.type === "accessory") {
+      if (quantity > product.stock)
+        return alert(`Only ${product.stock} available.`);
+      addToCart(
+        {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: mainImage,
+          brand: "Accessory",
+          shape: "",
+          material: "",
+        },
+        quantity,
+        { type: "accessory" },
+      );
+      alert("Added to cart!");
+    } else {
+      // Frame
+      if (!selectedColor) return alert("Please select a frame color.");
+      if (!selectedPackageId) return alert("Please select a lens package.");
+      const selectedPackage = availablePackages.find(
+        (p) => p.id === selectedPackageId,
+      );
+      if (!selectedPackage) return alert("Invalid lens package.");
+      const lensExtra = selectedPackage.price;
+      const finalPrice = product.price + lensExtra;
+      if (quantity > (selectedColor.stock || 0))
+        return alert("Not enough stock for this color.");
+      if (visionMode === "prescription_form") {
+        if (!rx.odSphere.trim() || !rx.osSphere.trim() || !rx.pd.trim())
+          return alert("Please fill in Sphere (both eyes) and PD.");
+        if (isNaN(parseFloat(rx.odSphere)) || isNaN(parseFloat(rx.osSphere)))
+          return alert("Sphere values must be numbers.");
+      }
+      const config = {
         color: selectedColor.color_name,
         colorHex: selectedColor.color_code,
-        coatings: selectedCoatings.map((c) => c.name),
-        coatingExtra: coatingExtra,
-      },
-    );
-    alert("Added to cart!");
+        visionMode:
+          visionMode === "plano"
+            ? "Plano"
+            : visionMode === "prescription_form"
+              ? "Manual Rx"
+              : "AI Screening",
+        lensPackage: selectedPackage.displayName,
+        lensExtraCharge: lensExtra,
+        prescription: visionMode !== "plano" ? rx : null,
+      };
+      addToCart(
+        {
+          id: product.id,
+          name: product.name,
+          price: finalPrice,
+          image: mainImage,
+          brand: product.brands?.name,
+          shape: product.frame_shape?.name,
+          material: product.frame_material?.name,
+        },
+        quantity,
+        config,
+      );
+      alert("Added to cart!");
+    }
   };
 
-  const handleTryOn = () => {
-    alert("AR Try-on coming soon");
-  };
-
-  return (
-    <>
-      <Header />
-      <main className="bg-white py-12 px-6 md:px-12 lg:px-20">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-4">
+  // ========== ACCESSORY VIEW ==========
+  if (product.type === "accessory") {
+    const stock = product.stock || 0;
+    return (
+      <>
+        <Header />
+        <main className="bg-white py-12 px-6 md:px-12 lg:px-20">
+          <div className="max-w-4xl mx-auto">
             <button
               onClick={() => navigate(-1)}
-              className="text-[#212529] hover:text-[#D32F2F] transition"
+              className="mb-6 text-gray-500 hover:text-[#D32F2F] transition"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                className="size-10"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="m11.25 9-3 3m0 0 3 3m-3-3h7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-              </svg>
+              ← Back
             </button>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-12">
-            {/* Left: Image Gallery */}
-            <div>
-              <div className="w-full aspect-[4/3] rounded-2xl shadow-md overflow-hidden mb-4">
+            <div className="grid md:grid-cols-2 gap-12">
+              <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-md">
                 <img
                   src={mainImage}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />
               </div>
-              {product.product_images && product.product_images.length > 1 && (
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {product.product_images.map((img, idx) => (
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold text-[#212529]">
+                  {product.name}
+                </h1>
+                <p className="text-gray-500 mt-2">{product.description}</p>
+                <div className="mt-4">
+                  <span className="text-3xl font-black text-[#D32F2F]">
+                    ₱{product.price.toFixed(2)}
+                  </span>
+                </div>
+                <div className="mt-3">
+                  <span
+                    className={`text-sm px-3 py-1 rounded-full ${stock > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                  >
+                    {stock > 0 ? `In stock (${stock})` : "Out of stock"}
+                  </span>
+                </div>
+                <div className="mt-6">
+                  <label className="block text-sm font-semibold text-[#212529] mb-2">
+                    Quantity
+                  </label>
+                  <div className="flex items-center border border-gray-300 rounded-md w-fit">
                     <button
-                      key={idx}
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                    >
+                      -
+                    </button>
+                    <span className="px-4 py-1 min-w-[40px] text-center font-medium">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => setQuantity((q) => Math.min(stock, q + 1))}
+                      className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!stock || quantity > stock}
+                  className={`mt-8 w-full py-3 rounded-lg font-semibold transition shadow-md ${!stock || quantity > stock ? "bg-gray-300 cursor-not-allowed" : "bg-[#D32F2F] text-white hover:bg-[#B71C1C]"}`}
+                >
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  // ========== FRAME VIEW (FULL CONFIGURATOR) ==========
+  const stock = selectedColor ? selectedColor.stock : product.stock;
+  const selectedPackage = selectedPackageId
+    ? availablePackages.find((p) => p.id === selectedPackageId)
+    : null;
+  const lensExtra = selectedPackage?.price || 0;
+  const finalPrice = product.price + lensExtra;
+  const canAddToCart =
+    selectedColor !== null &&
+    selectedPackageId !== null &&
+    stock > 0 &&
+    quantity <= stock;
+
+  const handleColorToggle = (color) => {
+    if (selectedColor?.id === color.id) {
+      setSelectedColor(null);
+    } else {
+      setSelectedColor(color);
+      setQuantity(1);
+    }
+  };
+
+  const handlePackageToggle = (pkgId) => {
+    if (selectedPackageId === pkgId) {
+      setSelectedPackageId(null);
+    } else {
+      setSelectedPackageId(pkgId);
+    }
+  };
+
+  const handleRxChange = (e) =>
+    setRx((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+
+  return (
+    <>
+      <Header />
+      <main className="bg-white py-12 px-6 md:px-12 lg:px-20">
+        <div className="max-w-7xl mx-auto">
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-6 text-gray-500 hover:text-[#D32F2F] transition text-sm"
+          >
+            ← Back
+          </button>
+
+          <div className="grid lg:grid-cols-2 gap-12">
+            {/* LEFT COLUMN – IMAGE GALLERY */}
+            <div>
+              <div className="w-full aspect-[4/3] rounded-2xl overflow-hidden bg-gray-100 shadow-md">
+                <img
+                  src={mainImage}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {product.product_images?.length > 1 && (
+                <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
+                  {product.product_images.map((img, i) => (
+                    <button
+                      key={i}
                       onClick={() => setMainImage(img.image_url)}
-                      className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 ${
-                        mainImage === img.image_url
-                          ? "border-[#D32F2F]"
-                          : "border-gray-200"
-                      }`}
+                      className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 ${mainImage === img.image_url ? "border-[#D32F2F]" : "border-gray-200"}`}
                     >
                       <img
                         src={img.image_url}
-                        alt={`${product.name} view ${idx + 1}`}
+                        alt=""
                         className="w-full h-full object-cover"
                       />
                     </button>
@@ -234,177 +555,266 @@ export default function ProductDetailPage() {
               )}
             </div>
 
-            {/* Right: Details */}
-            <div>
-              {product.is_new && (
-                <span className="inline-block bg-[#D32F2F] text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                  New Arrival
-                </span>
-              )}
-              <h1 className="text-3xl md:text-4xl font-bold text-[#212529]">
-                {product.name}
-              </h1>
-              <p className="text-gray-500 mt-1">
-                {brandName} · {shapeName} · {materialName}
-              </p>
-
-              <div className="mt-4">
-                <span className="text-3xl font-bold text-[#D32F2F]">
-                  ₱{Number(product.price).toFixed(2)}
-                </span>
-                {product.old_price && (
-                  <span className="ml-2 text-gray-400 line-through">
-                    ₱{Number(product.old_price).toFixed(2)}
+            {/* RIGHT COLUMN – CONFIGURATOR */}
+            <div className="space-y-6">
+              <div>
+                {product.is_new && (
+                  <span className="inline-block bg-[#D32F2F] text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">
+                    New Arrival
                   </span>
                 )}
-              </div>
-
-              <div className="mt-3">
-                <span
-                  className={`text-xs px-3 py-1 rounded-full ${
-                    totalStock > 0
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-700"
-                  }`}
-                >
-                  {totalStock > 0 ? `In stock (${totalStock})` : "Out of stock"}
-                </span>
-              </div>
-
-              {availableColors.length > 0 && (
-                <div className="mt-6">
-                  <label className="block text-sm font-medium text-[#212529] mb-2">
-                    Color
-                  </label>
-                  <div className="flex flex-wrap gap-3">
-                    {availableColors.map((color) => {
-                      const colorStock = color.stock || 0;
-                      const isSelected = selectedColor?.id === color.id;
-                      return (
-                        <button
-                          key={color.id}
-                          onClick={() => handleColorSelect(color)}
-                          disabled={colorStock <= 0}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm transition ${
-                            isSelected
-                              ? "border-[#D32F2F] ring-2 ring-[#D32F2F]/30"
-                              : "border-gray-300 hover:border-[#D32F2F]"
-                          } ${colorStock <= 0 ? "opacity-50 cursor-not-allowed bg-gray-100" : ""}`}
-                        >
-                          <span
-                            className="w-4 h-4 rounded-full border border-gray-300"
-                            style={{
-                              backgroundColor: color.color_code || "#ccc",
-                            }}
-                          />
-                          {color.color_name}
-                          {colorStock <= 0 && " (Out of stock)"}
-                        </button>
-                      );
-                    })}
+                <div className="flex items-center gap-2 mb-2">
+                  <h1 className="text-3xl md:text-4xl font-bold text-[#212529]">
+                    {product.name}
+                  </h1>
+                  <div className="mt-2">
+                    <span
+                      className={`text-sm px-3 py-1 rounded-full ${stock > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
+                    >
+                      {stock > 0 ? `In stock (${stock})` : "Out of stock"}
+                    </span>
                   </div>
-                  {selectedColor && (
-                    <p className="text-xs text-gray-500 mt-2">
-                      {selectedColor.color_name} stock: {selectedColorStock}{" "}
-                      available
-                    </p>
+                </div>
+                <p className="text-gray-500 mt-1">
+                  {product.brands?.name} · {product.frame_shape?.name} ·{" "}
+                  {product.frame_material?.name}
+                </p>
+              </div>
+
+              <div className="border-b border-gray-200 pb-4">
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl font-black text-[#D32F2F]">
+                    ₱{finalPrice.toFixed(2)}
+                  </span>
+                  {lensExtra > 0 && (
+                    <span className="text-sm text-gray-500">
+                      (+₱{lensExtra} lens package)
+                    </span>
                   )}
                 </div>
-              )}
-
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-[#212529] mb-2">
-                  Lens Coating
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  {coatings.map((coating) => (
-                    <button
-                      key={coating.name}
-                      onClick={() => handleCoatingToggle(coating)}
-                      className={`px-4 py-2 rounded-lg border text-sm transition ${
-                        selectedCoatings.some((c) => c.name === coating.name)
-                          ? "bg-[#D32F2F] text-white border-[#D32F2F]"
-                          : "border-gray-300 text-gray-700 hover:border-[#D32F2F]"
-                      }`}
-                    >
-                      {coating.name}
-                    </button>
-                  ))}
-                </div>
               </div>
 
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-[#212529] mb-2">
-                  Quantity
+              {/* Color selection (toggle) */}
+              <div>
+                <label className="block text-sm font-semibold text-[#212529] mb-2">
+                  Frame Color
                 </label>
-                <div className="flex items-center border border-gray-300 rounded-md overflow-hidden w-fit">
-                  <button
-                    onClick={() => handleQuantityChange(-1)}
-                    disabled={quantity <= 1}
-                    className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-                  >
-                    -
-                  </button>
-                  <span className="px-3 py-1 min-w-[40px] text-center font-medium">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() => handleQuantityChange(1)}
-                    disabled={quantity >= Math.min(maxQuantity, 99)}
-                    className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-                  >
-                    +
-                  </button>
+                <div className="flex flex-wrap gap-2">
+                  {product.product_colors?.map((color) => {
+                    const isSelected = selectedColor?.id === color.id;
+                    const outOfStock = color.stock <= 0;
+                    return (
+                      <button
+                        key={color.id}
+                        onClick={() => handleColorToggle(color)}
+                        disabled={outOfStock}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm transition ${
+                          isSelected
+                            ? "border-[#D32F2F] bg-[#D32F2F]/10 ring-1 ring-[#D32F2F]"
+                            : "border-gray-300 hover:border-[#D32F2F]"
+                        } ${outOfStock ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
+                        <span
+                          className="w-4 h-4 rounded-full border border-gray-300"
+                          style={{
+                            backgroundColor: color.color_code || "#ccc",
+                          }}
+                        />
+                        {color.color_name}
+                        {outOfStock && " (Out of stock)"}
+                      </button>
+                    );
+                  })}
                 </div>
-                {selectedColor && (
+                {!selectedColor && product.product_colors?.length > 0 && (
                   <p className="text-xs text-gray-500 mt-2">
-                    Max quantity for {selectedColor.color_name}:{" "}
-                    {selectedColorStock}
+                    Please select a frame color.
                   </p>
                 )}
               </div>
 
-              <div className="mt-8 flex flex-wrap gap-4">
+              {/* 3‑way vision mode selector */}
+              <div>
+                <label className="block text-sm font-semibold text-[#212529] mb-2">
+                  Vision Mode
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {["plano", "prescription_form", "prescription_ai"].map(
+                    (mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => setVisionMode(mode)}
+                        className={`py-2 rounded-lg text-sm font-medium transition ${
+                          visionMode === mode
+                            ? "bg-[#D32F2F] text-white shadow"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {mode === "plano"
+                          ? "Plano (Zero Grade)"
+                          : mode === "prescription_form"
+                            ? "Manual Prescription"
+                            : "AI Screening"}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              {/* Manual prescription form */}
+              {visionMode === "prescription_form" && (
+                <div className="bg-gray-50 p-4 rounded-xl space-y-3">
+                  <h3 className="font-semibold text-[#212529]">
+                    Prescription Details
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2 text-xs font-semibold text-gray-500">
+                    <div>Metric</div>
+                    <div>Right (OD)</div>
+                    <div>Left (OS)</div>
+                  </div>
+                  {["Sphere", "Cylinder", "Axis"].map((field) => {
+                    const name = field.toLowerCase();
+                    return (
+                      <div
+                        key={field}
+                        className="grid grid-cols-3 gap-2 items-center"
+                      >
+                        <span className="text-sm font-medium text-gray-700">
+                          {field}
+                        </span>
+                        <input
+                          type="text"
+                          name={`od${field}`}
+                          value={rx[`od${field}`]}
+                          onChange={handleRxChange}
+                          className="border rounded px-2 py-1 text-center text-sm"
+                        />
+                        <input
+                          type="text"
+                          name={`os${field}`}
+                          value={rx[`os${field}`]}
+                          onChange={handleRxChange}
+                          className="border rounded px-2 py-1 text-center text-sm"
+                        />
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm font-medium text-gray-700">
+                      PD (mm)
+                    </span>
+                    <input
+                      type="text"
+                      name="pd"
+                      value={rx.pd}
+                      onChange={handleRxChange}
+                      className="border rounded px-2 py-1 w-24 text-center"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* AI screening placeholder */}
+              {visionMode === "prescription_ai" && (
+                <div className="bg-blue-50 p-4 rounded-xl text-center">
+                  <p className="text-sm text-gray-700">
+                    Use our AI vision screening tool to estimate your
+                    prescription.
+                  </p>
+                  <button
+                    onClick={() => navigate("/vision-screening")}
+                    className="mt-2 text-[#D32F2F] font-medium underline"
+                  >
+                    Launch AI Screening →
+                  </button>
+                </div>
+              )}
+
+              {/* Lens Package Selection – dynamic from DB */}
+              <div>
+                <label className="block text-sm font-semibold text-[#212529] mb-2">
+                  {visionMode === "plano"
+                    ? "Lens Package (Plano)"
+                    : "Lens Package (Prescription)"}
+                </label>
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+                  {availablePackages.map((pkg) => {
+                    const isSelected = selectedPackageId === pkg.id;
+                    return (
+                      <div
+                        key={pkg.id}
+                        onClick={() => handlePackageToggle(pkg.id)}
+                        className={`p-3 rounded-lg border cursor-pointer transition ${
+                          isSelected
+                            ? "border-[#D32F2F] bg-[#D32F2F]/5"
+                            : "border-gray-200 hover:border-gray-400"
+                        }`}
+                      >
+                        <div className="font-medium text-[#212529]">
+                          {pkg.displayName}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {pkg.description}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {!selectedPackageId && availablePackages.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Please select a lens package.
+                  </p>
+                )}
+              </div>
+
+              {/* Quantity and Add to Cart */}
+              <div className="flex items-center gap-4 pt-4 border-t border-gray-200">
+                <div>
+                  <label className="block text-sm font-semibold text-[#212529] mb-1">
+                    Quantity
+                  </label>
+                  <div className="flex items-center border border-gray-300 rounded-md">
+                    <button
+                      onClick={() => quantity > 1 && setQuantity((q) => q - 1)}
+                      className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                    >
+                      -
+                    </button>
+                    <span className="w-12 py-1 text-center font-medium">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() =>
+                        quantity < Math.min(stock, 99) &&
+                        setQuantity((q) => q + 1)
+                      }
+                      className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
                 <button
                   onClick={handleAddToCart}
                   disabled={!canAddToCart}
-                  className={`flex items-center gap-2 px-20 py-3 rounded-lg font-semibold transition shadow-md ${
+                  className={`flex-1 py-3 rounded-lg font-semibold transition shadow-md ${
                     canAddToCart
                       ? "bg-[#D32F2F] text-white hover:bg-[#B71C1C]"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"
-                    />
-                  </svg>
                   Add to Cart
-                </button>
-                <button
-                  onClick={handleTryOn}
-                  className="border border-gray-300 text-[#212529] px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition"
-                >
-                  Try On
                 </button>
               </div>
 
-              <div className="mt-8 border-t pt-6">
-                <h3 className="text-lg font-semibold text-[#212529] mb-2">
+              {/* Description */}
+              <div className="border-t border-gray-200 pt-4">
+                <h3 className="font-semibold text-[#212529] mb-1">
                   Description
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 text-sm">
                   {product.description ||
-                    "Elegant frame designed for comfort and style. Perfect for everyday wear."}
+                    "Elegant frame designed for comfort and style."}
                 </p>
               </div>
             </div>

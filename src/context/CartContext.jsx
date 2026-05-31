@@ -36,9 +36,7 @@ export const CartProvider = ({ children }) => {
       .eq("user_id", userId)
       .eq("status", "active")
       .maybeSingle();
-
     if (error && error.code !== "PGRST116") throw error;
-
     if (!cart) {
       const { data: newCart, error: insertError } = await supabase
         .from("carts")
@@ -70,14 +68,13 @@ export const CartProvider = ({ children }) => {
           brands (name),
           frame_shapes (name),
           frame_materials (name),
-          product_images (image_url, is_primary)
+          product_images (image_url, is_primary),
+          type
         )
       `,
       )
       .eq("cart_id", currentCartId);
-
     if (error) throw error;
-
     return data.map((item) => ({
       id: item.product_id,
       name: item.products.name,
@@ -85,7 +82,9 @@ export const CartProvider = ({ children }) => {
       image:
         item.products.product_images?.find((img) => img.is_primary)
           ?.image_url || item.products.product_images?.[0]?.image_url,
-      brand: item.products.brands?.name,
+      brand:
+        item.products.brands?.name ||
+        (item.products.type === "accessory" ? "Accessory" : null),
       shape: item.products.frame_shapes?.name,
       material: item.products.frame_materials?.name,
       quantity: item.quantity,
@@ -97,15 +96,12 @@ export const CartProvider = ({ children }) => {
     }));
   };
 
+  // Save database cart by deleting all existing items and inserting new ones
   const saveDbCart = async (currentCartId, items) => {
     if (!currentCartId) return;
-
-    if (items.length === 0) {
-      await supabase.from("cart_items").delete().eq("cart_id", currentCartId);
-      return;
-    }
-
-    const toUpsert = items.map((item) => ({
+    await supabase.from("cart_items").delete().eq("cart_id", currentCartId);
+    if (items.length === 0) return;
+    const toInsert = items.map((item) => ({
       cart_id: currentCartId,
       product_id: item.id,
       quantity: item.quantity,
@@ -114,74 +110,52 @@ export const CartProvider = ({ children }) => {
       selected_coatings: item.selectedOptions?.coatings || [],
       unit_price: item.price,
     }));
-
-    // FIXED: Changed to strict comma-separated list of database columns
-    const { error } = await supabase.from("cart_items").upsert(toUpsert, {
-      onConflict: "cart_id,product_id,selected_color,selected_color_hex",
-    });
-
+    const { error } = await supabase.from("cart_items").insert(toInsert);
     if (error) throw error;
   };
 
-  // ----- Guest to Database Cart Merging Handler -----
-  const mergeGuestCartToDb = async (currentCartId) => {
-    const guestItems = loadGuestCart();
-    if (guestItems.length === 0) return;
-
-    try {
-      const toUpsert = guestItems.map((item) => ({
-        cart_id: currentCartId,
-        product_id: item.id,
-        quantity: item.quantity,
-        selected_color: item.selectedOptions?.color || null,
-        selected_color_hex: item.selectedOptions?.colorHex || null,
-        selected_coatings: item.selectedOptions?.coatings || [],
-        unit_price: item.price,
-      }));
-
-      // FIXED: Changed to strict comma-separated list of database columns
-      const { error } = await supabase.from("cart_items").upsert(toUpsert, {
-        onConflict: "cart_id,product_id,selected_color,selected_color_hex",
-      });
-
-      if (error) throw error;
-
-      // Wipe guest storage after successful database replication
-      localStorage.removeItem(GUEST_STORAGE_KEY);
-    } catch (err) {
-      console.error("Failed to merge guest cart into user profile:", err);
-    }
-  };
-
-  // ----- Explicit Clean Reset for Manual Logouts -----
-  const resetCartOnLogout = useCallback(() => {
-    setCartId(null);
-    setCartItems(loadGuestCart());
-  }, []);
-
-  // ----- Effect when authentication state changes -----
+  // ----- Effect when authentication state changes (with proper merging) -----
   useEffect(() => {
     let isMounted = true;
-
     const initCart = async () => {
       if (authLoading) return;
       setLoading(true);
       try {
         if (user) {
+          // Logged in: load database cart
           const newCartId = await fetchOrCreateCart(user.id);
-
-          // 1. Merge items they selected while browsed anonymously
-          await mergeGuestCartToDb(newCartId);
-
-          // 2. Fetch fully consolidated cloud array
-          const dbItems = await loadDbCart(newCartId);
-
+          let dbItems = await loadDbCart(newCartId);
+          const guestItems = loadGuestCart();
+          if (guestItems.length > 0) {
+            // MERGE guest items into dbItems (combine quantities)
+            const merged = [...dbItems];
+            guestItems.forEach((guestItem) => {
+              const existingIndex = merged.findIndex(
+                (item) =>
+                  item.id === guestItem.id &&
+                  (item.selectedOptions?.color || "") ===
+                    (guestItem.selectedOptions?.color || "") &&
+                  JSON.stringify(item.selectedOptions?.coatings || []) ===
+                    JSON.stringify(guestItem.selectedOptions?.coatings || []),
+              );
+              if (existingIndex !== -1) {
+                merged[existingIndex].quantity += guestItem.quantity;
+              } else {
+                merged.push(guestItem);
+              }
+            });
+            // Save merged cart to database
+            await saveDbCart(newCartId, merged);
+            dbItems = merged;
+            // Clear guest cart after successful merge
+            localStorage.removeItem(GUEST_STORAGE_KEY);
+          }
           if (isMounted) {
             setCartId(newCartId);
             setCartItems(dbItems);
           }
         } else {
-          // Automatic baseline switcher fallback
+          // Guest: load from localStorage
           if (isMounted) {
             setCartId(null);
             setCartItems(loadGuestCart());
@@ -193,9 +167,7 @@ export const CartProvider = ({ children }) => {
         if (isMounted) setLoading(false);
       }
     };
-
     initCart();
-
     return () => {
       isMounted = false;
     };
@@ -204,13 +176,12 @@ export const CartProvider = ({ children }) => {
   // ----- Cart operations -----
   const addToCart = useCallback(
     (product, quantity = 1, selectedOptions = {}) => {
-      const incomingOptions = {
-        color: selectedOptions.color || "",
-        colorHex: selectedOptions.colorHex || "",
-        coatings: selectedOptions.coatings || [],
-      };
-
       setCartItems((prev) => {
+        const incomingOptions = {
+          color: selectedOptions.color || "",
+          colorHex: selectedOptions.colorHex || "",
+          coatings: selectedOptions.coatings || [],
+        };
         const existingIndex = prev.findIndex((item) => {
           const currentOptions = item.selectedOptions || {};
           return (
@@ -221,7 +192,6 @@ export const CartProvider = ({ children }) => {
               JSON.stringify(incomingOptions.coatings)
           );
         });
-
         let newItems;
         if (existingIndex !== -1) {
           newItems = prev.map((item, idx) =>
@@ -245,7 +215,7 @@ export const CartProvider = ({ children }) => {
             },
           ];
         }
-
+        // Persist
         if (user && cartId) {
           saveDbCart(cartId, newItems).catch(console.error);
         } else if (!user) {
@@ -282,7 +252,6 @@ export const CartProvider = ({ children }) => {
         const newItems = prev.map((item, idx) =>
           idx === index ? { ...item, quantity: newQuantity } : item,
         );
-
         if (user && cartId) {
           saveDbCart(cartId, newItems).catch(console.error);
         } else if (!user) {
@@ -317,7 +286,6 @@ export const CartProvider = ({ children }) => {
         removeFromCart,
         updateQuantity,
         clearCart,
-        resetCartOnLogout,
         totalItems,
         subtotal,
         loading,

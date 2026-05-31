@@ -4,7 +4,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { supabase } from "../lib/supabaseClient";
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 9;
 const MAX_PRICE = 5000;
 
 export default function ShopPage() {
@@ -20,6 +20,7 @@ export default function ShopPage() {
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [selectedShapes, setSelectedShapes] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
+  const [productType, setProductType] = useState("all"); // 'all', 'frames', 'accessories'
 
   const [brandSearch, setBrandSearch] = useState("");
   const [showAllBrands, setShowAllBrands] = useState(false);
@@ -32,7 +33,6 @@ export default function ShopPage() {
     const fetchShopData = async () => {
       setLoading(true);
 
-      // Products query with proper joins to new tables
       const productsQuery = supabase
         .from("products")
         .select(
@@ -46,19 +46,16 @@ export default function ShopPage() {
         )
         .order("created_at", { ascending: false });
 
-      // Brands (unchanged)
       const brandsQuery = supabase
         .from("brands")
         .select("id, name")
         .order("name", { ascending: true });
 
-      // Frame shapes (new table)
       const shapesQuery = supabase
         .from("frame_shapes")
         .select("id, name")
         .order("name", { ascending: true });
 
-      // Frame materials (new table)
       const materialsQuery = supabase
         .from("frame_materials")
         .select("id, name")
@@ -120,19 +117,29 @@ export default function ShopPage() {
     : filteredBrands.slice(0, 5);
 
   const filteredProducts = products.filter((product) => {
+    // Type filter
+    if (productType === "frames" && product.type !== "frame") return false;
+    if (productType === "accessories" && product.type !== "accessory")
+      return false;
+
+    // Brand filter
     const brandMatch =
       selectedBrands.length === 0 || selectedBrands.includes(product.brand_id);
 
+    // Shape filter
     const shapeMatch =
       selectedShapes.length === 0 ||
       selectedShapes.includes(product.frame_shape_id);
 
+    // Material filter
     const materialMatch =
       selectedMaterials.length === 0 ||
       selectedMaterials.includes(product.frame_material_id);
 
+    // Price filter
     const priceMatch = Number(product.price) <= Number(maxPrice);
 
+    // Stock filter
     const stockMatch = !inStockOnly || product.stock > 0;
 
     return (
@@ -190,6 +197,48 @@ export default function ShopPage() {
                 <h2 className="text-lg font-bold text-[#212529] mb-5">
                   Filters
                 </h2>
+
+                {/* Product Type Filter */}
+                <div className="mb-6">
+                  <h3 className="font-semibold text-[#212529] mb-3">
+                    Product Type
+                  </h3>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="productType"
+                        value="all"
+                        checked={productType === "all"}
+                        onChange={() => setProductType("all")}
+                        className="accent-[#D32F2F]"
+                      />
+                      All
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="productType"
+                        value="frames"
+                        checked={productType === "frames"}
+                        onChange={() => setProductType("frames")}
+                        className="accent-[#D32F2F]"
+                      />
+                      Frames Only
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="productType"
+                        value="accessories"
+                        checked={productType === "accessories"}
+                        onChange={() => setProductType("accessories")}
+                        className="accent-[#D32F2F]"
+                      />
+                      Accessories
+                    </label>
+                  </div>
+                </div>
 
                 {/* Brand Filter */}
                 <div className="mb-6">

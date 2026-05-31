@@ -4,11 +4,16 @@ import { supabase } from "../../lib/supabaseClient";
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [stockFilter, setStockFilter] = useState("all"); // 'all', 'inStock', 'outOfStock'
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchProducts();
+    fetchBrands();
   }, []);
 
   const fetchProducts = async () => {
@@ -20,7 +25,8 @@ export default function AdminProducts() {
         *,
         brands (name),
         frame_shapes (name),
-        frame_materials (name)
+        frame_materials (name),
+        product_images (image_url, is_primary)
       `,
       )
       .order("created_at", { ascending: false });
@@ -32,6 +38,14 @@ export default function AdminProducts() {
     setLoading(false);
   };
 
+  const fetchBrands = async () => {
+    const { data, error } = await supabase
+      .from("brands")
+      .select("id, name")
+      .order("name");
+    if (!error) setBrands(data || []);
+  };
+
   const handleDelete = async (id) => {
     if (!confirm("Delete this product?")) return;
     const { error } = await supabase.from("products").delete().eq("id", id);
@@ -40,6 +54,31 @@ export default function AdminProducts() {
     } else {
       fetchProducts();
     }
+  };
+
+  // Filter products
+  const filteredProducts = products.filter((product) => {
+    // Search by name
+    if (search && !product.name.toLowerCase().includes(search.toLowerCase())) {
+      return false;
+    }
+    // Brand filter
+    if (selectedBrand && product.brand_id !== parseInt(selectedBrand)) {
+      return false;
+    }
+    // Stock filter
+    if (stockFilter === "inStock" && product.stock <= 0) return false;
+    if (stockFilter === "outOfStock" && product.stock > 0) return false;
+    return true;
+  });
+
+  const getPrimaryImage = (product) => {
+    const primary = product.product_images?.find((img) => img.is_primary);
+    return (
+      primary?.image_url ||
+      product.product_images?.[0]?.image_url ||
+      "https://placehold.co/60"
+    );
   };
 
   if (loading) {
@@ -58,8 +97,44 @@ export default function AdminProducts() {
         </Link>
       </div>
 
-      {products.length === 0 ? (
-        <p>No products found. Click "Add Product" to create one.</p>
+      {/* Filters Bar */}
+      <div className="mb-6 flex flex-wrap gap-3 items-center bg-white p-3 rounded-lg shadow">
+        <div className="flex-1 min-w-[200px]">
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#D32F2F]"
+          />
+        </div>
+        <select
+          value={selectedBrand}
+          onChange={(e) => setSelectedBrand(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#D32F2F]"
+        >
+          <option value="">All Brands</option>
+          {brands.map((brand) => (
+            <option key={brand.id} value={brand.id}>
+              {brand.name}
+            </option>
+          ))}
+        </select>
+        <select
+          value={stockFilter}
+          onChange={(e) => setStockFilter(e.target.value)}
+          className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#D32F2F]"
+        >
+          <option value="all">All Stock</option>
+          <option value="inStock">In Stock (&gt;0)</option>
+          <option value="outOfStock">Out of Stock (0)</option>
+        </select>
+      </div>
+
+      {filteredProducts.length === 0 ? (
+        <p className="text-gray-500 text-center py-12">
+          No products match the filters.
+        </p>
       ) : (
         <div className="bg-white rounded-xl shadow overflow-hidden">
           <table className="min-w-full divide-y divide-gray-200">
@@ -86,14 +161,11 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <tr key={product.id}>
                   <td className="px-6 py-4">
                     <img
-                      src={
-                        product.product_images?.[0]?.image_url ||
-                        "https://placehold.co/60"
-                      }
+                      src={getPrimaryImage(product)}
                       alt={product.name}
                       className="w-12 h-12 object-cover rounded"
                     />

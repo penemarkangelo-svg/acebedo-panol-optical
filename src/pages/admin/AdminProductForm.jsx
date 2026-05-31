@@ -10,6 +10,7 @@ export default function AdminProductForm() {
   const [saving, setSaving] = useState(false);
 
   // Product fields
+  const [type, setType] = useState("frame"); // NEW: 'frame' or 'accessory'
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -21,12 +22,9 @@ export default function AdminProductForm() {
   const [isNew, setIsNew] = useState(false);
   const [rating, setRating] = useState("");
 
-  // Colors
+  // Colors (only for frames)
   const [colors, setColors] = useState([]);
-  // Images: each entry has { image_url, is_primary, sort_order, is_file? (optional) }
   const [images, setImages] = useState([]);
-
-  // Pending file uploads (selected but not yet uploaded to Storage)
   const [pendingFiles, setPendingFiles] = useState([]);
 
   // Reference data
@@ -49,7 +47,7 @@ export default function AdminProductForm() {
     fetchReferenceData();
   }, []);
 
-  // If editing, load product data (including existing images)
+  // If editing, load product data
   useEffect(() => {
     if (!id) return;
     const fetchProduct = async () => {
@@ -64,25 +62,29 @@ export default function AdminProductForm() {
         alert("Failed to load product.");
         navigate("/admin/products");
       } else if (data) {
+        // Set common fields
+        setType(data.type || "frame");
         setName(data.name || "");
         setDescription(data.description || "");
         setPrice(data.price?.toString() || "");
         setOldPrice(data.old_price?.toString() || "");
-        setBrandId(data.brand_id?.toString() || "");
-        setFrameShapeId(data.frame_shape_id?.toString() || "");
-        setFrameMaterialId(data.frame_material_id?.toString() || "");
         setStock(data.stock?.toString() || "");
         setIsNew(data.is_new || false);
         setRating(data.rating?.toString() || "");
         setColors(data.product_colors || []);
         setImages(data.product_images || []);
+
+        // Frame-specific fields (may be null for accessories)
+        setBrandId(data.brand_id?.toString() || "");
+        setFrameShapeId(data.frame_shape_id?.toString() || "");
+        setFrameMaterialId(data.frame_material_id?.toString() || "");
       }
       setLoading(false);
     };
     fetchProduct();
   }, [id, navigate]);
 
-  // Color helpers
+  // Color helpers (only used for frames)
   const addColor = () => {
     setColors([...colors, { color_name: "", color_code: "#000000", stock: 0 }]);
   };
@@ -95,7 +97,7 @@ export default function AdminProductForm() {
     setColors(colors.filter((_, i) => i !== index));
   };
 
-  // Image helpers for external URLs (kept from original)
+  // Image helpers (common)
   const addImageUrl = () => {
     setImages([
       ...images,
@@ -111,7 +113,7 @@ export default function AdminProductForm() {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  // File upload handling
+  // File upload handling (common)
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
     const newPending = files.map((file) => ({
@@ -122,7 +124,6 @@ export default function AdminProductForm() {
     }));
     setPendingFiles((prev) => [...prev, ...newPending]);
   };
-
   const updatePendingFile = (index, field, value) => {
     const updated = [...pendingFiles];
     updated[index][field] = value;
@@ -135,27 +136,43 @@ export default function AdminProductForm() {
   // Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !price || !brandId || !frameShapeId || !frameMaterialId) {
-      alert("Please fill in all required fields.");
+
+    // Basic validation
+    if (!name || !price) {
+      alert("Name and price are required.");
+      return;
+    }
+    if (type === "frame" && (!brandId || !frameShapeId || !frameMaterialId)) {
+      alert("Brand, Frame Shape, and Frame Material are required for frames.");
       return;
     }
 
     setSaving(true);
 
-    // Prepare product data
+    // Prepare product payload
     const productPayload = {
       name,
       description,
       price: parseFloat(price),
       old_price: oldPrice ? parseFloat(oldPrice) : null,
-      brand_id: parseInt(brandId),
-      frame_shape_id: parseInt(frameShapeId),
-      frame_material_id: parseInt(frameMaterialId),
       stock: stock ? parseInt(stock) : 0,
       is_new: isNew,
       rating: rating ? parseFloat(rating) : 0,
+      type,
       updated_at: new Date().toISOString(),
     };
+
+    // Add frame-specific fields only if type is 'frame'
+    if (type === "frame") {
+      productPayload.brand_id = parseInt(brandId);
+      productPayload.frame_shape_id = parseInt(frameShapeId);
+      productPayload.frame_material_id = parseInt(frameMaterialId);
+    } else {
+      // For accessories, set frame fields to null (or omit – they will be NULL in DB)
+      productPayload.brand_id = null;
+      productPayload.frame_shape_id = null;
+      productPayload.frame_material_id = null;
+    }
 
     let productId = id ? parseInt(id) : null;
 
@@ -181,16 +198,12 @@ export default function AdminProductForm() {
       const uploadedImageEntries = [];
       for (const p of pendingFiles) {
         const fileExt = p.file.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(2, 8)}.${fileExt}`;
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
         const filePath = `${productId}/${fileName}`;
-
         const { error: uploadError } = await supabase.storage
           .from("product-images")
           .upload(filePath, p.file);
         if (uploadError) throw uploadError;
-
         const { data: urlData } = supabase.storage
           .from("product-images")
           .getPublicUrl(filePath);
@@ -204,7 +217,7 @@ export default function AdminProductForm() {
       // 3. Combine existing URL images + newly uploaded images
       const allImages = [...images, ...uploadedImageEntries];
 
-      // 4. Replace product_colors
+      // 4. Replace product_colors (only for frames)
       if (productId) {
         if (id) {
           await supabase
@@ -212,7 +225,7 @@ export default function AdminProductForm() {
             .delete()
             .eq("product_id", productId);
         }
-        if (colors.length) {
+        if (type === "frame" && colors.length) {
           const colorsToInsert = colors.map((c) => ({
             product_id: productId,
             color_name: c.color_name,
@@ -226,7 +239,7 @@ export default function AdminProductForm() {
         }
       }
 
-      // 5. Replace product_images
+      // 5. Replace product_images (common)
       if (productId) {
         if (id) {
           await supabase
@@ -271,7 +284,34 @@ export default function AdminProductForm() {
         onSubmit={handleSubmit}
         className="space-y-6 bg-white p-6 rounded-xl shadow"
       >
-        {/* Basic Info (unchanged) */}
+        {/* Product Type Selector */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">
+              Product Type *
+            </label>
+            <select
+              value={type}
+              onChange={(e) => {
+                setType(e.target.value);
+                // Reset frame-specific fields when switching to accessory
+                if (e.target.value === "accessory") {
+                  setBrandId("");
+                  setFrameShapeId("");
+                  setFrameMaterialId("");
+                  setColors([]);
+                }
+              }}
+              className="w-full border rounded px-3 py-2"
+              required
+            >
+              <option value="frame">Frame</option>
+              <option value="accessory">Accessory</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Basic Info (always visible) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -323,60 +363,6 @@ export default function AdminProductForm() {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Brand *
-            </label>
-            <select
-              value={brandId}
-              onChange={(e) => setBrandId(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-              required
-            >
-              <option value="">Select brand</option>
-              {brands.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Frame Shape *
-            </label>
-            <select
-              value={frameShapeId}
-              onChange={(e) => setFrameShapeId(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-              required
-            >
-              <option value="">Select shape</option>
-              {shapes.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Frame Material *
-            </label>
-            <select
-              value={frameMaterialId}
-              onChange={(e) => setFrameMaterialId(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-              required
-            >
-              <option value="">Select material</option>
-              {materials.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
               Rating (0‑5)
             </label>
             <input
@@ -414,54 +400,120 @@ export default function AdminProductForm() {
           />
         </div>
 
-        {/* Colors (unchanged) */}
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Colors
-            </label>
-            <button
-              type="button"
-              onClick={addColor}
-              className="text-sm text-[#D32F2F] hover:underline"
-            >
-              + Add Color
-            </button>
-          </div>
-          {colors.map((color, idx) => (
-            <div key={idx} className="flex gap-2 items-center mb-2">
-              <input
-                type="text"
-                placeholder="Color name"
-                value={color.color_name}
-                onChange={(e) => updateColor(idx, "color_name", e.target.value)}
-                className="flex-1 border rounded px-2 py-1"
-              />
-              <input
-                type="color"
-                value={color.color_code || "#000000"}
-                onChange={(e) => updateColor(idx, "color_code", e.target.value)}
-                className="w-10 h-10 border"
-              />
-              <input
-                type="number"
-                placeholder="Stock"
-                value={color.stock}
-                onChange={(e) => updateColor(idx, "stock", e.target.value)}
-                className="w-24 border rounded px-2 py-1"
-              />
-              <button
-                type="button"
-                onClick={() => removeColor(idx)}
-                className="text-red-500"
-              >
-                Remove
-              </button>
+        {/* Frame-specific fields (visible only when type === 'frame') */}
+        {type === "frame" && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Brand *
+                </label>
+                <select
+                  value={brandId}
+                  onChange={(e) => setBrandId(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                >
+                  <option value="">Select brand</option>
+                  {brands.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Frame Shape *
+                </label>
+                <select
+                  value={frameShapeId}
+                  onChange={(e) => setFrameShapeId(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                >
+                  <option value="">Select shape</option>
+                  {shapes.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Frame Material *
+                </label>
+                <select
+                  value={frameMaterialId}
+                  onChange={(e) => setFrameMaterialId(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                  required
+                >
+                  <option value="">Select material</option>
+                  {materials.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-          ))}
-        </div>
 
-        {/* ========== NEW: Upload Images from local files ========== */}
+            {/* Colors (only for frames) */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Colors
+                </label>
+                <button
+                  type="button"
+                  onClick={addColor}
+                  className="text-sm text-[#D32F2F] hover:underline"
+                >
+                  + Add Color
+                </button>
+              </div>
+              {colors.map((color, idx) => (
+                <div key={idx} className="flex gap-2 items-center mb-2">
+                  <input
+                    type="text"
+                    placeholder="Color name"
+                    value={color.color_name}
+                    onChange={(e) =>
+                      updateColor(idx, "color_name", e.target.value)
+                    }
+                    className="flex-1 border rounded px-2 py-1"
+                  />
+                  <input
+                    type="color"
+                    value={color.color_code || "#000000"}
+                    onChange={(e) =>
+                      updateColor(idx, "color_code", e.target.value)
+                    }
+                    className="w-10 h-10 border"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Stock"
+                    value={color.stock}
+                    onChange={(e) => updateColor(idx, "stock", e.target.value)}
+                    className="w-24 border rounded px-2 py-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeColor(idx)}
+                    className="text-red-500"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Images (common for both frames and accessories) */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Upload Images
@@ -504,12 +556,11 @@ export default function AdminProductForm() {
             ))}
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            You can upload multiple images. First click "Save Product" to upload
-            them.
+            You can upload multiple images. Click "Save Product" to upload them.
           </p>
         </div>
 
-        {/* ========== Existing images (URLs) – kept for manual entries ========== */}
+        {/* External Image URLs */}
         <div>
           <div className="flex justify-between items-center mb-2">
             <label className="block text-sm font-medium text-gray-700">
@@ -558,7 +609,7 @@ export default function AdminProductForm() {
           </p>
         </div>
 
-        {/* Submit */}
+        {/* Submit Buttons */}
         <div className="flex justify-end gap-3">
           <button
             type="button"

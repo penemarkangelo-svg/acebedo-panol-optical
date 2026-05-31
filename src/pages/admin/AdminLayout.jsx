@@ -9,17 +9,15 @@ import {
   HiOutlineCalendar,
   HiOutlineEye,
   HiOutlineUsers,
+  HiOutlineCurrencyDollar,
 } from "react-icons/hi";
 
 const navItems = [
   { name: "Products", path: "/admin/products", icon: HiOutlineCube },
   { name: "Brands", path: "/admin/brands", icon: HiOutlineShoppingBag },
+  { name: "Lens Pricing",path: "/admin/lens-pricing",icon: HiOutlineCurrencyDollar,},
   { name: "Orders", path: "/admin/orders", icon: HiOutlineTruck },
-  {
-    name: "Appointments",
-    path: "/admin/appointments",
-    icon: HiOutlineCalendar,
-  },
+  { name: "Appointments", path: "/admin/appointments", icon: HiOutlineCalendar,},
   { name: "Vision Results", path: "/admin/vision-results", icon: HiOutlineEye },
   { name: "Staff Roles", path: "/admin/roles", icon: HiOutlineUsers },
 ];

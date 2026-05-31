@@ -5,7 +5,7 @@ import { useCart } from "../context/CartContext";
 import logoSvg from "../assets/logo.svg";
 
 export default function Header() {
-  const { totalItems, resetCartOnLogout } = useCart(); // Destructured our reset handler here
+  const { totalItems} = useCart(); // Destructured our reset handler here
   const { user, signOut } = useAuth();
   const location = useLocation();
   const isAuthPage =
@@ -25,19 +25,10 @@ export default function Header() {
   }, []);
 
   const handleLogout = async () => {
-    try {
-      // 1. Instantly reset the cart state back to clean local storage guest defaults
-      resetCartOnLogout();
-
-      // 2. Clear out the database token credentials
+  
       await signOut();
-
-      // 3. Clear menu UI and gracefully drop back to landing
       setDropdownOpen(false);
       navigate("/");
-    } catch (error) {
-      console.error("Error during structural logout sequence:", error);
-    }
   };
 
   // Get user's first name or fallback
@@ -50,11 +41,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full bg-white px-8 py-4 shadow-sm border-b border-gray-200 flex items-center justify-between">
       {/* Logo + Brand Name */}
       <Link to="/" className="flex items-center gap-3">
-        <img
-          src={logoSvg}
-          alt="Acebedo Panol Optical Logo"
-          className="h-10 w-auto"
-        />
+
         <div className="space-y-0">
           <span className="font-serif text-2xl font-bold tracking-widest text-[#D32F2F]">
             ACEBEDO
@@ -198,7 +185,7 @@ export default function Header() {
                     My Prescriptions
                   </Link>
                   <Link
-                    to="/account?tab=orders"
+                    to="/orders"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setDropdownOpen(false)}
                   >
