@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import toast from "react-hot-toast";
 
 export default function AdminLensPricing() {
   const [lensTypes, setLensTypes] = useState([]);
@@ -7,7 +8,6 @@ export default function AdminLensPricing() {
   const [prices, setPrices] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
 
   // Fetch lens types, coatings, and existing prices
   useEffect(() => {
@@ -20,9 +20,19 @@ export default function AdminLensPricing() {
           .from("lens_pricing_matrix")
           .select("lens_type_id, coating_id, price"),
       ]);
-      if (typesRes.data) setLensTypes(typesRes.data);
-      if (coatingsRes.data) setCoatings(coatingsRes.data);
-      if (matrixRes.data) {
+      if (typesRes.error) {
+        toast.error("Failed to load lens types.");
+      } else {
+        setLensTypes(typesRes.data || []);
+      }
+      if (coatingsRes.error) {
+        toast.error("Failed to load lens coatings.");
+      } else {
+        setCoatings(coatingsRes.data || []);
+      }
+      if (matrixRes.error) {
+        toast.error("Failed to load pricing matrix.");
+      } else if (matrixRes.data) {
         const priceMap = {};
         matrixRes.data.forEach((row) => {
           if (!priceMap[row.lens_type_id]) priceMap[row.lens_type_id] = {};
@@ -47,65 +57,59 @@ export default function AdminLensPricing() {
     }));
   };
 
-const handleSave = async () => {
-  setSaving(true);
-  setMessage("");
-  let failed = false;
+  const handleSave = async () => {
+    setSaving(true);
+    let failed = false;
 
-  for (const lensType of lensTypes) {
-    for (const coating of coatings) {
-      const newPrice = prices[lensType.id]?.[coating.id];
-      if (newPrice === undefined || newPrice === null) continue;
+    for (const lensType of lensTypes) {
+      for (const coating of coatings) {
+        const newPrice = prices[lensType.id]?.[coating.id];
+        if (newPrice === undefined || newPrice === null) continue;
 
-      // Try to update first
-      const { error: updateError } = await supabase
-        .from("lens_pricing_matrix")
-        .update({ price: newPrice })
-        .eq("lens_type_id", lensType.id)
-        .eq("coating_id", coating.id);
-
-      if (updateError && updateError.code === "PGRST116") {
-        // No matching row → insert
-        const { error: insertError } = await supabase
+        // Try to update first
+        const { error: updateError } = await supabase
           .from("lens_pricing_matrix")
-          .insert({
-            lens_type_id: lensType.id,
-            coating_id: coating.id,
-            price: newPrice,
-          });
-        if (insertError) {
-          console.error("Insert error:", insertError);
-          setMessage(
-            `Error inserting ${lensType.name}/${coating.name}: ${insertError.message}`,
-          );
+          .update({ price: newPrice })
+          .eq("lens_type_id", lensType.id)
+          .eq("coating_id", coating.id);
+
+        if (updateError && updateError.code === "PGRST116") {
+          // No matching row → insert
+          const { error: insertError } = await supabase
+            .from("lens_pricing_matrix")
+            .insert({
+              lens_type_id: lensType.id,
+              coating_id: coating.id,
+              price: newPrice,
+            });
+          if (insertError) {
+            toast.error(`Error inserting ${lensType.name}/${coating.name}: ${insertError.message}`);
+            failed = true;
+            break;
+          }
+        } else if (updateError) {
+          toast.error(`Error updating ${lensType.name}/${coating.name}: ${updateError.message}`);
           failed = true;
           break;
         }
-      } else if (updateError) {
-        console.error("Update error:", updateError);
-        setMessage(
-          `Error updating ${lensType.name}/${coating.name}: ${updateError.message}`,
-        );
-        failed = true;
-        break;
       }
+      if (failed) break;
     }
-    if (failed) break;
-  }
 
-  if (!failed) {
-    setMessage("Prices saved successfully!");
-    setTimeout(() => setMessage(""), 3000);
+    if (!failed) {
+      toast.success("Prices saved successfully!");
+    }
+    setSaving(false);
+  };
+
+  if (loading) {
+    return <div className="text-center py-10">Loading pricing data...</div>;
   }
-  setSaving(false);
-};
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-[#212529]">
-          Lens Pricing Matrix
-        </h1>
+        <h1 className="text-2xl font-bold text-[#212529]">Lens Pricing Matrix</h1>
         <button
           onClick={handleSave}
           disabled={saving}
@@ -114,13 +118,6 @@ const handleSave = async () => {
           {saving ? "Saving..." : "Save All Changes"}
         </button>
       </div>
-      {message && (
-        <div
-          className={`mb-4 p-3 rounded-lg ${message.includes("Error") ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"}`}
-        >
-          {message}
-        </div>
-      )}
       <div className="overflow-x-auto bg-white rounded-xl shadow">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">

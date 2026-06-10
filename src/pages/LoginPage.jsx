@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import toast from "react-hot-toast";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import loginImage from "../assets/bg.png";
@@ -8,40 +10,50 @@ import loginImage from "../assets/bg.png";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState({});
   const navigate = useNavigate();
+
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!email.trim() || !password.trim()) {
+      setTouched({ email: true, password: true });
+      toast.error("Please fill in all fields.");
+      return;
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: email,
+      email: email.trim(),
       password: password,
     });
+
     if (error) {
-      alert(error.message);
+      toast.error("Invalid email or password.");
+      return;
+    }
+
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+
+    if (roleData?.role === "admin") {
+      toast.success("Welcome back, Admin!");
+      navigate("/admin");
     } else {
-      // After login, check user role
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user.id)
-        .maybeSingle();
-
-      if (roleError) {
-        console.error(roleError);
-        navigate("/main");
-        return;
-      }
-
-      if (roleData?.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/main");
-      }
+      toast.success("Logged in successfully!");
+      navigate("/main");
     }
   };
 
   const handleGuestLogin = () => {
-    navigate("/main");
+    navigate("/shop");
   };
 
   return (
@@ -49,7 +61,6 @@ export default function LoginPage() {
       <Header />
       <main className="bg-white min-h-[calc(100vh-200px)] flex items-center justify-center px-6 md:px-12 lg:px-20 py-12">
         <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-center shadow-xl rounded-2xl overflow-hidden bg-[#F8F9FA] border border-gray-200">
-          {/* Left side: Image */}
           <div className="hidden md:block h-full">
             <img
               src={loginImage}
@@ -58,7 +69,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Right side: Login Form */}
           <div className="px-8 py-12 md:px-12">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-[#212529]">
@@ -70,6 +80,7 @@ export default function LoginPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-[#212529] mb-1">
                   Email address
@@ -78,11 +89,23 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D32F2F] focus:border-[#D32F2F] outline-none transition"
-                  placeholder="you@example.com"
+                  onBlur={() => handleBlur("email")}
                   required
+                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#D32F2F] outline-none transition ${
+                    touched.email && !email.trim()
+                      ? "border-red-500"
+                      : "border-gray-300"
+                  }`}
+                  placeholder="you@example.com"
                 />
+                {touched.email && !email.trim() && (
+                  <p className="text-red-500 text-xs mt-1">
+                    Email is required.
+                  </p>
+                )}
               </div>
+
+              {/* Password with show/hide toggle */}
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="block text-sm font-medium text-[#212529]">
@@ -95,15 +118,39 @@ export default function LoginPage() {
                     Forgot password?
                   </a>
                 </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D32F2F] focus:border-[#D32F2F] outline-none transition"
-                  placeholder="••••••••"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onBlur={() => handleBlur("password")}
+                    required
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#D32F2F] outline-none transition pr-10 ${
+                      touched.password && !password.trim()
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    }`}
+                    placeholder="••••••••"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
+                  >
+                    {showPassword ? (
+                      <FiEye className="w-5 h-5" />
+                    ) : (
+                      <FiEyeOff className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                {touched.password && !password.trim() && (
+                  <p className="text-red-500 text-xs mt-1">
+                    Password is required.
+                  </p>
+                )}
               </div>
+
               <button
                 type="submit"
                 className="w-full bg-[#D32F2F] text-white py-2 rounded-lg font-semibold hover:bg-[#B71C1C] transition shadow-md"

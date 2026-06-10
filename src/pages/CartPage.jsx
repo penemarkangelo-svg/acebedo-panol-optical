@@ -1,66 +1,70 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { FiTrash2 } from "react-icons/fi";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
 
 export default function CartPage() {
-  const { cartItems, updateQuantity, removeFromCart } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, isSyncing } = useCart();
+  const navigate = useNavigate();
 
-  // Track which items are selected for checkout (by index)
-  const [selectedIndices, setSelectedIndices] = useState(
-    () => cartItems.map((_, idx) => idx), // all selected by default
+  const [shippingMethod, setShippingMethod] = useState("pickup");
+
+  const shippingCost = shippingMethod === "pickup" ? 0 : 99;
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
   );
+  const total = subtotal + shippingCost;
 
   const formatPrice = (price) => `₱${Number(price || 0).toFixed(2)}`;
 
-  const toggleSelectItem = (index) => {
-    setSelectedIndices((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
-    );
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIndices.length === cartItems.length) {git
-      setSelectedIndices([]);
+  const handleQuantityChange = (index, delta) => {
+    const newQty = cartItems[index].quantity + delta;
+    if (newQty < 1) {
+      removeFromCart(index);
+      toast.success("Item removed.");
     } else {
-      setSelectedIndices(cartItems.map((_, idx) => idx));
+      updateQuantity(index, newQty);
     }
   };
 
-  // Calculate totals for selected items
-  let selectedSubtotal = 0;
-  let selectedCoatingExtra = 0;
-  let selectedTotalQuantity = 0;
+  const handleRemove = (index) => {
+    removeFromCart(index);
+    toast.success("Item removed.");
+  };
 
-  cartItems.forEach((item, idx) => {
-    if (!selectedIndices.includes(idx)) return;
-    const coatingExtra = item.selectedOptions?.coatingExtra || 0;
-    const qty = item.quantity;
-    selectedSubtotal += item.price * qty;
-    selectedCoatingExtra += coatingExtra * qty;
-    selectedTotalQuantity += qty;
-  });
-
-  const selectedTotal = selectedSubtotal;
-
-  const canCheckout = selectedTotalQuantity > 0;
+  const handleCheckout = () => {
+    if (cartItems.length === 0) {
+      toast.error("Your cart is empty.");
+      return;
+    }
+    navigate("/checkout", {
+      state: {
+        selectedItems: cartItems,
+        shippingMethod,
+        shippingCost,
+      },
+    });
+  };
 
   if (cartItems.length === 0) {
     return (
       <>
         <Header />
-        <main className="bg-white min-h-screen py-12 px-6 md:px-12 lg:px-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-3xl font-bold text-[#212529] mb-4">
+        <main className="bg-white min-h-[60vh] flex items-center justify-center py-12 px-6">
+          <div className="text-center max-w-md">
+            <h1 className="text-3xl font-bold text-[#212529] mb-2">
               Your Cart is Empty
             </h1>
             <p className="text-gray-500 mb-6">
-              Looks like you have not added any frames yet.
+              Looks like you haven't added any products to your cart yet.
             </p>
             <Link
               to="/shop"
-              className="inline-block bg-[#D32F2F] text-white px-6 py-3 rounded-lg hover:bg-[#B71C1C] transition"
+              className="inline-block w-full bg-[#D32F2F] hover:bg-[#B71C1C] text-white text-center font-semibold px-6 py-3 rounded-lg transition shadow"
             >
               Continue Shopping
             </Link>
@@ -74,183 +78,263 @@ export default function CartPage() {
   return (
     <>
       <Header />
-      <main className="bg-white py-12 px-6 md:px-12 lg:px-20">
+      <main className="bg-white py-12 px-6 md:px-12 lg:px-24">
         <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-[#212529]">Shopping Cart</h1>
-            <button
-              onClick={toggleSelectAll}
-              className="text-sm text-[#D32F2F] hover:underline"
-            >
-              {selectedIndices.length === cartItems.length
-                ? "Deselect All"
-                : "Select All"}
-            </button>
+          <h1 className="text-3xl font-bold text-[#212529] mb-8">
+            Shopping Cart
+          </h1>
+
+          {/* Table header (desktop) */}
+          <div className="hidden md:grid grid-cols-12 gap-4 text-sm font-semibold text-gray-500 border-b pb-3 mb-4">
+            <div className="col-span-5">PRODUCT</div>
+            <div className="col-span-2 text-right">PRICE</div>
+            <div className="col-span-2 text-center">QTY</div>
+            <div className="col-span-2 text-right">TOTAL</div>
+            <div className="col-span-1"></div>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Cart Items with checkboxes */}
-            <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item, index) => {
-                const selectedOptions = item.selectedOptions || {};
-                const coatings = selectedOptions.coatings || [];
-                const coatingExtra = selectedOptions.coatingExtra || 0;
-                const basePrice = item.price - coatingExtra; // final price minus coating surcharge
+          {/* Cart items */}
+          <div className="space-y-6">
+            {cartItems.map((item, idx) => {
+              const selectedOptions = item.selectedOptions || {};
+              const coatings = selectedOptions.coatings || [];
+              const lensPackage = selectedOptions.lensPackage || null;
+              const lensExtra =
+                selectedOptions.lensExtraCharge ||
+                selectedOptions.coatingExtra ||
+                0;
+              const baseFramePrice = item.price - lensExtra;
+              const isAccessory =
+                item.brand === "Accessory" || item.type === "accessory";
+              const itemTotal = item.price * item.quantity;
 
-                return (
-                  <div
-                    key={`${item.id}-${index}`}
-                    className="border border-gray-200 rounded-xl p-4 flex gap-4"
-                  >
-                    {/* Checkbox */}
-                    <div className="flex-shrink-0 pt-1">
-                      <input
-                        type="checkbox"
-                        checked={selectedIndices.includes(index)}
-                        onChange={() => toggleSelectItem(index)}
-                        className="w-5 h-5 accent-[#D32F2F]"
-                      />
-                    </div>
+              // Build extras as an array of lines
+              const extraLines = [];
+              if (selectedOptions.color)
+                extraLines.push(`Color: ${selectedOptions.color}`);
+              if (lensPackage)
+               extraLines.push(`Lens Package: ${lensPackage}`);
+              if (coatings.length)
+                extraLines.push(`Coating: ${coatings.join(", ")}`);
 
+              // Safe fallbacks to prevent undefined errors + AI Vision Mode labels
+              if (selectedOptions.prescription) {
+                const p = selectedOptions.prescription;
+                const label =
+                  selectedOptions.visionMode === "AI Screening"
+                    ? "AI Vision Check"
+                    : "Prescription";
+               extraLines.push(`${label}:`);
+               extraLines.push(`OD: ${p.odSphere ?? "0.00"}`);
+               extraLines.push(`OS: ${p.osSphere ?? "0.00"}`);
+
+               if (p.pd) {
+                 extraLines.push(`PD: ${p.pd} mm`);
+               }
+              }
+
+              return (
+                <div
+                  key={`${item.id}-${idx}`}
+                  className="grid grid-cols-12 gap-4 items-center border-b pb-4"
+                >
+                  {/* PRODUCT */}
+                  <div className="col-span-12 md:col-span-5 flex gap-3">
                     <img
-                      src={item.image || "https://placehold.co/120x120"}
+                      src={item.image || "https://placehold.co/100x100"}
                       alt={item.name}
-                      className="w-24 h-24 object-cover rounded-lg flex-shrink-0"
+                      className="w-20 h-20 object-cover rounded-lg"
                     />
-
                     <div className="flex-1">
-                      <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
-                        <div>
-                          <h3 className="font-semibold text-[#212529]">
-                            {item.name}
-                          </h3>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {item.brand || "No brand"} · {item.shape || "N/A"} ·{" "}
-                            {item.material || "N/A"}
-                          </p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {formatPrice(basePrice)} 
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-[#212529]">
-                            {formatPrice(item.price * item.quantity)}
-                          </p>
-                        </div>
+                      <div className="font-semibold text-[#212529]">
+                        {item.name}
                       </div>
-
-                      {/* Selected options display */}
-                      <div className="mt-2 space-y-1">
-                        {selectedOptions.color && (
-                          <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <span>Color:</span>
-                            {selectedOptions.colorHex && (
-                              <span
-                                className="w-3 h-3 rounded-full border border-gray-300"
-                                style={{
-                                  backgroundColor: selectedOptions.colorHex,
-                                }}
-                              ></span>
-                            )}
-                            <span>{selectedOptions.color}</span>
-                          </div>
-                        )}
-                        {coatings.length > 0 && (
-                          <p className="text-xs text-gray-600">
-                            Lens Coating: {coatings.join(", ")}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Quantity and remove */}
-                      <div className="flex flex-wrap items-center gap-3 mt-3">
-                        <div className="inline-flex items-center border border-gray-300 rounded-md overflow-hidden">
-                          <button
-                            onClick={() =>
-                              updateQuantity(index, item.quantity - 1)
-                            }
-                            className="px-3 py-1 text-gray-600 hover:bg-gray-100"
-                          >
-                            -
-                          </button>
-                          <span className="px-3 py-1 min-w-[40px] text-center font-medium">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() =>
-                              updateQuantity(index, item.quantity + 1)
-                            }
-                            className="px-3 py-1 text-gray-600 hover:bg-gray-100"
-                          >
-                            +
-                          </button>
+                      {!isAccessory && (
+                        <div className="text-sm text-gray-500">
+                          {item.brand || "No brand"} · {item.shape || "N/A"} ·{" "}
+                          {item.material || "N/A"}
                         </div>
-                        <button
-                          onClick={() => removeFromCart(index)}
-                          className="text-red-500 text-sm hover:underline"
-                        >
-                          Remove
-                        </button>
-                      </div>
+                      )}
+                      {isAccessory && (
+                        <div className="text-sm text-gray-500">Accessory</div>
+                      )}
+                      {extraLines.length > 0 && (
+                        <div className="text-xs text-gray-600 mt-1 space-y-0.5 bg-gray-50 p-2 rounded border border-gray-100 font-medium">
+                          {extraLines.map((line, i) => (
+                            <div key={i}>{line}</div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* Order Summary - show coating extra separately */}
-            <aside className="bg-gray-50 p-6 rounded-xl h-fit border border-gray-200">
-              <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Subtotal ({selectedTotalQuantity} items)</span>
-                  <span>{formatPrice(selectedSubtotal)}</span>
-                </div>
-                {selectedCoatingExtra > 0 && (
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Lens coating extra</span>
-                    <span>{formatPrice(selectedCoatingExtra)}</span>
+                  {/* PRICE */}
+                  <div className="col-span-12 md:col-span-2 text-left md:text-right">
+                    <div className="font-medium">
+                      {formatPrice(item.price)} / piece
+                    </div>
+                    {lensExtra > 0 && !isAccessory && (
+                      <div className="text-xs text-gray-500 mt-1 space-y-1">
+                        <div>Frame Price: {formatPrice(baseFramePrice)}</div>
+
+                        {lensExtra > 0 && (
+                          <div>Lens Package: {formatPrice(lensExtra)}</div>
+                        )}
+
+                        <div className="font-semibold">
+                          Item Total: {formatPrice(item.price)}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>Shipping</span>
-                  <span>Calculated at next step</span>
-                </div>
-                <div className="border-t pt-3 mt-2">
-                  <div className="flex justify-between font-bold text-lg">
-                    <span>Total</span>
-                    <span>{formatPrice(selectedTotal)}</span>
+
+                  {/* QTY */}
+                  <div className="col-span-12 md:col-span-2 flex justify-start md:justify-center">
+                    <div className="flex items-center border border-gray-300 rounded-md bg-white">
+                      <button
+                        onClick={() => handleQuantityChange(idx, -1)}
+                        disabled={isSyncing}
+                        className={`px-2 py-1 ${isSyncing ? "opacity-40 cursor-not-allowed" : ""}`}
+                      >
+                        -
+                      </button>
+                      <span className="px-3 py-1 min-w-[40px] text-center font-medium">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => handleQuantityChange(idx, 1)}
+                        disabled={isSyncing}
+                        className={`px-2 py-1 ${isSyncing ? "opacity-40 cursor-not-allowed" : ""}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => handleRemove(idx)}
+                      disabled={isSyncing}
+                      className="text-red-500 ml-2 md:hidden disabled:opacity-50"
+                    >
+                      <FiTrash2 className="w-4 h-4" />
+                    </button>
                   </div>
+
+                  {/* TOTAL */}
+                  <div className="col-span-12 md:col-span-2 text-left md:text-right font-semibold text-gray-900">
+                    {formatPrice(itemTotal)}
+                  </div>
+
+                  {/* DESKTOP TRASH */}
+                  <div className="hidden md:block md:col-span-1 text-right">
+                    <button
+                      onClick={() => handleRemove(idx)}
+                      disabled={isSyncing}
+                      className="text-red-500 hover:text-red-700 transition disabled:opacity-50"
+                    >
+                      <FiTrash2 className="w-5 h-5 inline" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Combined Card: Shipping + Totals (two-column layout) */}
+          <div className="mt-10 bg-gray-50 border border-gray-200 rounded-2xl p-6">
+            <div className="grid lg:grid-cols-[2fr_1fr] gap-10 items-start">
+              {/* LEFT SIDE - SHIPPING */}
+              <div>
+                <h2 className="text-xl font-semibold text-[#212529] mb-6">
+                  Choose shipping mode
+                </h2>
+                <div className="space-y-5">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="shipping"
+                      value="pickup"
+                      checked={shippingMethod === "pickup"}
+                      onChange={() => setShippingMethod("pickup")}
+                      className="mt-1 accent-[#D32F2F]"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">
+                          Store pickup
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          (ready in 2‑3 days)
+                        </span>
+                      </div>
+                      <p className="text-sm text-green-600 font-medium">FREE</p>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="shipping"
+                      value="delivery"
+                      checked={shippingMethod === "delivery"}
+                      onChange={() => setShippingMethod("delivery")}
+                      className="mt-1 accent-[#D32F2F]"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-gray-900">
+                          Delivery
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          (3‑5 business days)
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700">₱99.00</p>
+                    </div>
+                  </label>
                 </div>
               </div>
 
-              {canCheckout ? (
-                <Link
-                  to="/checkout"
-                  state={{
-                    selectedItems: cartItems.filter((_, idx) =>
-                      selectedIndices.includes(idx),
-                    ),
-                  }}
-                  className="block text-center bg-[#D32F2F] text-white py-3 rounded-lg hover:bg-[#B71C1C] transition font-semibold mt-4"
-                >
-                  Proceed to Checkout
-                </Link>
-              ) : (
+              {/* RIGHT SIDE - ORDER SUMMARY */}
+              <div className="border-t lg:border-t-0 lg:border-l border-gray-200 lg:pl-8 pt-6 lg:pt-0">
+                <div className="space-y-4">
+                  <div className="flex justify-between text-sm">
+                    <span className="uppercase text-gray-500">Subtotal</span>
+                    <span className="font-medium">{formatPrice(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="uppercase text-gray-500">Shipping</span>
+                    <span className="font-medium">
+                      {shippingMethod === "pickup"
+                        ? "Free"
+                        : formatPrice(shippingCost)}
+                    </span>
+                  </div>
+                  <div className="border-t pt-4">
+                    <div className="flex justify-between font-bold text-lg text-gray-900">
+                      <span>Total</span>
+                      <span>{formatPrice(total)}</span>
+                    </div>
+                  </div>
+                </div>
                 <button
-                  disabled
-                  className="w-full bg-gray-300 text-gray-500 py-3 rounded-lg font-semibold cursor-not-allowed mt-4"
+                  onClick={handleCheckout}
+                  disabled={isSyncing}
+                  className={`w-full mt-6 py-3 rounded-lg font-semibold transition text-white shadow-sm ${
+                    isSyncing
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-[#D32F2F] hover:bg-[#B71C1C]"
+                  }`}
                 >
-                  Select an item to checkout
+                  {isSyncing
+                    ? "Saving Changes..."
+                    : `Checkout ${formatPrice(total)}`}
                 </button>
-              )}
-              <Link
-                to="/shop"
-                className="block text-center text-[#D32F2F] mt-3 text-sm hover:underline"
-              >
-                Continue Shopping
-              </Link>
-            </aside>
+                <Link
+                  to="/shop"
+                  className="block text-center text-[#D32F2F] mt-4 text-sm font-medium hover:underline"
+                >
+                  Continue Shopping
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </main>

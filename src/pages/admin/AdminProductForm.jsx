@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
+import toast from "react-hot-toast";
 
 export default function AdminProductForm() {
   const { id } = useParams();
@@ -8,9 +9,11 @@ export default function AdminProductForm() {
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   // Product fields
-  const [type, setType] = useState("frame"); // NEW: 'frame' or 'accessory'
+  const [type, setType] = useState("frame");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -22,17 +25,35 @@ export default function AdminProductForm() {
   const [isNew, setIsNew] = useState(false);
   const [rating, setRating] = useState("");
 
-  // Colors (only for frames)
   const [colors, setColors] = useState([]);
   const [images, setImages] = useState([]);
   const [pendingFiles, setPendingFiles] = useState([]);
 
-  // Reference data
   const [brands, setBrands] = useState([]);
   const [shapes, setShapes] = useState([]);
   const [materials, setMaterials] = useState([]);
 
-  // Load reference data
+  // Track unsaved changes
+  useEffect(() => {
+    if (loading) return;
+    setHasUnsavedChanges(true);
+  }, [
+    type,
+    name,
+    description,
+    price,
+    oldPrice,
+    brandId,
+    frameShapeId,
+    frameMaterialId,
+    stock,
+    isNew,
+    rating,
+    colors,
+    images,
+    pendingFiles,
+  ]);
+
   useEffect(() => {
     const fetchReferenceData = async () => {
       const [brandsRes, shapesRes, materialsRes] = await Promise.all([
@@ -40,14 +61,16 @@ export default function AdminProductForm() {
         supabase.from("frame_shapes").select("id, name").order("name"),
         supabase.from("frame_materials").select("id, name").order("name"),
       ]);
-      if (brandsRes.data) setBrands(brandsRes.data);
-      if (shapesRes.data) setShapes(shapesRes.data);
-      if (materialsRes.data) setMaterials(materialsRes.data);
+      if (brandsRes.error) toast.error("Failed to load brands");
+      else setBrands(brandsRes.data || []);
+      if (shapesRes.error) toast.error("Failed to load frame shapes");
+      else setShapes(shapesRes.data || []);
+      if (materialsRes.error) toast.error("Failed to load frame materials");
+      else setMaterials(materialsRes.data || []);
     };
     fetchReferenceData();
   }, []);
 
-  // If editing, load product data
   useEffect(() => {
     if (!id) return;
     const fetchProduct = async () => {
@@ -58,11 +81,9 @@ export default function AdminProductForm() {
         .eq("id", id)
         .single();
       if (error) {
-        console.error(error);
-        alert("Failed to load product.");
+        toast.error("Failed to load product.");
         navigate("/admin/products");
-      } else if (data) {
-        // Set common fields
+      } else {
         setType(data.type || "frame");
         setName(data.name || "");
         setDescription(data.description || "");
@@ -73,8 +94,6 @@ export default function AdminProductForm() {
         setRating(data.rating?.toString() || "");
         setColors(data.product_colors || []);
         setImages(data.product_images || []);
-
-        // Frame-specific fields (may be null for accessories)
         setBrandId(data.brand_id?.toString() || "");
         setFrameShapeId(data.frame_shape_id?.toString() || "");
         setFrameMaterialId(data.frame_material_id?.toString() || "");
@@ -84,7 +103,6 @@ export default function AdminProductForm() {
     fetchProduct();
   }, [id, navigate]);
 
-  // Color helpers (only used for frames)
   const addColor = () => {
     setColors([...colors, { color_name: "", color_code: "#000000", stock: 0 }]);
   };
@@ -97,7 +115,6 @@ export default function AdminProductForm() {
     setColors(colors.filter((_, i) => i !== index));
   };
 
-  // Image helpers (common)
   const addImageUrl = () => {
     setImages([
       ...images,
@@ -113,7 +130,6 @@ export default function AdminProductForm() {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  // File upload handling (common)
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
     const newPending = files.map((file) => ({
@@ -133,23 +149,34 @@ export default function AdminProductForm() {
     setPendingFiles(pendingFiles.filter((_, i) => i !== index));
   };
 
-  // Submit
+  const handleCancel = () => {
+    if (hasUnsavedChanges) {
+      setShowCancelModal(true);
+    } else {
+      navigate("/admin/products");
+    }
+  };
+
+  const confirmCancel = () => {
+    setShowCancelModal(false);
+    navigate("/admin/products");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic validation
     if (!name || !price) {
-      alert("Name and price are required.");
+      toast.error("Name and price are required.");
       return;
     }
     if (type === "frame" && (!brandId || !frameShapeId || !frameMaterialId)) {
-      alert("Brand, Frame Shape, and Frame Material are required for frames.");
+      toast.error(
+        "Brand, Frame Shape, and Frame Material are required for frames.",
+      );
       return;
     }
 
     setSaving(true);
-
-    // Prepare product payload
     const productPayload = {
       name,
       description,
@@ -162,13 +189,11 @@ export default function AdminProductForm() {
       updated_at: new Date().toISOString(),
     };
 
-    // Add frame-specific fields only if type is 'frame'
     if (type === "frame") {
       productPayload.brand_id = parseInt(brandId);
       productPayload.frame_shape_id = parseInt(frameShapeId);
       productPayload.frame_material_id = parseInt(frameMaterialId);
     } else {
-      // For accessories, set frame fields to null (or omit – they will be NULL in DB)
       productPayload.brand_id = null;
       productPayload.frame_shape_id = null;
       productPayload.frame_material_id = null;
@@ -177,24 +202,22 @@ export default function AdminProductForm() {
     let productId = id ? parseInt(id) : null;
 
     try {
-      // 1. Save product (insert or update)
       if (productId) {
-        const { error: updateError } = await supabase
+        const { error } = await supabase
           .from("products")
           .update(productPayload)
           .eq("id", productId);
-        if (updateError) throw updateError;
+        if (error) throw error;
       } else {
-        const { data: newProduct, error: insertError } = await supabase
+        const { data, error } = await supabase
           .from("products")
           .insert([{ ...productPayload, created_at: new Date().toISOString() }])
           .select()
           .single();
-        if (insertError) throw insertError;
-        productId = newProduct.id;
+        if (error) throw error;
+        productId = data.id;
       }
 
-      // 2. Handle uploaded files (upload to Storage and collect URLs)
       const uploadedImageEntries = [];
       for (const p of pendingFiles) {
         const fileExt = p.file.name.split(".").pop();
@@ -213,18 +236,14 @@ export default function AdminProductForm() {
           sort_order: p.sort_order,
         });
       }
-
-      // 3. Combine existing URL images + newly uploaded images
       const allImages = [...images, ...uploadedImageEntries];
 
-      // 4. Replace product_colors (only for frames)
       if (productId) {
-        if (id) {
+        if (id)
           await supabase
             .from("product_colors")
             .delete()
             .eq("product_id", productId);
-        }
         if (type === "frame" && colors.length) {
           const colorsToInsert = colors.map((c) => ({
             product_id: productId,
@@ -232,21 +251,19 @@ export default function AdminProductForm() {
             color_code: c.color_code || null,
             stock: parseInt(c.stock) || 0,
           }));
-          const { error: colorsError } = await supabase
+          const { error } = await supabase
             .from("product_colors")
             .insert(colorsToInsert);
-          if (colorsError) console.error("Color insert error:", colorsError);
+          if (error) console.error("Color insert error:", error);
         }
       }
 
-      // 5. Replace product_images (common)
       if (productId) {
-        if (id) {
+        if (id)
           await supabase
             .from("product_images")
             .delete()
             .eq("product_id", productId);
-        }
         if (allImages.length) {
           const imagesToInsert = allImages.map((img, idx) => ({
             product_id: productId,
@@ -254,17 +271,20 @@ export default function AdminProductForm() {
             is_primary: img.is_primary || false,
             sort_order: img.sort_order !== undefined ? img.sort_order : idx,
           }));
-          const { error: imagesError } = await supabase
+          const { error } = await supabase
             .from("product_images")
             .insert(imagesToInsert);
-          if (imagesError) console.error("Image insert error:", imagesError);
+          if (error) console.error("Image insert error:", error);
         }
       }
 
+      toast.success(
+        id ? "Product updated successfully." : "Product created successfully.",
+      );
       navigate("/admin/products");
     } catch (err) {
       console.error(err);
-      alert("Error saving product: " + err.message);
+      toast.error("Error saving product: " + err.message);
     } finally {
       setSaving(false);
     }
@@ -294,7 +314,6 @@ export default function AdminProductForm() {
               value={type}
               onChange={(e) => {
                 setType(e.target.value);
-                // Reset frame-specific fields when switching to accessory
                 if (e.target.value === "accessory") {
                   setBrandId("");
                   setFrameShapeId("");
@@ -311,7 +330,7 @@ export default function AdminProductForm() {
           </div>
         </div>
 
-        {/* Basic Info (always visible) */}
+        {/* Basic Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
@@ -387,7 +406,6 @@ export default function AdminProductForm() {
           </div>
         </div>
 
-        {/* Description */}
         <div>
           <label className="block text-sm font-medium text-gray-700">
             Description
@@ -400,7 +418,6 @@ export default function AdminProductForm() {
           />
         </div>
 
-        {/* Frame-specific fields (visible only when type === 'frame') */}
         {type === "frame" && (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -459,8 +476,6 @@ export default function AdminProductForm() {
                 </select>
               </div>
             </div>
-
-            {/* Colors (only for frames) */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-medium text-gray-700">
@@ -513,7 +528,7 @@ export default function AdminProductForm() {
           </>
         )}
 
-        {/* Images (common for both frames and accessories) */}
+        {/* Images upload */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Upload Images
@@ -560,7 +575,7 @@ export default function AdminProductForm() {
           </p>
         </div>
 
-        {/* External Image URLs */}
+        {/* External URLs */}
         <div>
           <div className="flex justify-between items-center mb-2">
             <label className="block text-sm font-medium text-gray-700">
@@ -609,11 +624,10 @@ export default function AdminProductForm() {
           </p>
         </div>
 
-        {/* Submit Buttons */}
         <div className="flex justify-end gap-3">
           <button
             type="button"
-            onClick={() => navigate("/admin/products")}
+            onClick={handleCancel}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50"
           >
             Cancel
@@ -627,6 +641,35 @@ export default function AdminProductForm() {
           </button>
         </div>
       </form>
+
+      {/* Unsaved changes confirmation modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-[#212529] mb-2">
+              Unsaved Changes
+            </h3>
+            <p className="text-gray-600 mb-6">
+              You have unsaved changes. Are you sure you want to leave? Your
+              changes will be lost.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Continue Editing
+              </button>
+              <button
+                onClick={confirmCancel}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Discard Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

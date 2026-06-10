@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "./AuthContext";
@@ -13,11 +14,31 @@ export const useCart = () => useContext(CartContext);
 
 const GUEST_STORAGE_KEY = "guest_cart";
 
+// ✨ HELPER: Safe option comparison independent of key sequencing
+const areOptionsEqual = (opt1 = {}, opt2 = {}) => {
+  const clean1 = opt1 || {};
+  const clean2 = opt2 || {};
+  return (
+    clean1.color === clean2.color &&
+    clean1.colorHex === clean2.colorHex &&
+    clean1.visionMode === clean2.visionMode &&
+    clean1.lensPackage === clean2.lensPackage &&
+    clean1.lensExtraCharge === clean2.lensExtraCharge &&
+    JSON.stringify(clean1.coatings || []) ===
+      JSON.stringify(clean2.coatings || []) &&
+    JSON.stringify(clean1.prescription || null) ===
+      JSON.stringify(clean2.prescription || null)
+  );
+};
+
 export const CartProvider = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [cartId, setCartId] = useState(null);
+
+  const lastSyncedItemsRef = useRef("");
 
   // ----- Guest cart helpers -----
   const loadGuestCart = () => {
@@ -61,6 +82,7 @@ export const CartProvider = ({ children }) => {
         selected_color_hex,
         selected_coatings,
         unit_price,
+        extras,
         products (
           id,
           name,
@@ -75,46 +97,82 @@ export const CartProvider = ({ children }) => {
       )
       .eq("cart_id", currentCartId);
     if (error) throw error;
-    return data.map((item) => ({
-      id: item.product_id,
-      name: item.products.name,
-      price: item.unit_price,
-      image:
-        item.products.product_images?.find((img) => img.is_primary)
-          ?.image_url || item.products.product_images?.[0]?.image_url,
-      brand:
-        item.products.brands?.name ||
-        (item.products.type === "accessory" ? "Accessory" : null),
-      shape: item.products.frame_shapes?.name,
-      material: item.products.frame_materials?.name,
-      quantity: item.quantity,
-      selectedOptions: {
+    return data.map((item) => {
+      const selectedOptions = {
         color: item.selected_color || "",
         colorHex: item.selected_color_hex || "",
         coatings: item.selected_coatings || [],
-      },
-    }));
+        ...(item.extras || {}),
+      };
+      return {
+        id: item.product_id,
+        name: item.products.name,
+        price: item.unit_price,
+        image:
+          item.products.product_images?.find((img) => img.is_primary)
+            ?.image_url || item.products.product_images?.[0]?.image_url,
+        brand:
+          item.products.brands?.name ||
+          (item.products.type === "accessory" ? "Accessory" : null),
+        shape: item.products.frame_shapes?.name,
+        material: item.products.frame_materials?.name,
+        quantity: item.quantity,
+        selectedOptions,
+      };
+    });
   };
 
-  // Save database cart by deleting all existing items and inserting new ones
   const saveDbCart = async (currentCartId, items) => {
     if (!currentCartId) return;
     await supabase.from("cart_items").delete().eq("cart_id", currentCartId);
     if (items.length === 0) return;
+
     const toInsert = items.map((item) => ({
       cart_id: currentCartId,
       product_id: item.id,
       quantity: item.quantity,
-      selected_color: item.selectedOptions?.color || null,
-      selected_color_hex: item.selectedOptions?.colorHex || null,
-      selected_coatings: item.selectedOptions?.coatings || [],
       unit_price: item.price,
+      selected_color: item.selectedOptions?.color || "",
+      selected_color_hex: item.selectedOptions?.colorHex || "",
+      selected_coatings: item.selectedOptions?.coatings || [],
+      extras: item.selectedOptions || {},
     }));
+
     const { error } = await supabase.from("cart_items").insert(toInsert);
     if (error) throw error;
   };
 
-  // ----- Effect when authentication state changes (with proper merging) -----
+  // ----- Sync Controller Effect (Debounced Synchronization) -----
+  useEffect(() => {
+    if (loading || !user || !cartId) return;
+
+    const currentItemsStr = JSON.stringify(cartItems);
+    if (currentItemsStr === lastSyncedItemsRef.current) return;
+
+    setIsSyncing(true);
+
+    const syncTimeout = setTimeout(async () => {
+      try {
+        await saveDbCart(cartId, cartItems);
+        lastSyncedItemsRef.current = currentItemsStr;
+      } catch (err) {
+        console.error("Automated cart sync failed:", err);
+      } finally {
+        setIsSyncing(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(syncTimeout);
+  }, [cartItems, user, cartId, loading]);
+
+  // ----- Synchronous Guest Sync Controller -----
+  useEffect(() => {
+    // ✨ GUARDRAIL: If cartId exists, these are database items. Block them from saving to Guest storage!
+    if (loading || user || cartId) return;
+    saveGuestCart(cartItems);
+  }, [cartItems, user, loading, cartId]);
+
+  // ----- Authentication Synchronization Loop -----
   useEffect(() => {
     let isMounted = true;
     const initCart = async () => {
@@ -122,21 +180,21 @@ export const CartProvider = ({ children }) => {
       setLoading(true);
       try {
         if (user) {
-          // Logged in: load database cart
           const newCartId = await fetchOrCreateCart(user.id);
           let dbItems = await loadDbCart(newCartId);
           const guestItems = loadGuestCart();
+
           if (guestItems.length > 0) {
-            // MERGE guest items into dbItems (combine quantities)
             const merged = [...dbItems];
             guestItems.forEach((guestItem) => {
+              // ✨ CHANGED: Used areOptionsEqual helper to ensure zero duplicate bugs
               const existingIndex = merged.findIndex(
                 (item) =>
                   item.id === guestItem.id &&
-                  (item.selectedOptions?.color || "") ===
-                    (guestItem.selectedOptions?.color || "") &&
-                  JSON.stringify(item.selectedOptions?.coatings || []) ===
-                    JSON.stringify(guestItem.selectedOptions?.coatings || []),
+                  areOptionsEqual(
+                    item.selectedOptions,
+                    guestItem.selectedOptions,
+                  ),
               );
               if (existingIndex !== -1) {
                 merged[existingIndex].quantity += guestItem.quantity;
@@ -144,25 +202,24 @@ export const CartProvider = ({ children }) => {
                 merged.push(guestItem);
               }
             });
-            // Save merged cart to database
             await saveDbCart(newCartId, merged);
             dbItems = merged;
-            // Clear guest cart after successful merge
             localStorage.removeItem(GUEST_STORAGE_KEY);
           }
+
           if (isMounted) {
+            lastSyncedItemsRef.current = JSON.stringify(dbItems);
             setCartId(newCartId);
             setCartItems(dbItems);
           }
         } else {
-          // Guest: load from localStorage
           if (isMounted) {
             setCartId(null);
             setCartItems(loadGuestCart());
           }
         }
       } catch (err) {
-        console.error("Failed to load cart:", err);
+        console.error("Failed to load cart properly:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -173,74 +230,47 @@ export const CartProvider = ({ children }) => {
     };
   }, [user, authLoading]);
 
-  // ----- Cart operations -----
+  // ----- Decoupled Cart Operations -----
   const addToCart = useCallback(
     (product, quantity = 1, selectedOptions = {}) => {
       setCartItems((prev) => {
-        const incomingOptions = {
-          color: selectedOptions.color || "",
-          colorHex: selectedOptions.colorHex || "",
-          coatings: selectedOptions.coatings || [],
-        };
-        const existingIndex = prev.findIndex((item) => {
-          const currentOptions = item.selectedOptions || {};
-          return (
+        const incomingOptions = { ...selectedOptions };
+        // ✨ CHANGED: Swapped for areOptionsEqual verification
+        const existingIndex = prev.findIndex(
+          (item) =>
             item.id === product.id &&
-            (currentOptions.color || "") === incomingOptions.color &&
-            (currentOptions.colorHex || "") === incomingOptions.colorHex &&
-            JSON.stringify(currentOptions.coatings || []) ===
-              JSON.stringify(incomingOptions.coatings)
-          );
-        });
-        let newItems;
+            areOptionsEqual(item.selectedOptions, incomingOptions),
+        );
+
         if (existingIndex !== -1) {
-          newItems = prev.map((item, idx) =>
+          return prev.map((item, idx) =>
             idx === existingIndex
               ? { ...item, quantity: item.quantity + quantity }
               : item,
           );
-        } else {
-          newItems = [
-            ...prev,
-            {
-              id: product.id,
-              name: product.name,
-              price: product.price,
-              image: product.image,
-              brand: product.brand,
-              shape: product.shape,
-              material: product.material,
-              quantity,
-              selectedOptions: incomingOptions,
-            },
-          ];
         }
-        // Persist
-        if (user && cartId) {
-          saveDbCart(cartId, newItems).catch(console.error);
-        } else if (!user) {
-          saveGuestCart(newItems);
-        }
-        return newItems;
+        return [
+          ...prev,
+          {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image,
+            brand: product.brand,
+            shape: product.shape,
+            material: product.material,
+            quantity,
+            selectedOptions: incomingOptions,
+          },
+        ];
       });
     },
-    [user, cartId],
+    [],
   );
 
-  const removeFromCart = useCallback(
-    (index) => {
-      setCartItems((prev) => {
-        const newItems = prev.filter((_, i) => i !== index);
-        if (user && cartId) {
-          saveDbCart(cartId, newItems).catch(console.error);
-        } else if (!user) {
-          saveGuestCart(newItems);
-        }
-        return newItems;
-      });
-    },
-    [user, cartId],
-  );
+  const removeFromCart = useCallback((index) => {
+    setCartItems((prev) => prev.filter((_, i) => i !== index));
+  }, []);
 
   const updateQuantity = useCallback(
     (index, newQuantity) => {
@@ -248,26 +278,24 @@ export const CartProvider = ({ children }) => {
         removeFromCart(index);
         return;
       }
-      setCartItems((prev) => {
-        const newItems = prev.map((item, idx) =>
+      setCartItems((prev) =>
+        prev.map((item, idx) =>
           idx === index ? { ...item, quantity: newQuantity } : item,
-        );
-        if (user && cartId) {
-          saveDbCart(cartId, newItems).catch(console.error);
-        } else if (!user) {
-          saveGuestCart(newItems);
-        }
-        return newItems;
-      });
+        ),
+      );
     },
-    [user, cartId, removeFromCart],
+    [removeFromCart],
   );
 
-  const clearCart = useCallback(() => {
+  const clearCart = useCallback(async () => {
+    // Clear local state immediately
     setCartItems([]);
+    // If logged in, save empty cart to database immediately (skip debounce)
     if (user && cartId) {
-      saveDbCart(cartId, []).catch(console.error);
+      await saveDbCart(cartId, []);
+      lastSyncedItemsRef.current = JSON.stringify([]);
     } else if (!user) {
+      // Guest: clear localStorage
       saveGuestCart([]);
     }
   }, [user, cartId]);
@@ -289,6 +317,7 @@ export const CartProvider = ({ children }) => {
         totalItems,
         subtotal,
         loading,
+        isSyncing,
       }}
     >
       {children}

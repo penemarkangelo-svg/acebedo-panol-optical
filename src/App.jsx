@@ -1,3 +1,4 @@
+import { Toaster } from "react-hot-toast";
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
@@ -18,10 +19,12 @@ import AdminBrands from "./pages/admin/AdminBrands";
 import AdminProductForm from "./pages/admin/AdminProductForm";
 import AdminLensPricing from "./pages/admin/AdminLensPricing";
 import AdminOrders from "./pages/admin/AdminOrders";
-// other admin pages will be imported later
+// other admin pages will be imported later here
 
 function App() {
   return (
+    <>
+    <Toaster position="top-right" toastOptions={{ duration: 2000 }} />
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<LandingPage />} />
@@ -88,6 +91,7 @@ function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }
 
