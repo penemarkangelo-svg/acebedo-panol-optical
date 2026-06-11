@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import toast from "react-hot-toast";
 import {
   FaCheckCircle,
   FaStore,
@@ -13,26 +14,50 @@ import Footer from "../components/Footer";
 
 export default function OrderConfirmationPage() {
   const { orderId } = useParams();
+  const navigate = useNavigate();
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [stepStatuses, setStepStatuses] = useState({});
 
   useEffect(() => {
-    const fetchOrder = async () => {
+    const fetchOrderAndSteps = async () => {
       setLoading(true);
+
+      // Fetch order
       const { data: orderData, error: orderError } = await supabase
         .from("orders")
         .select("*")
         .eq("id", orderId)
         .single();
+
       if (orderError) {
         console.error(orderError);
         setLoading(false);
         return;
       }
+
       setOrder(orderData);
 
+      // Fetch step_statuses (admin panel updates this JSON column)
+      let stepStatusesData = orderData.step_statuses;
+      if (!stepStatusesData) {
+        // Initialize default if missing (all pending)
+        stepStatusesData = {
+          1: "Pending",
+          2: "Pending",
+          3: "Pending",
+          4: "Pending",
+          5: "Pending",
+          6: "Pending",
+        };
+      }
+      setStepStatuses(stepStatusesData);
+
+      // Fetch order items with product images
       const { data: itemsData, error: itemsError } = await supabase
         .from("order_items")
         .select(
@@ -46,6 +71,7 @@ export default function OrderConfirmationPage() {
         `,
         )
         .eq("order_id", orderId);
+
       if (!itemsError) {
         const enriched = itemsData.map((item) => ({
           ...item,
@@ -57,9 +83,42 @@ export default function OrderConfirmationPage() {
         }));
         setItems(enriched);
       }
+
       setLoading(false);
     };
-    fetchOrder();
+
+    fetchOrderAndSteps();
+  }, [orderId]);
+
+  // Real‑time subscription for order changes (fixed to avoid "after subscribe()" error)
+  useEffect(() => {
+    if (!orderId) return;
+
+    const channel = supabase
+      .channel(`order-${orderId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: `id=eq.${orderId}`,
+        },
+        (payload) => {
+          const updatedOrder = payload.new;
+          setOrder(updatedOrder);
+          if (updatedOrder.step_statuses) {
+            setStepStatuses(updatedOrder.step_statuses);
+          }
+          toast.success("Order status updated", { icon: "🔄" });
+        },
+      )
+      .subscribe();
+
+    // Cleanup: remove the channel when the component unmounts or orderId changes
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [orderId]);
 
   const formatPrice = (price) => `₱${Number(price || 0).toFixed(2)}`;
@@ -83,6 +142,33 @@ export default function OrderConfirmationPage() {
 
   const prescriptionItem = items.find((item) => item.prescription_data);
   const rx = prescriptionItem?.prescription_data;
+
+  // Determine if cancel button should be shown: pending/verifying AND verification step not completed
+  const canCancel =
+    order &&
+    (order.order_status === "pending" || order.order_status === "verifying") &&
+    stepStatuses[3] !== "Completed";
+
+  const handleCancelOrder = async () => {
+    setCancelling(true);
+    const { data, error } = await supabase
+      .from("orders")
+      .update({
+        order_status: "cancelled",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", order.id)
+      .select()
+      .single();
+    if (error) {
+      toast.error("Failed to cancel order. Please try again.");
+    } else {
+      toast.success("Order cancelled successfully.");
+      setOrder(data);
+      setShowCancelModal(false);
+    }
+    setCancelling(false);
+  };
 
   if (loading) {
     return (
@@ -121,6 +207,53 @@ export default function OrderConfirmationPage() {
     );
   }
 
+  // Dynamic banner based on order status
+  const getBanner = () => {
+    const status = order.order_status;
+    const completedDate = order.updated_at
+      ? new Date(order.updated_at).toLocaleDateString()
+      : new Date(order.created_at).toLocaleDateString();
+    switch (status) {
+      case "completed":
+        return {
+          icon: (
+            <FaCheckCircle className="w-8 h-8 text-green-600 flex-shrink-0" />
+          ),
+          title: "Order completed!",
+          subtitle: `Your order was successfully fulfilled on ${completedDate}. Thank you for choosing Acebedo Panol Optical.`,
+        };
+      case "ready_for_pickup":
+        return {
+          icon: <FaStore className="w-8 h-8 text-amber-600 flex-shrink-0" />,
+          title: "Your eyewear is ready for pickup!",
+          subtitle:
+            "Your order is ready at the Rosario Branch. Please bring your order confirmation.",
+        };
+      case "cancelled":
+        return {
+          icon: (
+            <FaCheckCircle className="w-8 h-8 text-red-600 flex-shrink-0" />
+          ),
+          title: "Order cancelled",
+          subtitle:
+            "This order has been cancelled. If you have any questions, please contact support.",
+        };
+      default:
+        return {
+          icon: (
+            <FaCheckCircle className="w-8 h-8 text-green-600 flex-shrink-0" />
+          ),
+          title: isPickup
+            ? "Order placed successfully!"
+            : "Order placed — we're on it!",
+          subtitle: isPickup
+            ? `Thank you, ${order.customer_name}. Your lenses are now being prepared.`
+            : `Thank you, ${order.customer_name}. Your prescription glasses will be delivered to your address.`,
+        };
+    }
+  };
+  const banner = getBanner();
+
   const subtotal = order.subtotal || 0;
   const shipping = order.shipping_fee || 0;
   const total = order.total || 0;
@@ -130,21 +263,14 @@ export default function OrderConfirmationPage() {
       <Header />
       <main className="bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 min-h-screen">
         <div className="max-w-6xl mx-auto space-y-6">
-          {/* Success banner */}
-          <div className="bg-white border border-green-100 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
-            <FaCheckCircle className="w-8 h-8 text-green-600 flex-shrink-0" />
+          {/* Dynamic banner */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 flex items-start gap-4 shadow-sm">
+            {banner.icon}
             <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                {isPickup
-                  ? "Order placed successfully!"
-                  : "Order placed — we're on it!"}
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+                {banner.title}
               </h1>
-              <p className="text-gray-600 text-sm mt-1">
-                Thank you, {order.customer_name}.{" "}
-                {isPickup
-                  ? "Your lenses are now being prepared."
-                  : "Your prescription glasses will be delivered to your address."}
-              </p>
+              <p className="text-gray-600 text-sm mt-1">{banner.subtitle}</p>
               <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-mono">
                 📄 Order #APO-{order.id}
               </div>
@@ -153,17 +279,25 @@ export default function OrderConfirmationPage() {
 
           {/* Two‑column layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left column: timeline + location */}
+            {/* Left column: timeline + location + cancel button */}
             <div className="lg:col-span-5 space-y-6">
-              {/* Progress tracker */}
+              {/* Progress tracker – fully driven by step_statuses */}
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <p className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-5">
                   {isPickup ? "What happens next" : "Delivery progress"}
                 </p>
                 <div className="relative pl-5 space-y-5 before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-[2px] before:bg-gray-200">
-                  {/* Order received – completed */}
+                  {/* Step 1: Order received */}
                   <div className="relative">
-                    <div className="absolute -left-[19px] top-1 w-3 h-3 rounded-full bg-green-600 ring-2 ring-white"></div>
+                    <div
+                      className={`absolute -left-[19px] top-1 w-3 h-3 rounded-full ring-2 ring-white ${
+                        stepStatuses[1] === "Completed"
+                          ? "bg-green-600"
+                          : stepStatuses[1] === "In progress"
+                            ? "bg-amber-500"
+                            : "bg-gray-300"
+                      }`}
+                    ></div>
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900">
@@ -173,14 +307,23 @@ export default function OrderConfirmationPage() {
                           {formattedDate}
                         </p>
                       </div>
-                      <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-                        Completed
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                        {stepStatuses[1] || "Pending"}
                       </span>
                     </div>
                   </div>
-                  {/* Payment confirmed – completed */}
+
+                  {/* Step 2: Payment confirmed */}
                   <div className="relative">
-                    <div className="absolute -left-[19px] top-1 w-3 h-3 rounded-full bg-green-600 ring-2 ring-white"></div>
+                    <div
+                      className={`absolute -left-[19px] top-1 w-3 h-3 rounded-full ring-2 ring-white ${
+                        stepStatuses[2] === "Completed"
+                          ? "bg-green-600"
+                          : stepStatuses[2] === "In progress"
+                            ? "bg-amber-500"
+                            : "bg-gray-300"
+                      }`}
+                    ></div>
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900">
@@ -190,14 +333,51 @@ export default function OrderConfirmationPage() {
                           PayPal — {formatPrice(total)}
                         </p>
                       </div>
-                      <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-                        Completed
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                        {stepStatuses[2] || "Pending"}
                       </span>
                     </div>
                   </div>
-                  {/* Lenses being crafted – in progress */}
+
+                  {/* Step 3: Prescription verification */}
                   <div className="relative">
-                    <div className="absolute -left-[19px] top-1 w-3 h-3 rounded-full bg-amber-500 ring-2 ring-white"></div>
+                    <div
+                      className={`absolute -left-[19px] top-1 w-3 h-3 rounded-full ring-2 ring-white ${
+                        stepStatuses[3] === "Completed"
+                          ? "bg-green-600"
+                          : stepStatuses[3] === "In progress"
+                            ? "bg-amber-500"
+                            : "bg-gray-300"
+                      }`}
+                    ></div>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900">
+                          Prescription verification
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {stepStatuses[3] === "Completed"
+                            ? "Verified and approved by Rosario Branch administration."
+                            : "Acebedo staff are verifying your prescription and payment ledger."}
+                        </p>
+                      </div>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                        {stepStatuses[3] || "Pending"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Step 4: Lenses being crafted */}
+                  <div className="relative">
+                    <div
+                      className={`absolute -left-[19px] top-1 w-3 h-3 rounded-full ring-2 ring-white ${
+                        stepStatuses[4] === "Completed"
+                          ? "bg-green-600"
+                          : stepStatuses[4] === "In progress"
+                            ? "bg-amber-500"
+                            : "bg-gray-300"
+                      }`}
+                    ></div>
                     <div className="flex justify-between items-start">
                       <div>
                         <h4 className="text-sm font-semibold text-gray-900">
@@ -207,41 +387,27 @@ export default function OrderConfirmationPage() {
                           Our opticians are preparing your lenses.
                         </p>
                       </div>
-                      <span className="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                        In progress
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                        {stepStatuses[4] || "Pending"}
                       </span>
                     </div>
                   </div>
-                  {/* Notification / Packing – pending */}
+
+                  {/* Step 5: Ready for pickup / Out for delivery */}
                   <div className="relative">
-                    <div className="absolute -left-[19px] top-1 w-3 h-3 rounded-full bg-gray-300 ring-2 ring-white"></div>
+                    <div
+                      className={`absolute -left-[19px] top-1 w-3 h-3 rounded-full ring-2 ring-white ${
+                        stepStatuses[5] === "Completed"
+                          ? "bg-green-600"
+                          : stepStatuses[5] === "In progress"
+                            ? "bg-amber-500"
+                            : "bg-gray-300"
+                      }`}
+                    ></div>
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="text-sm font-semibold text-gray-500">
-                          {isPickup
-                            ? "You'll be notified"
-                            : "Packed & handed to courier"}
-                        </h4>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {isPickup
-                            ? "We'll contact you when ready."
-                            : "Your order will be packed and dispatched."}
-                        </p>
-                      </div>
-                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                        Pending
-                      </span>
-                    </div>
-                  </div>
-                  {/* Pickup / Out for delivery – pending */}
-                  <div className="relative">
-                    <div className="absolute -left-[19px] top-1 w-3 h-3 rounded-full bg-gray-300 ring-2 ring-white"></div>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-sm font-semibold text-gray-500">
-                          {isPickup
-                            ? "Pick up at Rosario branch"
-                            : "Out for delivery"}
+                        <h4 className="text-sm font-semibold text-gray-900">
+                          {isPickup ? "Ready for pickup" : "Out for delivery"}
                         </h4>
                         <p className="text-xs text-gray-500 mt-0.5">
                           {isPickup
@@ -249,29 +415,60 @@ export default function OrderConfirmationPage() {
                             : "Tracking number will be sent to your email."}
                         </p>
                       </div>
-                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                        Pending
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                        {stepStatuses[5] || "Pending"}
                       </span>
                     </div>
                   </div>
-                  {/* Extra step for delivery – pending */}
-                  {!isPickup && (
+
+                  {/* Step 6: Picked up / Delivered */}
+                  {isPickup ? (
                     <div className="relative">
-                      <div className="absolute -left-[19px] top-1 w-3 h-3 rounded-full bg-gray-300 ring-2 ring-white"></div>
+                      <div
+                        className={`absolute -left-[19px] top-1 w-3 h-3 rounded-full ring-2 ring-white ${
+                          stepStatuses[6] === "Completed"
+                            ? "bg-green-600"
+                            : stepStatuses[6] === "In progress"
+                              ? "bg-amber-500"
+                              : "bg-gray-300"
+                        }`}
+                      ></div>
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="text-sm font-semibold text-gray-500">
-                            Delivered to your address
+                          <h4 className="text-sm font-semibold text-gray-900">
+                            Picked up
+                          </h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Customer has collected the order.
+                          </p>
+                        </div>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                          {stepStatuses[6] || "Pending"}
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <div
+                        className={`absolute -left-[19px] top-1 w-3 h-3 rounded-full ring-2 ring-white ${
+                          stepStatuses[6] === "Completed"
+                            ? "bg-green-600"
+                            : stepStatuses[6] === "In progress"
+                              ? "bg-amber-500"
+                              : "bg-gray-300"
+                        }`}
+                      ></div>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="text-sm font-semibold text-gray-900">
+                            Delivered
                           </h4>
                           <p className="text-xs text-gray-500 mt-0.5">
                             Estimated 7–10 business days.
                           </p>
-                          <div className="mt-1 inline-block text-xs font-medium text-[#D32F2F] bg-red-50 px-2 py-0.5 rounded-full">
-                            📅 Est. June 18–21, 2026
-                          </div>
                         </div>
-                        <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                          Pending
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                          {stepStatuses[6] || "Pending"}
                         </span>
                       </div>
                     </div>
@@ -279,7 +476,7 @@ export default function OrderConfirmationPage() {
                 </div>
               </div>
 
-              {/* Location card */}
+              {/* Location card (unchanged) */}
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
                   {isPickup ? (
@@ -326,9 +523,34 @@ export default function OrderConfirmationPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Cancel button section (visible only when verification NOT completed) */}
+              {canCancel && (
+                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="text-amber-600 text-xl">⚠️</div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">
+                        Need to make a change?
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        If you made a mistake with your prescription or frame
+                        selection, you can cancel this order before it enters
+                        lab production.
+                      </p>
+                      <button
+                        onClick={() => setShowCancelModal(true)}
+                        className="mt-4 px-4 py-2 border border-red-500 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-50 transition"
+                      >
+                        Cancel Order
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Right column: order summary, totals, actions */}
+            {/* Right column: order summary, totals, actions (unchanged) */}
             <div className="lg:col-span-7 space-y-6">
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 pb-3 border-b border-gray-100 mb-4">
@@ -386,7 +608,7 @@ export default function OrderConfirmationPage() {
                   ))}
                 </div>
 
-                {/* Prescription details – removed emoji */}
+                {/* Prescription details */}
                 {rx && (
                   <div className="mt-5 bg-gray-50 border border-gray-200 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-3">
@@ -456,7 +678,7 @@ export default function OrderConfirmationPage() {
                   </div>
                 </div>
 
-                {/* Prescription note – replaced emoji with plain text */}
+                {/* Prescription note */}
                 {rx && (
                   <div className="mt-4 bg-red-50/50 border border-red-100 rounded-xl p-3 text-xs text-red-800">
                     <p>
@@ -520,6 +742,34 @@ export default function OrderConfirmationPage() {
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel confirmation modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h3 className="text-xl font-bold text-gray-900">Cancel order</h3>
+            <p className="text-gray-600 mt-2">
+              Are you sure you want to cancel this order? This action cannot be
+              undone. If you have already paid, you will be refunded.
+            </p>
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Go back
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {cancelling ? "Cancelling..." : "Yes, cancel order"}
               </button>
             </div>
           </div>

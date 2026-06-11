@@ -1,165 +1,205 @@
-import {
-  FaFacebook,
-  FaInstagram,
-  FaTwitter,
-  FaYoutube,
-  FaLinkedin,
-} from "react-icons/fa";
+import React from "react";
+import { FaFacebookF, FaInstagram, FaTwitter } from "react-icons/fa";
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-gray-400 border-t border-gray-800 mt-20">
-      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 py-12 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-          {/* Column 1: Brand + Contact */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              {/* Optional small logo icon – you can add an SVG here */}
-              <div>
-                <span className="font-serif text-2xl font-bold tracking-widest text-white">
-                  ACEBEDO
-                </span>
-                <div className="font-sans text-xs font-light tracking-[0.2em] text-gray-500">
-                  PANOL OPTICAL
-                </div>
-              </div>
-            </div>
-            <p className="text-sm mb-4 max-w-md">
-              Professional optical care and digital vision screening. Your sight
-              is our priority.
-            </p>
-            <div className="space-y-2 text-sm">
-              <p className="flex items-center gap-2">📧 info@acebedopanol.com</p>
-              <p className="flex items-center gap-2">📞 +1 (800) 555-0200</p>
-              <p className="flex items-center gap-2"> 📍 123 Rosario, Cavite</p>
-            </div>
-          </div>
+    <footer className="w-full bg-white border-t border-gray-100 font-sans">
+      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 py-16">
+        {/* Brand statement */}
+        <div className="mb-16 max-w-md">
+          <p className="text-gray-400 text-xs uppercase tracking-wider mb-2">
+            Brand Statement
+          </p>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Professional optical care and digital vision screening. Your sight
+            is our priority.
+          </p>
+        </div>
 
-          {/* Column 2: Quick Links */}
+        {/* Links grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 pb-16 border-b border-gray-100">
+          {/* Navigation */}
           <div>
-            <h3 className="text-white font-semibold mb-4">QUICK LINKS</h3>
+            <h3 className="text-gray-900 font-semibold text-sm uppercase tracking-wider mb-4">
+              Navigation
+            </h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Home
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/shop"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Shop Frames
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/vision-test"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Vision Test
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/cart"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Cart
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/profile"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   My Profile
                 </a>
               </li>
             </ul>
           </div>
 
-          {/* Column 3: Support */}
+          {/* Support */}
           <div>
-            <h3 className="text-white font-semibold mb-4">SUPPORT</h3>
+            <h3 className="text-gray-900 font-semibold text-sm uppercase tracking-wider mb-4">
+              Support
+            </h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/contact"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Contact Us
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/faqs"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   FAQs
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/shipping-returns"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Shipping & Returns
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/frame-fit-guide"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Frame Fit Guide
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/prescription-guide"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Prescription Guide
                 </a>
               </li>
             </ul>
           </div>
 
-          {/* Column 4: Legal */}
+          {/* Legal */}
           <div>
-            <h3 className="text-white font-semibold mb-4">LEGAL</h3>
+            <h3 className="text-gray-900 font-semibold text-sm uppercase tracking-wider mb-4">
+              Legal
+            </h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/privacy"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Privacy Policy
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/terms"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Terms of Service
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/accessibility"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Accessibility
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-[#C72C41] transition">
+                <a
+                  href="/medical-disclaimer"
+                  className="text-gray-500 hover:text-[#D32F2F] transition"
+                >
                   Medical Disclaimer
                 </a>
               </li>
             </ul>
           </div>
+
+          {/* Connect */}
+          <div>
+            <h3 className="text-gray-900 font-semibold text-sm uppercase tracking-wider mb-4">
+              Connect
+            </h3>
+            <div className="flex space-x-4 mb-4">
+              <a
+                href="#"
+                className="text-gray-500 hover:text-[#D32F2F] transition"
+              >
+                <FaFacebookF size={18} />
+              </a>
+              <a
+                href="#"
+                className="text-gray-500 hover:text-[#D32F2F] transition"
+              >
+                <FaInstagram size={18} />
+              </a>
+              <a
+                href="#"
+                className="text-gray-500 hover:text-[#D32F2F] transition"
+              >
+                <FaTwitter size={18} />
+              </a>
+            </div>
+            <p className="text-xs text-gray-400">
+              📍 123 Rosario, Cavite
+              <br />
+              📧 info@acebedopanol.com
+            </p>
+          </div>
         </div>
 
-        {/* Bottom bar: Social + Eye motif + Copyright */}
-        <div className="border-t border-gray-800 mt-10 pt-6 flex flex-col md:flex-row justify-between items-center text-sm">
-          <div className="flex space-x-4 mb-4 md:mb-0">
-            <a href="#" className="hover:text-[#C72C41] transition">
-              <FaFacebook className="w-5 h-5" />
-            </a>
-            <a href="#" className="hover:text-[#C72C41] transition">
-              <FaInstagram className="w-5 h-5" />
-            </a>
-          </div>
-          <div className="flex items-center gap-2 text-gray-500">
-            <span>© 2026 ACEBEDO PANOL OPTICAL. All rights reserved.</span>
-            {/* Eye motif – simple SVG */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5 text-gray-600"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"
-              />
-            </svg>
-          </div>
+        {/* Massive brand text - solid color, adjusted size */}
+        <div className="w-full pt-12 select-none">
+          <h1 className="text-[#D32F2F] text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-bold tracking-tighter leading-none text-center uppercase">
+            acebedo
+          </h1>
+        </div>
+
+        {/* Copyright */}
+        <div className="mt-8 text-center text-xs text-gray-400">
+          © 2026 ACEBEDO PANOL OPTICAL. All rights reserved.
         </div>
       </div>
     </footer>

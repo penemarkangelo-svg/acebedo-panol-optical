@@ -155,7 +155,7 @@ console.log(
       await clearCart();
 
       toast.success("Order placed successfully!");
-      navigate(`/order-confirmation/${order.id}`);
+      navigate(`/order-status/${order.id}`);
     } catch (err) {
       console.error(err);
       toast.error(err.message || "Failed to place order. Please try again.");

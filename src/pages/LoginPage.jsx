@@ -48,7 +48,7 @@ export default function LoginPage() {
       navigate("/admin");
     } else {
       toast.success("Logged in successfully!");
-      navigate("/main");
+      navigate("/shop");
     }
   };
 
