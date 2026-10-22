@@ -5,7 +5,7 @@ import { FiTrash2 } from "react-icons/fi";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { useCart } from "../context/CartContext";
-import "../styles/Cart.css";
+import "../styles/cart.css";
 
 export default function CartPage() {
   const { cartItems, updateQuantity, removeFromCart, isSyncing } = useCart();
