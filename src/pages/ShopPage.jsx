@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { supabase } from "../lib/supabaseClient";
+import "../styles/Shop.css";
 
-const ITEMS_PER_PAGE = 9;
+const ITEMS_PER_PAGE = 6;
 const MAX_PRICE = 5000;
 
 export default function ShopPage() {
@@ -14,169 +15,224 @@ export default function ShopPage() {
   const [brands, setBrands] = useState([]);
   const [shapes, setShapes] = useState([]);
   const [materials, setMaterials] = useState([]);
-
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
 
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [selectedShapes, setSelectedShapes] = useState([]);
   const [selectedMaterials, setSelectedMaterials] = useState([]);
-  const [productType, setProductType] = useState("all"); // 'all', 'frames', 'accessories'
+  const [productType, setProductType] = useState("all");
 
   const [brandSearch, setBrandSearch] = useState("");
   const [showAllBrands, setShowAllBrands] = useState(false);
   const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
   const [inStockOnly, setInStockOnly] = useState(false);
-
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    const fetchShopData = async () => {
+    let cancelled = false;
+
+    async function fetchShopData() {
       setLoading(true);
+      setFetchError("");
 
-      const productsQuery = supabase
-        .from("products")
-        .select(
-          `
-          *,
-          brands (id, name),
-          frame_shape:frame_shapes (id, name),
-          frame_material:frame_materials (id, name),
-          product_images (image_url, is_primary)
-        `,
-        )
-        .order("created_at", { ascending: false });
+      try {
+        const [
+          productsResult,
+          brandsResult,
+          shapesResult,
+          materialsResult,
+        ] = await Promise.all([
+          supabase
+            .from("products")
+            .select(`
+              *,
+              brands (id, name),
+              frame_shape:frame_attributes!products_frame_shape_id_fkey (id, name),
+              frame_material:frame_attributes!products_frame_material_id_fkey (id, name),
+              product_images (image_url, is_primary, sort_order),
+              product_colors (id, color_name, color_code, stock)
+            `)
+            .order("created_at", { ascending: false }),
 
-      const brandsQuery = supabase
-        .from("brands")
-        .select("id, name")
-        .order("name", { ascending: true });
+          supabase
+            .from("brands")
+            .select("id, name")
+            .order("name", { ascending: true }),
 
-      const shapesQuery = supabase
-        .from("frame_shapes")
-        .select("id, name")
-        .order("name", { ascending: true });
+          supabase
+            .from("frame_attributes")
+            .select("id, name")
+            .eq("attribute_type", "shape")
+            .order("name", { ascending: true }),
 
-      const materialsQuery = supabase
-        .from("frame_materials")
-        .select("id, name")
-        .order("name", { ascending: true });
-
-      const [productsResult, brandsResult, shapesResult, materialsResult] =
-        await Promise.all([
-          productsQuery,
-          brandsQuery,
-          shapesQuery,
-          materialsQuery,
+          supabase
+            .from("frame_attributes")
+            .select("id, name")
+            .eq("attribute_type", "material")
+            .order("name", { ascending: true }),
         ]);
 
-      if (productsResult.error) {
-        console.error("Products error:", productsResult.error);
-      } else {
+        if (productsResult.error) throw productsResult.error;
+        if (brandsResult.error) throw brandsResult.error;
+        if (shapesResult.error) throw shapesResult.error;
+        if (materialsResult.error) throw materialsResult.error;
+
+        if (cancelled) return;
+
         setProducts(productsResult.data || []);
-      }
-
-      if (brandsResult.error) {
-        console.error("Brands error:", brandsResult.error);
-      } else {
         setBrands(brandsResult.data || []);
-      }
-
-      if (shapesResult.error) {
-        console.error("Shapes error:", shapesResult.error);
-      } else {
         setShapes(shapesResult.data || []);
-      }
-
-      if (materialsResult.error) {
-        console.error("Materials error:", materialsResult.error);
-      } else {
         setMaterials(materialsResult.data || []);
-      }
+      } catch (error) {
+        console.error("Failed to load shop data:", error);
 
-      setLoading(false);
-    };
+        if (!cancelled) {
+          setFetchError(
+            "We couldn't load the products. Please try again."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
 
     fetchShopData();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
+  const resetPage = () => {
+    setCurrentPage(1);
+  };
+
   const toggleFilter = (value, selectedValues, setSelectedValues) => {
-    setSelectedValues((prev) =>
-      prev.includes(value)
-        ? prev.filter((item) => item !== value)
-        : [...prev, value],
+    setSelectedValues((previous) =>
+      previous.includes(value)
+        ? previous.filter((item) => item !== value)
+        : [...previous, value]
     );
+
+    resetPage();
+  };
+
+  const clearFilters = () => {
+    setSelectedBrands([]);
+    setSelectedShapes([]);
+    setSelectedMaterials([]);
+    setProductType("all");
+    setBrandSearch("");
+    setShowAllBrands(false);
+    setMaxPrice(MAX_PRICE);
+    setInStockOnly(false);
     setCurrentPage(1);
   };
 
   const filteredBrands = brands.filter((brand) =>
-    brand.name.toLowerCase().includes(brandSearch.toLowerCase()),
+    brand.name.toLowerCase().includes(brandSearch.toLowerCase())
   );
 
   const visibleBrands = showAllBrands
     ? filteredBrands
-    : filteredBrands.slice(0, 5);
+    : filteredBrands.slice(0, 6);
 
   const filteredProducts = products.filter((product) => {
-    // Type filter
-    if (productType === "frames" && product.type !== "frame") return false;
-    if (productType === "accessories" && product.type !== "accessory")
+    if (productType === "all" && product.type !== "frame") {
       return false;
+    }
 
-    // Brand filter
+    if (
+      productType === "accessories" &&
+      product.type !== "accessory"
+    ) {
+      return false;
+    }
+
     const brandMatch =
-      selectedBrands.length === 0 || selectedBrands.includes(product.brand_id);
+      selectedBrands.length === 0 ||
+      selectedBrands.includes(product.brand_id);
 
-    // Shape filter
     const shapeMatch =
       selectedShapes.length === 0 ||
       selectedShapes.includes(product.frame_shape_id);
 
-    // Material filter
     const materialMatch =
       selectedMaterials.length === 0 ||
       selectedMaterials.includes(product.frame_material_id);
 
-    // Price filter
-    const priceMatch = Number(product.price) <= Number(maxPrice);
+    const priceMatch = Number(product.price) <= maxPrice;
 
-    // Stock filter
-    const stockMatch = !inStockOnly || product.stock > 0;
+    const stockMatch =
+      !inStockOnly && product.type === "frame"
+        ? true
+        : !inStockOnly || Number(product.stock) > 0;
 
     return (
-      brandMatch && shapeMatch && materialMatch && priceMatch && stockMatch
+      brandMatch &&
+      shapeMatch &&
+      materialMatch &&
+      priceMatch &&
+      stockMatch
     );
   });
 
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedProducts = filteredProducts.slice(
-    startIndex,
-    startIndex + ITEMS_PER_PAGE,
+  const totalPages = Math.ceil(
+    filteredProducts.length / ITEMS_PER_PAGE
   );
 
-  const goToPage = (page) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  const paginatedProducts = filteredProducts.slice(
+    startIndex,
+    startIndex + ITEMS_PER_PAGE
+  );
 
   const getPrimaryImage = (product) => {
-    const primary = product.product_images?.find((img) => img.is_primary);
+    const images = [...(product.product_images || [])].sort(
+      (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+    );
+
+    const primary = images.find((image) => image.is_primary);
+
     return (
       primary?.image_url ||
-      product.product_images?.[0]?.image_url ||
-      "https://placehold.co/400x300?text=No+Image"
+      images[0]?.image_url ||
+      "https://placehold.co/800x600?text=No+Image"
     );
+  };
+
+  const getProductColors = (product) => {
+    if (!Array.isArray(product.product_colors)) {
+      return [];
+    }
+
+    return product.product_colors
+      .filter((color) => color?.color_code)
+      .slice(0, 3);
+  };
+
+  const getColorValue = (color) => {
+    return color?.color_code || "#d9d8d1";
   };
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center">
-          <div className="h-10 w-10 border-4 border-[#D32F2F] border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-3 text-sm text-gray-600">Please wait...</p>
-        </div>
-      </div>
+      <>
+        <Header />
+
+        <main className="shop-page shop-page--loading">
+          <div className="shop-loading">
+            <div className="shop-loading__line" />
+            <p>Loading frames...</p>
+          </div>
+        </main>
+
+        <Footer />
+      </>
     );
   }
 
@@ -184,327 +240,528 @@ export default function ShopPage() {
     <>
       <Header />
 
-      <main className="bg-white py-12 px-6 md:px-12 lg:px-20">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-[#212529] mb-6">
-            Shop Frames
-          </h1>
+      <main className="shop-page">
+        {fetchError && (
+          <div className="shop-error" role="alert">
+            <p>{fetchError}</p>
 
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Sidebar Filters */}
-            <aside className="w-full md:w-72">
-              <div className="border border-gray-200 rounded-xl p-5 sticky top-24">
-                <h2 className="text-lg font-bold text-[#212529] mb-5">
-                  Filters
-                </h2>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+            >
+              Try again
+            </button>
+          </div>
+        )}
 
-                {/* Product Type Filter */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-[#212529] mb-3">
-                    Product Type
-                  </h3>
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="productType"
-                        value="all"
-                        checked={productType === "all"}
-                        onChange={() => setProductType("all")}
-                        className="accent-[#D32F2F]"
-                      />
-                      All
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="productType"
-                        value="frames"
-                        checked={productType === "frames"}
-                        onChange={() => setProductType("frames")}
-                        className="accent-[#D32F2F]"
-                      />
-                      Frames Only
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="productType"
-                        value="accessories"
-                        checked={productType === "accessories"}
-                        onChange={() => setProductType("accessories")}
-                        className="accent-[#D32F2F]"
-                      />
-                      Accessories
-                    </label>
-                  </div>
+        <section className="shop-collection">
+          <div className="shop-collection__top">
+            <div className="shop-tabs">
+              <button
+                type="button"
+                className={`shop-tab ${
+                  productType === "all"
+                    ? "shop-tab--active"
+                    : ""
+                }`}
+                onClick={() => {
+                  setProductType("all");
+                  resetPage();
+                }}
+              >
+                All frames
+              </button>
+
+              <button
+                type="button"
+                className={`shop-tab ${
+                  productType === "eyeglasses"
+                    ? "shop-tab--active"
+                    : ""
+                }`}
+                onClick={() => {
+                  setProductType("eyeglasses");
+                  resetPage();
+                }}
+              >
+                Eyeglasses
+              </button>
+
+              <button
+                type="button"
+                className={`shop-tab ${
+                  productType === "sunglasses"
+                    ? "shop-tab--active"
+                    : ""
+                }`}
+                onClick={() => {
+                  setProductType("sunglasses");
+                  resetPage();
+                }}
+              >
+                Sunglasses
+              </button>
+
+              <button
+                type="button"
+                className={`shop-tab ${
+                  productType === "accessories"
+                    ? "shop-tab--active"
+                    : ""
+                }`}
+                onClick={() => {
+                  setProductType("accessories");
+                  resetPage();
+                }}
+              >
+                Accessories
+              </button>
+            </div>
+
+            <p className="shop-collection__statement">
+              {filteredProducts.length} thoughtfully selected{" "}
+              {productType === "accessories" ? "accessories" : "frames"}
+            </p>
+          </div>
+
+          <div className="shop-toolbar">
+            <div className="shop-toolbar__left">
+              <span className="shop-toolbar__label">
+                Filter by
+              </span>
+
+              <button
+                type="button"
+                className="shop-clear-button"
+                onClick={clearFilters}
+              >
+                Clear all
+              </button>
+
+              <span className="shop-toolbar__count">
+                {filteredProducts.length}{" "}
+                {productType === "accessories" ? "accessories" : "frames"}
+              </span>
+            </div>
+
+            <div className="shop-sort">
+              <span>Sort by</span>
+
+              <button type="button">
+                Featured
+                <span
+                  className="shop-sort__chevron"
+                  aria-hidden="true"
+                >
+                  ↓
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="shop-collection__body">
+            <aside className="shop-filters">
+              <div className="shop-filter-section">
+                <div className="shop-filter-heading">
+                  <h2>Shape</h2>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedShapes([]);
+                      resetPage();
+                    }}
+                  >
+                    −
+                  </button>
                 </div>
 
-                {/* Brand Filter */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-[#212529] mb-3">Brands</h3>
-
-                  <input
-                    type="text"
-                    placeholder="Search brand..."
-                    value={brandSearch}
-                    onChange={(e) => {
-                      setBrandSearch(e.target.value);
-                      setShowAllBrands(false);
-                    }}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-[#D32F2F]"
-                  />
-
-                  <div className="space-y-2">
-                    {visibleBrands.map((brand) => (
-                      <label
-                        key={brand.id}
-                        className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedBrands.includes(brand.id)}
-                          onChange={() =>
-                            toggleFilter(
-                              brand.id,
-                              selectedBrands,
-                              setSelectedBrands,
-                            )
-                          }
-                          className="accent-[#D32F2F]"
-                        />
-                        {brand.name}
-                      </label>
-                    ))}
-                  </div>
-
-                  {filteredBrands.length > 5 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAllBrands((prev) => !prev)}
-                      className="mt-3 text-sm text-[#D32F2F] hover:underline"
+                <div className="shop-filter-options">
+                  {shapes.map((shape) => (
+                    <label
+                      key={shape.id}
+                      className="shop-filter-option"
                     >
-                      {showAllBrands ? "Show less" : "Show more"}
-                    </button>
-                  )}
-                </div>
+                      <input
+                        type="checkbox"
+                        checked={selectedShapes.includes(
+                          shape.id
+                        )}
+                        onChange={() =>
+                          toggleFilter(
+                            shape.id,
+                            selectedShapes,
+                            setSelectedShapes
+                          )
+                        }
+                      />
 
-                {/* Frame Shape Filter */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-[#212529] mb-3">
-                    Frame Shape
-                  </h3>
+                      <span className="shop-checkbox" />
 
-                  <div className="space-y-2">
-                    {shapes.map((shape) => (
-                      <label
-                        key={shape.id}
-                        className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedShapes.includes(shape.id)}
-                          onChange={() =>
-                            toggleFilter(
-                              shape.id,
-                              selectedShapes,
-                              setSelectedShapes,
-                            )
-                          }
-                          className="accent-[#D32F2F]"
-                        />
+                      <span className="shop-filter-option__name">
                         {shape.name}
-                      </label>
-                    ))}
-                  </div>
+                      </span>
+                    </label>
+                  ))}
                 </div>
+              </div>
 
-                {/* Material Filter */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-[#212529] mb-3">
-                    Material
-                  </h3>
+              <div className="shop-filter-section">
+                <div className="shop-filter-heading">
+                  <h2>Material</h2>
 
-                  <div className="space-y-2">
-                    {materials.map((material) => (
-                      <label
-                        key={material.id}
-                        className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedMaterials.includes(material.id)}
-                          onChange={() =>
-                            toggleFilter(
-                              material.id,
-                              selectedMaterials,
-                              setSelectedMaterials,
-                            )
-                          }
-                          className="accent-[#D32F2F]"
-                        />
-                        {material.name}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Price Range */}
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-[#212529]">
-                      Price Range
-                    </h3>
-                    <span className="text-sm text-gray-600">₱{maxPrice}</span>
-                  </div>
-
-                  <input
-                    type="range"
-                    min="0"
-                    max={MAX_PRICE}
-                    step="100"
-                    value={maxPrice}
-                    onChange={(e) => {
-                      setMaxPrice(Number(e.target.value));
-                      setCurrentPage(1);
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedMaterials([]);
+                      resetPage();
                     }}
-                    className="w-full accent-[#D32F2F]"
-                  />
+                  >
+                    −
+                  </button>
+                </div>
 
-                  <div className="flex justify-between text-xs text-gray-500 mt-1">
-                    <span>₱0</span>
-                    <span>₱{MAX_PRICE}</span>
+                <div className="shop-filter-options">
+                  {materials.map((material) => (
+                    <label
+                      key={material.id}
+                      className="shop-filter-option"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedMaterials.includes(
+                          material.id
+                        )}
+                        onChange={() =>
+                          toggleFilter(
+                            material.id,
+                            selectedMaterials,
+                            setSelectedMaterials
+                          )
+                        }
+                      />
+
+                      <span className="shop-checkbox" />
+
+                      <span className="shop-filter-option__name">
+                        {material.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="shop-filter-section">
+                <div className="shop-filter-heading">
+                  <h2>Brand</h2>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedBrands([]);
+                      resetPage();
+                    }}
+                  >
+                    −
+                  </button>
+                </div>
+
+                <div className="shop-filter-options">
+                  {visibleBrands.map((brand) => (
+                    <label
+                      key={brand.id}
+                      className="shop-filter-option"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedBrands.includes(
+                          brand.id
+                        )}
+                        onChange={() =>
+                          toggleFilter(
+                            brand.id,
+                            selectedBrands,
+                            setSelectedBrands
+                          )
+                        }
+                      />
+
+                      <span className="shop-checkbox" />
+
+                      <span className="shop-filter-option__name">
+                        {brand.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                {filteredBrands.length > 6 && (
+                  <button
+                    type="button"
+                    className="shop-show-more"
+                    onClick={() =>
+                      setShowAllBrands((previous) => !previous)
+                    }
+                  >
+                    {showAllBrands ? "Show less" : "Show more"}
+                  </button>
+                )}
+              </div>
+
+              <div className="shop-filter-section shop-filter-section--price">
+                <div className="shop-filter-heading">
+                  <h2>Price range</h2>
+                </div>
+
+                <div className="shop-price-fields">
+                  <div className="shop-price-field">
+                    <span>₱</span>
+                    <span>500</span>
+                  </div>
+
+                  <div className="shop-price-field">
+                    <span>₱</span>
+                    <span>
+                      {maxPrice.toLocaleString("en-PH")}
+                    </span>
                   </div>
                 </div>
 
-                {/* Availability */}
-                <div className="mb-2">
-                  <h3 className="font-semibold text-[#212529] mb-3">
-                    Availability
-                  </h3>
-
-                  <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={inStockOnly}
-                      onChange={(e) => {
-                        setInStockOnly(e.target.checked);
-                        setCurrentPage(1);
-                      }}
-                      className="accent-[#D32F2F]"
-                    />
-                    In stock only
-                  </label>
-                </div>
+                <input
+                  className="shop-price-range"
+                  type="range"
+                  min="0"
+                  max={MAX_PRICE}
+                  step="100"
+                  value={maxPrice}
+                  onChange={(event) => {
+                    setMaxPrice(Number(event.target.value));
+                    resetPage();
+                  }}
+                  aria-label="Maximum price"
+                />
               </div>
             </aside>
 
-            {/* Product Grid */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-5">
-                <p className="text-sm text-gray-600">
-                  Showing {filteredProducts.length} product
-                  {filteredProducts.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-
+            <section className="shop-products">
               {filteredProducts.length === 0 ? (
-                <p className="text-gray-500 text-center py-12">
-                  No products match the selected filters.
-                </p>
+                <div className="shop-empty">
+                  <h2>
+                    No{" "}
+                    {productType === "accessories"
+                      ? "accessories"
+                      : "frames"}{" "}
+                    found
+                  </h2>
+
+                  <p>
+                    Try changing your filters or clearing them.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                  >
+                    Clear filters
+                  </button>
+                </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {paginatedProducts.map((product) => (
-                      <div
-                        key={product.id}
-                        className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-lg transition bg-white"
-                      >
-                        <img
-                          src={getPrimaryImage(product)}
-                          alt={product.name}
-                          className="w-full h-48 object-cover"
-                        />
+                  <div className="shop-product-grid">
+                    {paginatedProducts.map((product) => {
+                      const colors = getProductColors(product);
 
-                        <div className="p-4">
-                          <h3 className="font-semibold text-[#212529]">
-                            {product.name}
-                          </h3>
-
-                          <p className="text-sm text-gray-500">
-                            {product.brands?.name || "No brand"}
-                          </p>
-
-                          <div className="flex flex-wrap gap-2 mt-3">
-                            {product.frame_shape?.name && (
-                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                                {product.frame_shape.name}
+                      return (
+                        <article
+                          key={product.id}
+                          className="shop-product"
+                        >
+                          <div className="shop-product__image-wrap">
+                            {product.is_new && (
+                              <span className="shop-product__badge">
+                                NEW ARRIVAL
                               </span>
                             )}
 
-                            {product.frame_material?.name && (
-                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                                {product.frame_material.name}
-                              </span>
-                            )}
-                          </div>
+                            {!product.is_new &&
+                              product.name === "Triomphe" && (
+                                <span className="shop-product__badge">
+                                  A MODERN CLASSIC
+                                </span>
+                              )}
 
-                          <div className="flex justify-between items-center mt-4">
-                            <span className="text-[#D32F2F] font-bold">
-                              ₱{Number(product.price).toFixed(2)}
-                            </span>
+                            {!product.is_new &&
+                              product.name === "Model" && (
+                                <span className="shop-product__badge">
+                                  THE EVERYDAY EDIT
+                                </span>
+                              )}
 
                             <button
-                              onClick={() => navigate(`/product/${product.id}`)}
-                              className="text-sm bg-[#D32F2F] text-white px-3 py-1.5 rounded-lg hover:bg-[#B71C1C] transition"
+                              type="button"
+                              className="shop-product__heart"
+                              aria-label={`Save ${product.name}`}
                             >
-                              View Details
+                              ♡
+                            </button>
+
+                            <button
+                              type="button"
+                              className="shop-product__image-button"
+                              onClick={() =>
+                                navigate(
+                                  `/product/${product.id}`
+                                )
+                              }
+                              aria-label={`View ${product.name}`}
+                            >
+                              <img
+                                src={getPrimaryImage(product)}
+                                alt={product.name}
+                                loading="lazy"
+                              />
+                            </button>
+
+                            <button
+                              type="button"
+                              className="shop-product__quick-view"
+                              onClick={() =>
+                                navigate(
+                                  `/product/${product.id}`
+                                )
+                              }
+                            >
+                              <span aria-hidden="true">+</span>
+                              Quick view
                             </button>
                           </div>
-                        </div>
-                      </div>
-                    ))}
+
+                          <div className="shop-product__details">
+                            <div className="shop-product__brand-row">
+                              <span className="shop-product__brand">
+                                {product.brands?.name ||
+                                  "Unbranded"}
+                              </span>
+                            </div>
+
+                            <div className="shop-product__name-row">
+                              <h3>{product.name}</h3>
+
+                              {colors.length > 0 && (
+                                <div
+                                  className="shop-product__colors"
+                                  aria-label="Available colors"
+                                >
+                                  {colors.map((color) => (
+                                    <span
+                                      key={`${product.id}-${color.id}`}
+                                      className="shop-product__color"
+                                      style={{
+                                        backgroundColor:
+                                          getColorValue(color),
+                                      }}
+                                      title={
+                                        color.color_name ||
+                                        "Available color"
+                                      }
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            <p className="shop-product__attributes">
+                              {product.frame_shape?.name ||
+                                "Frame"}
+                              ,{" "}
+                              {product.frame_material?.name ||
+                                "Material"}
+                            </p>
+
+                            <div className="shop-product__bottom">
+                              <span className="shop-product__price">
+                                ₱
+                                {Number(
+                                  product.price
+                                ).toLocaleString("en-PH", {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </span>
+
+                              <button
+                                type="button"
+                                className="shop-product__details-link"
+                                onClick={() =>
+                                  navigate(
+                                    `/product/${product.id}`
+                                  )
+                                }
+                              >
+                                View details
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
                   </div>
 
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-2 mt-8">
-                      <button
-                        onClick={() => goToPage(currentPage - 1)}
-                        disabled={currentPage === 1}
-                        className="px-3 py-1 border rounded disabled:opacity-50"
-                      >
-                        Prev
-                      </button>
+                  <div className="shop-discover">
+                    <p>
+                      Showing{" "}
+                      {Math.min(
+                        paginatedProducts.length,
+                        ITEMS_PER_PAGE
+                      )}{" "}
+                      of {filteredProducts.length}{" "}
+                      {productType === "accessories"
+                        ? "accessories"
+                        : "frames"}
+                    </p>
 
-                      {[...Array(totalPages)].map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => goToPage(i + 1)}
-                          className={`px-3 py-1 border rounded ${
-                            currentPage === i + 1
-                              ? "bg-[#D32F2F] text-white"
-                              : "bg-white text-[#212529]"
-                          }`}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
+                    <span
+                      className="shop-discover__line"
+                      aria-hidden="true"
+                    />
 
+                    {totalPages > currentPage ? (
                       <button
-                        onClick={() => goToPage(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                        className="px-3 py-1 border rounded disabled:opacity-50"
+                        type="button"
+                        onClick={() =>
+                          setCurrentPage(
+                            (previous) => previous + 1
+                          )
+                        }
                       >
-                        Next
+                        Discover more{" "}
+                        {productType === "accessories"
+                          ? "accessories"
+                          : "frames"}
+                        <span aria-hidden="true">→</span>
                       </button>
-                    </div>
-                  )}
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (totalPages > 1) {
+                            setCurrentPage(1);
+                          }
+                        }}
+                      >
+                        Discover more{" "}
+                        {productType === "accessories"
+                          ? "accessories"
+                          : "frames"}
+                        <span aria-hidden="true">→</span>
+                      </button>
+                    )}
+                  </div>
                 </>
               )}
-            </div>
+            </section>
           </div>
-        </div>
+        </section>
       </main>
 
       <Footer />

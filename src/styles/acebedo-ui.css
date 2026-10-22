@@ -1,0 +1,1685 @@
+/* =========================================================
+   ACEBEDO PANOL OPTICAL
+   Shared UI Design System
+   Warm, low-distraction clinical interface
+
+   Compatibility:
+   - Preserves existing Acebedo variable and class names.
+   - Designed to work alongside Tailwind CSS utilities.
+   - Use component-specific classes only where they add behavior
+     or meaning; do not duplicate the global color system.
+   ========================================================= */
+
+:root {
+  color-scheme: light;
+
+  /* ---------------------------------------------------------
+     BRAND COLORS
+     --------------------------------------------------------- */
+  --acebedo-red: #B3131B;
+  --acebedo-red-hover: #8E0E14;
+  --acebedo-red-soft: #F7EBEB;
+
+  /* ---------------------------------------------------------
+     TEXT AND NEUTRALS
+     --------------------------------------------------------- */
+  --acebedo-text: #1F1E1B;
+  --acebedo-text-muted: #6E6B63;
+  --acebedo-text-subtle: #68665F;
+
+  --acebedo-background: #F8F7F4;
+  --acebedo-surface: #FFFFFF;
+  --acebedo-surface-muted: #EEECE6;
+
+  --acebedo-border: #E2DFD7;
+  --acebedo-border-strong: #C4C0B5;
+
+  /* ---------------------------------------------------------
+     STATUS COLORS
+     Keep text and background variants separate so status
+     meaning is not communicated through color alone.
+     --------------------------------------------------------- */
+  --acebedo-success: #1B7A4B;
+  --acebedo-success-bg: #EAF5EE;
+  --acebedo-success-border: #B8DCC5;
+
+  --acebedo-warning: #805400;
+  --acebedo-warning-bg: #FFF5DF;
+  --acebedo-warning-border: #E8D19A;
+
+  --acebedo-error: #B3131B;
+  --acebedo-error-bg: #FBEDEE;
+  --acebedo-error-border: #E7B9BD;
+
+  --acebedo-info: #245A81;
+  --acebedo-info-bg: #EDF5FA;
+  --acebedo-info-border: #BED6E6;
+
+  --acebedo-neutral-bg: #F3F2EF;
+  --acebedo-neutral-border: #D7D4CC;
+
+  /* ---------------------------------------------------------
+     TYPOGRAPHY
+     --------------------------------------------------------- */
+  --font-brand: Georgia, "Times New Roman", serif;
+  --font-body: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
+  --acebedo-font-xs: 0.75rem;    /* 12px: eyebrow or compact metadata */
+  --acebedo-font-sm: 0.875rem;   /* 14px: secondary notes/disclaimers */
+  --acebedo-font-md: 1rem;       /* 16px: default body and controls */
+  --acebedo-font-lg: 1.125rem;   /* 18px */
+  --acebedo-font-xl: 1.25rem;    /* 20px */
+  --acebedo-font-2xl: 1.5rem;    /* 24px */
+  --acebedo-font-3xl: 1.875rem;  /* 30px */
+  --acebedo-font-display: clamp(2rem, 4vw, 3.25rem);
+
+  --acebedo-weight-regular: 400;
+  --acebedo-weight-medium: 500;
+  --acebedo-weight-semibold: 600;
+  --acebedo-weight-bold: 700;
+
+  --acebedo-line-tight: 1.2;
+  --acebedo-line-normal: 1.5;
+  --acebedo-line-relaxed: 1.7;
+
+  --acebedo-tracking-tight: -0.02em;
+  --acebedo-tracking-normal: 0;
+  --acebedo-tracking-wide: 0.08em;
+
+  /* ---------------------------------------------------------
+     SPACING
+     --------------------------------------------------------- */
+  --acebedo-space-xs: 0.25rem;
+  --acebedo-space-sm: 0.5rem;
+  --acebedo-space-md: 0.75rem;
+  --acebedo-space-lg: 1rem;
+  --acebedo-space-xl: 1.5rem;
+  --acebedo-space-2xl: 2rem;
+  --acebedo-space-3xl: 3rem;
+
+  /* ---------------------------------------------------------
+     SHAPE, SHADOW, AND LAYOUT
+     --------------------------------------------------------- */
+  --acebedo-radius-sm: 8px;
+  --acebedo-radius-md: 12px;
+  --acebedo-radius-lg: 18px;
+  --acebedo-radius-pill: 999px;
+
+  --acebedo-shadow-sm: 0 1px 3px rgba(31, 30, 27, 0.04);
+  --acebedo-shadow-md: 0 8px 24px rgba(31, 30, 27, 0.06);
+  --acebedo-shadow-dialog: 0 12px 36px rgba(31, 30, 27, 0.12);
+
+  --acebedo-content-width: 1180px;
+  --acebedo-reading-width: 68ch;
+  --acebedo-focus-ring: 0 0 0 3px var(--acebedo-red-soft);
+
+  /* Control sizing */
+  --acebedo-control-height: 46px;
+  --acebedo-control-height-lg: 52px;
+  --acebedo-touch-target: 44px;
+
+  /* Progress indicator */
+  --acebedo-progress-line: 2px;
+  --acebedo-progress-node: 2rem;
+}
+
+
+/* =========================================================
+   PAGE FOUNDATION
+   ========================================================= */
+
+.acebedo-page {
+  min-height: 100vh;
+  background: var(--acebedo-background);
+  color: var(--acebedo-text);
+  font-family: var(--font-body);
+  font-size: var(--acebedo-font-md);
+  line-height: var(--acebedo-line-normal);
+}
+
+.acebedo-container {
+  width: min(calc(100% - 2rem), var(--acebedo-content-width));
+  margin-inline: auto;
+}
+
+.acebedo-reading-width {
+  width: 100%;
+  max-width: var(--acebedo-reading-width);
+}
+
+
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
+
+.acebedo-eyebrow {
+  margin: 0 0 var(--acebedo-space-sm);
+  color: var(--acebedo-red);
+  font-family: var(--font-body);
+  font-size: var(--acebedo-font-xs);
+  font-weight: var(--acebedo-weight-bold);
+  letter-spacing: 0.12em;
+  line-height: var(--acebedo-line-normal);
+  text-transform: uppercase;
+}
+
+.acebedo-heading {
+  margin: 0;
+  color: var(--acebedo-text);
+  font-family: var(--font-brand);
+  font-size: var(--acebedo-font-display);
+  font-weight: var(--acebedo-weight-regular);
+  letter-spacing: var(--acebedo-tracking-tight);
+  line-height: 1.08;
+}
+
+.acebedo-brand-title {
+  color: var(--acebedo-text);
+  font-family: var(--font-brand);
+  letter-spacing: var(--acebedo-tracking-wide);
+  text-transform: uppercase;
+}
+
+.acebedo-heading-sm {
+  margin: 0;
+  color: var(--acebedo-text);
+  font-family: var(--font-brand);
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: var(--acebedo-weight-regular);
+  letter-spacing: var(--acebedo-tracking-tight);
+  line-height: 1.15;
+}
+
+.acebedo-heading-xs {
+  margin: 0;
+  color: var(--acebedo-text);
+  font-family: var(--font-body);
+  font-size: var(--acebedo-font-lg);
+  font-weight: var(--acebedo-weight-semibold);
+  line-height: var(--acebedo-line-tight);
+}
+
+.acebedo-text {
+  color: var(--acebedo-text-muted);
+  font-family: var(--font-body);
+  font-size: var(--acebedo-font-md);
+  line-height: var(--acebedo-line-relaxed);
+}
+
+.acebedo-text-strong {
+  color: var(--acebedo-text);
+  font-weight: var(--acebedo-weight-semibold);
+}
+
+.acebedo-text-secondary {
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-sm);
+  line-height: var(--acebedo-line-normal);
+}
+
+.acebedo-disclaimer {
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-sm);
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   DIVIDERS, CARDS, AND BASIC CONTAINERS
+   ========================================================= */
+
+.acebedo-divider {
+  width: 100%;
+  height: 1px;
+  border: 0;
+  background: var(--acebedo-border);
+}
+
+.acebedo-card {
+  border: 1px solid var(--acebedo-border);
+  border-radius: var(--acebedo-radius-lg);
+  background: var(--acebedo-surface);
+  box-shadow: var(--acebedo-shadow-sm);
+}
+
+.acebedo-card-padded {
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.acebedo-panel {
+  border: 1px solid var(--acebedo-border);
+  border-radius: var(--acebedo-radius-md);
+  background: var(--acebedo-background);
+}
+
+.acebedo-section {
+  padding-block: var(--acebedo-space-xl);
+  border-bottom: 1px solid var(--acebedo-border);
+}
+
+.acebedo-section:last-child {
+  border-bottom: 0;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.acebedo-btn {
+  display: inline-flex;
+  min-height: var(--acebedo-control-height);
+  align-items: center;
+  justify-content: center;
+  gap: var(--acebedo-space-sm);
+  padding: 0.75rem 1.15rem;
+
+  border: 1px solid transparent;
+  border-radius: var(--acebedo-radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--acebedo-font-md);
+  font-weight: var(--acebedo-weight-semibold);
+  line-height: var(--acebedo-line-tight);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.acebedo-btn:disabled,
+.acebedo-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.acebedo-btn-primary {
+  background: var(--acebedo-red);
+  color: #FFFFFF;
+}
+
+.acebedo-btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--acebedo-red-hover);
+}
+
+.acebedo-btn-secondary {
+  border-color: var(--acebedo-border-strong);
+  background: var(--acebedo-surface);
+  color: var(--acebedo-text);
+}
+
+.acebedo-btn-secondary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--acebedo-surface-muted);
+}
+
+.acebedo-btn-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--acebedo-text);
+}
+
+.acebedo-btn-quiet:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--acebedo-background);
+}
+
+.acebedo-btn-block {
+  width: 100%;
+}
+
+.acebedo-btn:focus-visible,
+.acebedo-link:focus-visible {
+  outline: 3px solid var(--acebedo-red);
+  outline-offset: 3px;
+}
+
+
+/* =========================================================
+   LINKS
+   ========================================================= */
+
+.acebedo-link {
+  color: var(--acebedo-red);
+  font-weight: var(--acebedo-weight-semibold);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.acebedo-link:hover {
+  color: var(--acebedo-red-hover);
+}
+
+
+/* =========================================================
+   FORM ELEMENTS
+   ========================================================= */
+
+.acebedo-field {
+  display: grid;
+  gap: var(--acebedo-space-sm);
+}
+
+.acebedo-label {
+  display: block;
+  color: var(--acebedo-text);
+  font-size: var(--acebedo-font-md);
+  font-weight: var(--acebedo-weight-semibold);
+  line-height: var(--acebedo-line-normal);
+}
+
+.acebedo-input,
+.acebedo-select,
+.acebedo-textarea {
+  width: 100%;
+  border: 1px solid var(--acebedo-border-strong);
+  border-radius: var(--acebedo-radius-sm);
+  background: var(--acebedo-surface);
+  color: var(--acebedo-text);
+  font-family: var(--font-body);
+  font-size: var(--acebedo-font-md);
+  line-height: var(--acebedo-line-normal);
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.acebedo-input,
+.acebedo-select {
+  min-height: var(--acebedo-control-height);
+  padding: 0.65rem 0.8rem;
+}
+
+.acebedo-textarea {
+  min-height: 110px;
+  padding: 0.75rem 0.8rem;
+  resize: vertical;
+}
+
+.acebedo-input::placeholder,
+.acebedo-textarea::placeholder {
+  color: var(--acebedo-text-subtle);
+  opacity: 1;
+}
+
+.acebedo-input:focus-visible,
+.acebedo-select:focus-visible,
+.acebedo-textarea:focus-visible {
+  border-color: var(--acebedo-red);
+  box-shadow: var(--acebedo-focus-ring);
+}
+
+.acebedo-input:disabled,
+.acebedo-select:disabled,
+.acebedo-textarea:disabled {
+  background: var(--acebedo-neutral-bg);
+  color: var(--acebedo-text-muted);
+  cursor: not-allowed;
+}
+
+.acebedo-input[aria-invalid="true"],
+.acebedo-select[aria-invalid="true"],
+.acebedo-textarea[aria-invalid="true"] {
+  border-color: var(--acebedo-error);
+}
+
+.acebedo-help {
+  margin: 0;
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-sm);
+  line-height: var(--acebedo-line-normal);
+}
+
+.acebedo-error {
+  margin: 0;
+  color: var(--acebedo-error);
+  font-size: var(--acebedo-font-md);
+  line-height: var(--acebedo-line-normal);
+}
+
+.acebedo-checkbox,
+.acebedo-radio {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex: 0 0 auto;
+  accent-color: var(--acebedo-red);
+}
+
+.acebedo-choice-label {
+  display: flex;
+  min-height: var(--acebedo-touch-target);
+  align-items: center;
+  gap: var(--acebedo-space-md);
+  color: var(--acebedo-text);
+  font-size: var(--acebedo-font-md);
+  line-height: var(--acebedo-line-normal);
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   STATUS AND SYSTEM FEEDBACK
+   Use text labels or icons alongside status colors.
+   ========================================================= */
+
+.acebedo-status {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--acebedo-space-sm);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--acebedo-neutral-border);
+  border-radius: var(--acebedo-radius-md);
+  background: var(--acebedo-neutral-bg);
+  color: var(--acebedo-text);
+  font-size: var(--acebedo-font-md);
+  line-height: var(--acebedo-line-normal);
+}
+
+.acebedo-status-title {
+  display: block;
+  margin-bottom: var(--acebedo-space-xs);
+  font-weight: var(--acebedo-weight-semibold);
+}
+
+.acebedo-status-success {
+  border-color: var(--acebedo-success-border);
+  background: var(--acebedo-success-bg);
+}
+
+.acebedo-status-success .acebedo-status-title,
+.acebedo-status-success .acebedo-status-icon {
+  color: var(--acebedo-success);
+}
+
+.acebedo-status-warning {
+  border-color: var(--acebedo-warning-border);
+  background: var(--acebedo-warning-bg);
+}
+
+.acebedo-status-warning .acebedo-status-title,
+.acebedo-status-warning .acebedo-status-icon {
+  color: var(--acebedo-warning);
+}
+
+.acebedo-status-error {
+  border-color: var(--acebedo-error-border);
+  background: var(--acebedo-error-bg);
+}
+
+.acebedo-status-error .acebedo-status-title,
+.acebedo-status-error .acebedo-status-icon {
+  color: var(--acebedo-error);
+}
+
+.acebedo-status-info {
+  border-color: var(--acebedo-info-border);
+  background: var(--acebedo-info-bg);
+}
+
+.acebedo-status-info .acebedo-status-title,
+.acebedo-status-info .acebedo-status-icon {
+  color: var(--acebedo-info);
+}
+
+.acebedo-status-icon {
+  flex: 0 0 auto;
+  font-weight: var(--acebedo-weight-bold);
+}
+
+
+/* =========================================================
+   PROGRESS INDICATOR
+   Suggested markup:
+   <ol class="acebedo-progress">
+     <li class="acebedo-progress-step is-complete">...</li>
+     <li class="acebedo-progress-step is-current" aria-current="step">...</li>
+     <li class="acebedo-progress-step">...</li>
+   </ol>
+   ========================================================= */
+
+.acebedo-progress {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acebedo-progress-step {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--acebedo-space-sm);
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-sm);
+  line-height: var(--acebedo-line-normal);
+  text-align: center;
+}
+
+.acebedo-progress-step::before {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: var(--acebedo-progress-node);
+  height: var(--acebedo-progress-node);
+  place-items: center;
+  border: 2px solid var(--acebedo-border-strong);
+  border-radius: 50%;
+  background: var(--acebedo-surface);
+  color: var(--acebedo-text-muted);
+  content: attr(data-step);
+  font-size: var(--acebedo-font-sm);
+  font-weight: var(--acebedo-weight-semibold);
+}
+
+.acebedo-progress-step:not(:last-child)::after {
+  position: absolute;
+  top: calc(var(--acebedo-progress-node) / 2 - var(--acebedo-progress-line) / 2);
+  left: calc(50% + var(--acebedo-progress-node) / 2);
+  width: calc(100% - var(--acebedo-progress-node));
+  height: var(--acebedo-progress-line);
+  background: var(--acebedo-border-strong);
+  content: "";
+}
+
+.acebedo-progress-step.is-complete {
+  color: var(--acebedo-text);
+}
+
+.acebedo-progress-step.is-complete::before {
+  border-color: var(--acebedo-success);
+  background: var(--acebedo-success-bg);
+  color: var(--acebedo-success);
+}
+
+.acebedo-progress-step.is-complete:not(:last-child)::after {
+  background: var(--acebedo-success);
+}
+
+.acebedo-progress-step.is-current {
+  color: var(--acebedo-text);
+  font-weight: var(--acebedo-weight-semibold);
+}
+
+.acebedo-progress-step.is-current::before {
+  border-color: var(--acebedo-red);
+  background: var(--acebedo-red);
+  color: #FFFFFF;
+}
+
+
+/* =========================================================
+   VISION SCREENING COMPONENTS
+   ========================================================= */
+
+/* Horizontal answer controls for the Landolt C task. */
+.acebedo-controls-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--acebedo-space-md);
+  flex-wrap: wrap;
+  margin-top: var(--acebedo-space-xl);
+}
+
+.acebedo-answer-btn {
+  display: inline-flex;
+  min-width: var(--acebedo-touch-target);
+  min-height: var(--acebedo-touch-target);
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--acebedo-border-strong);
+  border-radius: var(--acebedo-radius-sm);
+  background: var(--acebedo-surface);
+  color: var(--acebedo-text);
+  font-family: var(--font-body);
+  font-size: var(--acebedo-font-lg);
+  font-weight: var(--acebedo-weight-semibold);
+  cursor: pointer;
+}
+
+.acebedo-answer-btn:hover:not(:disabled) {
+  border-color: var(--acebedo-red);
+  background: var(--acebedo-red-soft);
+}
+
+.acebedo-answer-btn:focus-visible {
+  outline: 3px solid var(--acebedo-red);
+  outline-offset: 3px;
+}
+
+.acebedo-answer-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Keep the optotype prominent and the surrounding UI quiet. */
+.acebedo-optotype-box {
+  display: flex;
+  min-height: 260px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--acebedo-space-xl);
+  border: 1px solid var(--acebedo-border);
+  border-radius: var(--acebedo-radius-md);
+  background: var(--acebedo-surface);
+}
+
+.acebedo-optotype-box svg {
+  max-width: 100%;
+}
+
+.acebedo-duochrome-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--acebedo-space-xl);
+}
+
+.acebedo-duochrome-red {
+  background: #C92A30;
+  color: #FFFFFF;
+}
+
+.acebedo-duochrome-green {
+  background: #176B3A;
+  color: #FFFFFF;
+}
+
+.acebedo-screening-instruction {
+  color: var(--acebedo-text);
+  font-size: var(--acebedo-font-lg);
+  font-weight: var(--acebedo-weight-medium);
+  line-height: var(--acebedo-line-normal);
+}
+
+.acebedo-screening-disclaimer {
+  padding: 0.75rem 1rem;
+  border-radius: var(--acebedo-radius-md);
+  background: var(--acebedo-background);
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-sm);
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   DIALOG / MODAL HELPERS
+   ========================================================= */
+
+.acebedo-dialog-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: var(--acebedo-space-lg);
+  background: rgba(31, 30, 27, 0.42);
+}
+
+.acebedo-dialog {
+  width: 100%;
+  max-width: 42rem;
+  max-height: 90dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--acebedo-border);
+  border-radius: var(--acebedo-radius-lg);
+  background: var(--acebedo-surface);
+  box-shadow: var(--acebedo-shadow-dialog);
+}
+
+.acebedo-dialog-content {
+  padding: clamp(1rem, 3vw, 1.75rem);
+}
+
+
+/* =========================================================
+   RESPONSIVE BEHAVIOR
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .acebedo-duochrome-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .acebedo-progress-step {
+    font-size: var(--acebedo-font-xs);
+  }
+}
+
+@media (max-width: 640px) {
+  .acebedo-container {
+    width: min(calc(100% - 1.25rem), var(--acebedo-content-width));
+  }
+
+  .acebedo-controls-row {
+    gap: var(--acebedo-space-sm);
+  }
+
+  .acebedo-optotype-box {
+    min-height: 220px;
+  }
+
+  .acebedo-dialog-overlay {
+    align-items: flex-start;
+    padding: var(--acebedo-space-sm);
+  }
+
+  .acebedo-dialog {
+    max-height: calc(100dvh - 1rem);
+    border-radius: var(--acebedo-radius-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+/* =========================================================
+   SCREENING INTRO — NO INTERNAL MODAL SCROLL
+   ========================================================= */
+
+.acebedo-intro-dialog {
+  position: relative;
+  width: min(42rem, calc(100vw - 2rem));
+  max-width: 42rem;
+
+  /*
+   * Keep the entire introduction visible.
+   * The modal itself must not become a scroll container.
+   */
+  max-height: calc(100vh - 2rem);
+  overflow: hidden;
+}
+
+.acebedo-intro-content {
+  padding: 1.15rem 1.5rem 1.2rem;
+}
+
+/* Title */
+
+.acebedo-intro-header {
+  text-align: center;
+}
+
+.acebedo-intro-title {
+  padding-inline: 2.5rem;
+}
+
+/* Close button */
+
+.acebedo-dialog-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 2;
+
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+
+  border: 1px solid transparent;
+  border-radius: var(--acebedo-radius-sm);
+  background: transparent;
+  color: var(--acebedo-text-muted);
+
+  cursor: pointer;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    border-color 160ms ease;
+}
+
+.acebedo-dialog-close:hover {
+  border-color: var(--acebedo-border);
+  background: var(--acebedo-background);
+  color: var(--acebedo-text);
+}
+
+.acebedo-dialog-close:focus-visible {
+  outline: 3px solid var(--acebedo-red);
+  outline-offset: 2px;
+}
+
+/* Before you begin */
+
+.acebedo-intro-panel {
+  margin-top: 0.85rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--acebedo-radius-md);
+}
+
+.acebedo-intro-section-title {
+  font-family: var(--font-body);
+  font-size: 1.1rem;
+  font-weight: var(--acebedo-weight-semibold);
+  line-height: 1.3;
+}
+
+.acebedo-intro-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+
+.acebedo-intro-item {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--acebedo-border);
+}
+
+.acebedo-intro-item-last {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.acebedo-intro-item-title {
+  margin: 0;
+
+  color: var(--acebedo-text);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: var(--acebedo-weight-semibold);
+  line-height: 1.35;
+}
+
+.acebedo-intro-copy {
+  margin: 0.15rem 0 0;
+
+  color: var(--acebedo-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+/* During the tests */
+
+.acebedo-intro-test-note {
+  margin: 0.75rem 0 0;
+
+  color: var(--acebedo-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+/* Divider + disclaimer */
+
+.acebedo-intro-disclaimer-wrap {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--acebedo-border);
+}
+
+.acebedo-intro-disclaimer {
+  padding: 0.55rem 0.7rem;
+
+  border-radius: var(--acebedo-radius-md);
+  background: var(--acebedo-background);
+
+  font-family: var(--font-body);
+  font-size: 0.825rem;
+  line-height: 1.45;
+}
+
+/* Button */
+
+.acebedo-intro-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.8rem;
+}
+
+.acebedo-intro-start {
+  min-width: 170px;
+}
+
+/* =========================================================
+   SMALL HEIGHT SCREENS
+   ========================================================= */
+
+@media (max-height: 720px) {
+  .acebedo-intro-content {
+    padding-top: 0.85rem;
+    padding-bottom: 0.85rem;
+  }
+
+  .acebedo-intro-title {
+    font-size: 1.8rem;
+  }
+
+  .acebedo-intro-panel {
+    margin-top: 0.65rem;
+    padding: 0.75rem 0.9rem;
+  }
+
+  .acebedo-intro-checklist {
+    gap: 0.35rem;
+    margin-top: 0.55rem;
+  }
+
+  .acebedo-intro-test-note {
+    margin-top: 0.6rem;
+  }
+
+  .acebedo-intro-disclaimer-wrap {
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+  }
+
+  .acebedo-intro-actions {
+    margin-top: 0.65rem;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 640px) {
+  .acebedo-intro-dialog {
+    width: calc(100vw - 1rem);
+    max-height: calc(100vh - 1rem);
+  }
+
+  .acebedo-intro-content {
+    padding: 1rem;
+  }
+
+  .acebedo-intro-title {
+    padding-inline: 2rem;
+  }
+
+  .acebedo-intro-panel {
+    padding: 0.8rem;
+  }
+
+  .acebedo-intro-actions {
+    justify-content: stretch;
+  }
+
+  .acebedo-intro-start {
+    width: 100%;
+  }
+}
+/* =========================================================
+   VISUAL ACUITY TEST
+   Clinical assessment workspace
+   ========================================================= */
+
+.acebedo-va-page {
+  min-height: calc(100vh - 80px);
+}
+
+.acebedo-va-container {
+  padding-top: 1.25rem;
+  padding-bottom: 2rem;
+}
+
+.acebedo-va-workspace {
+  position: relative;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--acebedo-border);
+  border-radius: var(--acebedo-radius-lg);
+  background: var(--acebedo-surface);
+  box-shadow: var(--acebedo-shadow-sm);
+  transition: border-color 180ms ease;
+}
+
+.acebedo-va-workspace.is-good {
+  border-color: var(--acebedo-success-border);
+}
+
+.acebedo-va-workspace.is-warn {
+  border-color: var(--acebedo-warning-border);
+}
+
+.acebedo-va-workspace.is-bad {
+  border-color: var(--acebedo-error-border);
+}
+
+.acebedo-va-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.5rem 1.75rem 1.25rem;
+  border-bottom: 1px solid var(--acebedo-border);
+}
+
+.acebedo-va-header .acebedo-eyebrow {
+  margin-bottom: 0.45rem;
+}
+
+.acebedo-va-title {
+  margin: 0;
+  color: var(--acebedo-text);
+  font-family: var(--font-brand);
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-weight: var(--acebedo-weight-regular);
+  line-height: 1.1;
+  letter-spacing: var(--acebedo-tracking-tight);
+}
+
+.acebedo-va-subtitle {
+  margin: 0.45rem 0 0;
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-sm);
+  line-height: var(--acebedo-line-normal);
+}
+
+.acebedo-va-position-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-width: 10rem;
+  padding-top: 0.25rem;
+}
+
+.acebedo-va-position-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: 0 0 0.55rem;
+  margin-top: 0.28rem;
+  border-radius: 50%;
+  background: var(--acebedo-success);
+}
+
+.acebedo-va-position-status.is-warn .acebedo-va-position-dot {
+  background: var(--acebedo-warning);
+}
+
+.acebedo-va-position-status.is-bad .acebedo-va-position-dot {
+  background: var(--acebedo-error);
+}
+
+.acebedo-va-position-label {
+  color: var(--acebedo-text);
+  font-size: var(--acebedo-font-sm);
+  font-weight: var(--acebedo-weight-semibold);
+}
+
+.acebedo-va-position-help {
+  margin-top: 0.2rem;
+  color: var(--acebedo-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.acebedo-va-body {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr) 250px;
+  min-height: 520px;
+}
+
+.acebedo-va-assessment,
+.acebedo-va-response-panel {
+  padding: 1.2rem 1.1rem;
+  background: var(--acebedo-background);
+}
+
+.acebedo-va-assessment {
+  border-right: 1px solid var(--acebedo-border);
+}
+
+.acebedo-va-response-panel {
+  border-left: 1px solid var(--acebedo-border);
+}
+
+.acebedo-va-section-label {
+  margin: 0;
+  color: var(--acebedo-text-muted);
+  font-size: 0.62rem;
+  font-weight: var(--acebedo-weight-bold);
+  letter-spacing: 0.08em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.acebedo-va-eye-list {
+  margin-top: 0.65rem;
+}
+
+.acebedo-va-eye-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--acebedo-border);
+}
+
+.acebedo-va-eye-number {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 1.5rem;
+  place-items: center;
+  border: 1px solid var(--acebedo-border-strong);
+  border-radius: 50%;
+  color: var(--acebedo-text-muted);
+  font-size: 0.62rem;
+  font-weight: var(--acebedo-weight-semibold);
+}
+
+.acebedo-va-eye-item.is-active .acebedo-va-eye-number {
+  border-color: var(--acebedo-text);
+  background: var(--acebedo-text);
+  color: var(--acebedo-surface);
+}
+
+.acebedo-va-eye-item.is-complete .acebedo-va-eye-number {
+  border-color: var(--acebedo-success);
+  color: var(--acebedo-success);
+}
+
+.acebedo-va-eye-name {
+  color: var(--acebedo-text);
+  font-size: 0.83rem;
+  font-weight: var(--acebedo-weight-semibold);
+}
+
+.acebedo-va-eye-state {
+  margin-top: 0.12rem;
+  color: var(--acebedo-text-muted);
+  font-size: 0.68rem;
+}
+
+.acebedo-va-cover-note {
+  margin-top: auto;
+  padding-top: 6rem;
+  color: var(--acebedo-text-muted);
+}
+
+.acebedo-va-cover-note svg {
+  color: var(--acebedo-text-subtle);
+}
+
+.acebedo-va-cover-note h2 {
+  margin: 0.55rem 0 0;
+  color: var(--acebedo-text);
+  font-family: var(--font-brand);
+  font-size: 1.35rem;
+  font-weight: var(--acebedo-weight-regular);
+  line-height: 1.15;
+}
+
+.acebedo-va-cover-note p {
+  margin: 0.55rem 0 0;
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.acebedo-va-optotype-panel {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  background: var(--acebedo-surface);
+}
+
+.acebedo-va-optotype-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.05rem 1.25rem 0;
+  color: var(--acebedo-text-muted);
+  font-size: 0.62rem;
+  font-weight: var(--acebedo-weight-medium);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.acebedo-va-position-warning {
+  position: absolute;
+  z-index: 2;
+  top: 2.7rem;
+  left: 50%;
+  width: min(420px, calc(100% - 2rem));
+  transform: translateX(-50%);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--acebedo-warning-border);
+  border-radius: var(--acebedo-radius-pill);
+  background: var(--acebedo-warning-bg);
+  color: var(--acebedo-warning);
+  font-size: 0.75rem;
+  font-weight: var(--acebedo-weight-semibold);
+  text-align: center;
+}
+
+.acebedo-va-optotype-stage {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem 1.5rem;
+}
+
+.acebedo-va-optotype {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.acebedo-va-stage-note {
+  margin: auto 0 0;
+  padding-top: 1rem;
+  color: var(--acebedo-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.4;
+}
+
+.acebedo-va-response-panel h2 {
+  margin: 0.55rem 0 1rem;
+  color: var(--acebedo-text);
+  font-family: var(--font-brand);
+  font-size: 1.55rem;
+  font-weight: var(--acebedo-weight-regular);
+  line-height: 1.12;
+}
+
+.acebedo-va-answer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.acebedo-va-answer {
+  display: flex;
+  min-height: 4.35rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.6rem;
+  border: 1px solid var(--acebedo-border);
+  border-radius: var(--acebedo-radius-sm);
+  background: var(--acebedo-surface);
+  color: var(--acebedo-text);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: var(--acebedo-weight-semibold);
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+
+.acebedo-va-answer svg {
+  color: var(--acebedo-success);
+}
+
+.acebedo-va-answer:hover:not(:disabled) {
+  border-color: var(--acebedo-border-strong);
+  background: var(--acebedo-background);
+}
+
+.acebedo-va-answer:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.acebedo-va-answer:focus-visible,
+.acebedo-va-unseen:focus-visible,
+.acebedo-va-pause:focus-visible {
+  outline: 3px solid var(--acebedo-red-soft);
+  outline-offset: 2px;
+}
+
+.acebedo-va-unseen {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--acebedo-border);
+  border-radius: var(--acebedo-radius-sm);
+  background: transparent;
+  color: var(--acebedo-text-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  font-weight: var(--acebedo-weight-medium);
+}
+
+.acebedo-va-unseen:hover:not(:disabled) {
+  border-color: var(--acebedo-border-strong);
+  color: var(--acebedo-text);
+}
+
+.acebedo-va-unseen:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.acebedo-va-keyboard-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin-top: 0.8rem;
+  color: var(--acebedo-text-muted);
+  font-size: 0.62rem;
+  text-align: center;
+}
+
+.acebedo-va-feedback {
+  min-height: 1rem;
+  margin-top: 0.5rem;
+  color: var(--acebedo-text-muted);
+  font-size: 0.68rem;
+  text-align: center;
+}
+
+.acebedo-va-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 3.1rem;
+  padding: 0.65rem 1.1rem;
+  border-top: 1px solid var(--acebedo-border);
+  background: var(--acebedo-surface);
+}
+
+.acebedo-va-footer-note,
+.acebedo-va-pause {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--acebedo-text-muted);
+  font-size: 0.68rem;
+}
+
+.acebedo-va-pause {
+  border: 0;
+  background: transparent;
+  cursor: default;
+  font-family: var(--font-body);
+  font-weight: var(--acebedo-weight-medium);
+}
+
+.acebedo-va-pause:disabled {
+  opacity: 1;
+}
+
+.acebedo-va-camera {
+  position: absolute;
+  overflow: hidden;
+  border-radius: var(--acebedo-radius-md);
+  background: var(--acebedo-text);
+}
+
+.acebedo-va-camera-oval {
+  position: absolute;
+  border: 3px solid;
+  border-radius: 48% 48% 42% 42% / 42% 42% 48% 48%;
+  pointer-events: none;
+  transition: border-color 180ms ease;
+}
+
+.acebedo-va-camera-status {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--acebedo-radius-pill);
+  background: rgba(0, 0, 0, 0.68);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: var(--acebedo-weight-bold);
+}
+
+.acebedo-va-starting {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  padding: 0 1.5rem;
+  text-align: center;
+}
+
+.acebedo-va-spinner {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0 auto 0.75rem;
+  border: 3px solid var(--acebedo-neutral-bg);
+  border-top-color: var(--acebedo-red);
+  border-radius: 50%;
+  animation: acebedo-va-spin 1s linear infinite;
+}
+
+@keyframes acebedo-va-spin {
+  to { transform: rotate(360deg); }
+}
+
+.acebedo-va-starting-title {
+  color: var(--acebedo-text);
+  font-size: var(--acebedo-font-md);
+  font-weight: var(--acebedo-weight-semibold);
+}
+
+.acebedo-va-starting-copy {
+  margin-top: 0.35rem;
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-sm);
+}
+
+.acebedo-va-lock-screen {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--acebedo-surface);
+  text-align: center;
+}
+
+.acebedo-va-lock-screen h2 {
+  margin: 0;
+  color: var(--acebedo-text);
+  font-family: var(--font-brand);
+  font-size: 1.8rem;
+  font-weight: var(--acebedo-weight-regular);
+}
+
+.acebedo-va-lock-screen p {
+  max-width: 32rem;
+  margin: 0.75rem 0 0;
+  color: var(--acebedo-text-muted);
+  line-height: var(--acebedo-line-relaxed);
+}
+
+.acebedo-va-lock-screen > div:last-child {
+  max-width: 30rem;
+  margin-top: 0.55rem;
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-sm);
+  line-height: var(--acebedo-line-normal);
+}
+
+.acebedo-va-lock-warning {
+  color: var(--acebedo-error) !important;
+  font-weight: var(--acebedo-weight-semibold);
+}
+
+.acebedo-va-message-card {
+  max-width: 720px;
+  margin: 2rem auto;
+  padding: 2rem;
+  border: 1px solid var(--acebedo-border);
+  border-radius: var(--acebedo-radius-lg);
+  background: var(--acebedo-surface);
+  box-shadow: var(--acebedo-shadow-sm);
+}
+
+.acebedo-va-message-card h1 {
+  margin-top: 0.35rem;
+}
+
+.acebedo-va-message-copy {
+  max-width: 44rem;
+  margin: 0.75rem 0 1.5rem;
+}
+
+.acebedo-va-results-card {
+  max-width: 980px;
+}
+
+.acebedo-va-result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.acebedo-va-result-card {
+  padding: 1rem;
+  border: 1px solid var(--acebedo-border);
+  border-radius: var(--acebedo-radius-md);
+  background: var(--acebedo-neutral-bg);
+}
+
+.acebedo-va-result-eye {
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-sm);
+  font-weight: var(--acebedo-weight-semibold);
+  text-transform: capitalize;
+}
+
+.acebedo-va-result-value {
+  margin-top: 0.35rem;
+  color: var(--acebedo-text);
+  font-size: 2rem;
+  font-weight: var(--acebedo-weight-bold);
+}
+
+.acebedo-va-result-label,
+.acebedo-va-result-note {
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-xs);
+}
+
+.acebedo-va-result-note {
+  margin-top: 0.45rem;
+  color: var(--acebedo-warning);
+}
+
+.acebedo-va-result-disclaimer {
+  margin: 1.25rem 0;
+  padding: 0.9rem 1rem;
+  border-radius: var(--acebedo-radius-sm);
+  background: var(--acebedo-neutral-bg);
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-sm);
+  line-height: var(--acebedo-line-normal);
+}
+
+@media (max-width: 900px) {
+  .acebedo-va-body {
+    grid-template-columns: 160px minmax(0, 1fr) 220px;
+  }
+
+  .acebedo-va-header {
+    padding-inline: 1.25rem;
+  }
+
+  .acebedo-va-title {
+    font-size: 2rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .acebedo-va-header {
+    flex-direction: column;
+  }
+
+  .acebedo-va-position-status {
+    padding-top: 0;
+  }
+
+  .acebedo-va-body {
+    grid-template-columns: 1fr;
+  }
+
+  .acebedo-va-assessment,
+  .acebedo-va-response-panel {
+    border: 0;
+  }
+
+  .acebedo-va-assessment {
+    border-bottom: 1px solid var(--acebedo-border);
+  }
+
+  .acebedo-va-response-panel {
+    border-top: 1px solid var(--acebedo-border);
+  }
+
+  .acebedo-va-cover-note {
+    padding-top: 1.25rem;
+  }
+
+  .acebedo-va-optotype-stage {
+    min-height: 360px;
+  }
+}
+
+@media (max-width: 640px) {
+  .acebedo-va-container {
+    padding-inline: 0;
+  }
+
+  .acebedo-va-workspace {
+    border-radius: 0;
+    border-inline: 0;
+  }
+
+  .acebedo-va-header {
+    padding: 1.1rem;
+  }
+
+  .acebedo-va-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .acebedo-va-result-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .acebedo-va-workspace,
+  .acebedo-va-camera-oval,
+  .acebedo-va-answer {
+    transition: none;
+  }
+
+  .acebedo-va-spinner {
+    animation: none;
+  }
+}
+
+.acebedo-va-eye-item.is-complete .acebedo-va-eye-number svg {
+  display: block;
+}

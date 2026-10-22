@@ -1,5 +1,6 @@
 import { Toaster } from "react-hot-toast";
 import { Routes, Route, Navigate } from "react-router-dom";
+import "./styles/acebedo-ui.css";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import LandingPage from "./pages/LandingPage";
