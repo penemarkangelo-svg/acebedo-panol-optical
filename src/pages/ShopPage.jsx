@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { supabase } from "../lib/supabaseClient";
-import "../styles/Shop.css";
+import "../styles/shop.css";
 
 const ITEMS_PER_PAGE = 6;
 const MAX_PRICE = 5000;
