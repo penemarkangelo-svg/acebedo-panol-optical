@@ -1,0 +1,11 @@
+[functions.invite-team-member]
+verify_jwt = true
+entrypoint = "./functions/invite-team-member/index.js"
+
+[functions.create-paymongo-checkout]
+verify_jwt = true
+entrypoint = "./functions/create-paymongo-checkout/index.js"
+
+[functions.paymongo-webhook]
+verify_jwt = false
+entrypoint = "./functions/paymongo-webhook/index.js"

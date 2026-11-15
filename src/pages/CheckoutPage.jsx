@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { QrCode } from "lucide-react";
+import qrPhLogo from "../assets/qr-ph-logo.svg";
+import gcashLogo from "../assets/gcash-logo.svg";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabaseClient";
@@ -599,12 +600,27 @@ export default function CheckoutPage() {
                     className={`checkout-payment-option${selectedPaymentMethod === "qrph" ? " is-selected" : ""}`}
                   >
                     <div className="checkout-payment-main">
-                      <span className="checkout-payment-logo"><QrCode aria-hidden="true" /><span>QR Ph</span></span>
+                      <span className="checkout-payment-logo checkout-payment-logo--qrph">
+                        <img src={qrPhLogo} alt="QR Ph" />
+                      </span>
                     </div>
                     <span className="checkout-radio" aria-hidden="true"><span /></span>
                   </button>
+                  <button
+                    type="button"
+                    className="checkout-payment-option checkout-payment-option--disabled"
+                    disabled
+                    aria-label="GCash is currently unavailable"
+                  >
+                    <div className="checkout-payment-main">
+                      <span className="checkout-payment-logo">
+                        <img src={gcashLogo} alt="" aria-hidden="true" />
+                      </span>
+                    </div>
+                    <span className="checkout-payment-unavailable">Unavailable</span>
+                  </button>
                 </div>
-                <p className="checkout-payment-note">Pay with QR Ph using a supported bank or e-wallet app. Scanning the code will make a real payment.</p>
+                <p className="checkout-payment-note">Pay with QR Ph using a supported bank or e-wallet app. GCash is currently unavailable.</p>
               </section>
 
             </section>
