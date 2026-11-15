@@ -73,6 +73,53 @@ async function expireCheckoutSession(paymongoSecretKey, sessionId) {
   return { status: attributes.status === "active" ? "active" : "unknown" };
 }
 
+async function createPayMongoCheckoutSession({ paymongoSecretKey, appBaseUrl, orderId, paymentId, amountMinor }) {
+  const providerResponse = await fetch("https://api.paymongo.com/v2/checkout_sessions", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${btoa(`${paymongoSecretKey}:`)}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": `apo-checkout-payment-${paymentId}`,
+    },
+    body: JSON.stringify({
+      data: {
+        attributes: {
+          line_items: [{
+            name: `Acebedo Panol Optical order APO-${orderId}`,
+            amount: amountMinor,
+            currency: "PHP",
+            quantity: 1,
+          }],
+          payment_method_types: ["qrph"],
+          success_url: checkoutUrlFor(appBaseUrl, orderId, "return"),
+          cancel_url: checkoutUrlFor(appBaseUrl, orderId, "cancelled"),
+          reference_number: `APO-${orderId}`,
+          send_email_receipt: false,
+          metadata: { order_id: String(orderId), payment_id: String(paymentId) },
+        },
+      },
+    }),
+  }).catch((error) => {
+    console.error("PayMongo Checkout Session request failed", error?.name ?? "network error");
+    return null;
+  });
+
+  if (!providerResponse) return { error: "PayMongo could not be reached. Your order is saved; retry checkout shortly." };
+  const providerBody = await providerResponse.json().catch(() => null);
+  const session = providerBody?.data;
+  const checkoutUrl = session?.attributes?.checkout_url;
+  if (!providerResponse.ok || session?.attributes?.livemode !== true
+    || !session?.id?.startsWith("cs_")
+    || !checkoutUrl?.startsWith("https://checkout.paymongo.com/")) {
+    const providerError = providerBody?.errors?.[0];
+    const providerCode = typeof providerError?.code === "string" ? providerError.code.slice(0, 80) : null;
+    console.error("PayMongo did not return a live Checkout Session", providerResponse.status, providerCode ?? "no provider code");
+    const reason = providerCode ? ` (${providerCode})` : "";
+    return { error: `PayMongo rejected QR Ph checkout (HTTP ${providerResponse.status}${reason}). Check that the live key is valid and QR Ph is enabled for this account.` };
+  }
+  return { sessionId: session.id, checkoutUrl };
+}
+
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return response({ error: "Use POST to start or resume QR Ph checkout." }, 405);
@@ -119,6 +166,19 @@ Deno.serve(async (request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  const appBaseUrl = Deno.env.get("PAYMONGO_APP_BASE_URL");
+  let normalizedAppBaseUrl;
+  try {
+    const parsed = new URL(appBaseUrl);
+    if (parsed.protocol !== "https:"
+      || parsed.username || parsed.password || parsed.search || parsed.hash) {
+      throw new Error("invalid origin");
+    }
+    normalizedAppBaseUrl = parsed.origin;
+  } catch {
+    return response({ error: "Checkout return URLs are not configured on the server yet." }, 503);
+  }
+
   const orderId = Number(payload.orderId);
   if (Number.isSafeInteger(orderId) && orderId > 0) {
     const { data: order, error: orderError } = await userClient
@@ -133,7 +193,7 @@ Deno.serve(async (request) => {
       return response({ orderId, alreadyPaid: true, liveMode: true });
     }
 
-    const { data: payment, error: paymentError } = await adminClient
+    let { data: payment, error: paymentError } = await adminClient
       .from("payments")
       .select("id, status, paymongo_checkout_session_id, metadata")
       .eq("order_id", orderId)
@@ -143,6 +203,16 @@ Deno.serve(async (request) => {
       .limit(1)
       .maybeSingle();
     if (paymentError) return safeError(paymentError, "Could not check the payment session.");
+    if (!payment && order.order_status === "pending") {
+      const { error: prepareError } = await adminClient.rpc("create_pending_paymongo_payment", { p_order_id: orderId });
+      if (prepareError) return safeError(prepareError, "Could not prepare this saved order for payment.");
+      const prepared = await adminClient.from("payments")
+        .select("id, status, paymongo_checkout_session_id, metadata")
+        .eq("order_id", orderId).eq("provider", "paymongo").eq("payment_method", "qrph")
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (prepared.error) return safeError(prepared.error, "Could not check the saved payment.");
+      payment = prepared.data;
+    }
     if (!payment || payment.status !== "pending") {
       return response({ orderId, paymentWindowExpired: true, orderNotPayable: order.order_status !== "pending", liveMode: true });
     }
@@ -150,7 +220,7 @@ Deno.serve(async (request) => {
     if (order.order_status !== "pending") {
       if (payment.paymongo_checkout_session_id) {
         const sessionState = await expireCheckoutSession(paymongoSecretKey, payment.paymongo_checkout_session_id);
-        if (sessionState === "expired") {
+        if (sessionState.status === "expired") {
           const { error: cancelPaymentError } = await adminClient
             .from("payments")
             .update({ status: "cancelled" })
@@ -172,15 +242,14 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (reservationError) return safeError(reservationError, "Could not check the order reservation.");
 
-    const checkoutUrl = payment.metadata?.checkout_url;
-    if (!payment.paymongo_checkout_session_id || !checkoutUrl?.startsWith("https://checkout.paymongo.com/")) {
-      return response({ error: "The QR Ph payment link is not available yet. Try again shortly." }, 409);
-    }
-
+    let checkoutUrl = payment.metadata?.checkout_url;
     const reservationIsActive = reservation?.status === "reserved"
       && reservation.expires_at
       && new Date(reservation.expires_at).getTime() > Date.now();
     if (!reservationIsActive) {
+      if (!payment.paymongo_checkout_session_id) {
+        return response({ orderId, paymentWindowExpired: true, liveMode: true });
+      }
       const sessionState = await expireCheckoutSession(paymongoSecretKey, payment.paymongo_checkout_session_id);
       if (sessionState.status === "paid") {
         return response({ orderId, paymentConfirmationPending: true, liveMode: true });
@@ -198,11 +267,47 @@ Deno.serve(async (request) => {
       return response({ orderId, paymentWindowExpired: true, liveMode: true });
     }
 
-    const sessionState = await getCheckoutSessionState(paymongoSecretKey, payment.paymongo_checkout_session_id);
-    if (sessionState === "paid" || sessionState === "processing" || sessionState === "unknown") {
+    if (!payment.paymongo_checkout_session_id || !checkoutUrl?.startsWith("https://checkout.paymongo.com/")) {
+      const { data: paymentResult, error: paymentCreateError } = await adminClient
+        .rpc("create_pending_paymongo_payment", { p_order_id: orderId });
+      if (paymentCreateError) {
+        console.error("Could not prepare the QR Ph payment", paymentCreateError.code ?? "unknown");
+        return response({ orderId, canResumeOrder: true, error: "Your order is saved, but the QR Ph payment could not be prepared. Retry from the order page." }, 502);
+      }
+      const amountMinor = Math.round(Number(paymentResult?.amount) * 100);
+      const paymentId = Number(paymentResult?.payment_id ?? payment.id);
+      if (!Number.isSafeInteger(paymentId) || paymentId <= 0
+        || !Number.isSafeInteger(amountMinor) || amountMinor < 100
+        || amountMinor > 10000000 || paymentResult?.currency !== "PHP") {
+        return response({ error: "QR Ph checkout supports order totals from ₱1 to ₱100,000." }, 400);
+      }
+      const created = await createPayMongoCheckoutSession({
+        paymongoSecretKey,
+        appBaseUrl: normalizedAppBaseUrl,
+        orderId,
+        paymentId,
+        amountMinor,
+      });
+      if (created.error) return response({ orderId, canResumeOrder: true, error: created.error, liveMode: true }, 502);
+      const { error: attachError } = await adminClient.rpc("attach_paymongo_checkout_session", {
+        p_payment_id: paymentId,
+        p_provider_session_id: created.sessionId,
+        p_checkout_url: created.checkoutUrl,
+      });
+      if (attachError) {
+        console.error("Could not attach QR Ph session to saved order", attachError.code ?? "unknown");
+        return response({ orderId, canResumeOrder: true, error: "Your order is saved, but the QR Ph link could not be attached. Retry from the order page." }, 502);
+      }
+      checkoutUrl = created.checkoutUrl;
+    }
+
+    const sessionState = payment.paymongo_checkout_session_id
+      ? await getCheckoutSessionState(paymongoSecretKey, payment.paymongo_checkout_session_id)
+      : "active";
+    if (payment.paymongo_checkout_session_id && (sessionState === "paid" || sessionState === "processing" || sessionState === "unknown")) {
       return response({ orderId, paymentConfirmationPending: true, liveMode: true });
     }
-    if (sessionState === "expired") {
+    if (payment.paymongo_checkout_session_id && sessionState === "expired") {
       const { error: cancelPaymentError } = await adminClient
         .from("payments")
         .update({ status: "cancelled" })
@@ -232,19 +337,6 @@ Deno.serve(async (request) => {
     return response({ error: "Complete the required contact and delivery details, then try again." }, 400);
   }
 
-  const appBaseUrl = Deno.env.get("PAYMONGO_APP_BASE_URL");
-  let normalizedAppBaseUrl;
-  try {
-    const parsed = new URL(appBaseUrl);
-    if (parsed.protocol !== "https:"
-      || parsed.username || parsed.password || parsed.search || parsed.hash) {
-      throw new Error("invalid origin");
-    }
-    normalizedAppBaseUrl = parsed.origin;
-  } catch {
-    return response({ error: "Checkout return URLs are not configured on the server yet." }, 503);
-  }
-
   const { data: checkoutResult, error: checkoutError } = await userClient.rpc("create_checkout_order", {
     p_cart_id: cartId,
     p_checkout_idempotency_key: idempotencyKey,
@@ -264,7 +356,10 @@ Deno.serve(async (request) => {
 
   const { data: paymentResult, error: paymentCreateError } = await adminClient
     .rpc("create_pending_paymongo_payment", { p_order_id: newOrderId });
-  if (paymentCreateError) return safeError(paymentCreateError, "Could not prepare the QR Ph payment.");
+  if (paymentCreateError) {
+    console.error("Could not prepare the QR Ph payment", paymentCreateError.code ?? "unknown");
+    return response({ orderId: newOrderId, canResumeOrder: true, error: "Your order is saved, but the QR Ph payment could not be prepared. Retry from the order page." }, 502);
+  }
   if (paymentResult?.status === "paid") {
     return response({ orderId: newOrderId, alreadyPaid: true, liveMode: true });
   }
@@ -278,62 +373,33 @@ Deno.serve(async (request) => {
     || !Number.isSafeInteger(amountMinor) || amountMinor <= 0
     || amountMinor < 100 || amountMinor > 10000000
     || paymentResult?.currency !== "PHP") {
-    return response({ error: "QR Ph checkout supports order totals from ₱1 to ₱100,000." }, 400);
+    return response({ orderId: newOrderId, canResumeOrder: true, error: "QR Ph checkout supports order totals from ₱1 to ₱100,000. Your reserved order is saved." }, 400);
   }
 
-  const providerIdempotencyKey = `apo-checkout-payment-${paymentId}`;
-  const providerResponse = await fetch("https://api.paymongo.com/v2/checkout_sessions", {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${btoa(`${paymongoSecretKey}:`)}`,
-      "Content-Type": "application/json",
-      "Idempotency-Key": providerIdempotencyKey,
-    },
-    body: JSON.stringify({
-      data: {
-        attributes: {
-          line_items: [{
-            name: `Acebedo Panol Optical order APO-${newOrderId}`,
-            amount: amountMinor,
-            currency: "PHP",
-            quantity: 1,
-          }],
-          payment_method_types: ["qrph"],
-          success_url: checkoutUrlFor(normalizedAppBaseUrl, newOrderId, "return"),
-          cancel_url: checkoutUrlFor(normalizedAppBaseUrl, newOrderId, "cancelled"),
-          reference_number: `APO-${newOrderId}`,
-          send_email_receipt: false,
-          metadata: { order_id: String(newOrderId), payment_id: String(paymentId) },
-        },
-      },
-    }),
-  }).catch((error) => {
-    console.error("PayMongo Checkout Session request failed", error?.name ?? "network error");
-    return null;
+  const created = await createPayMongoCheckoutSession({
+    paymongoSecretKey,
+    appBaseUrl: normalizedAppBaseUrl,
+    orderId: newOrderId,
+    paymentId,
+    amountMinor,
   });
-
-  if (!providerResponse) return response({ error: "PayMongo could not be reached. Your order is saved; retry checkout shortly." }, 502);
-  const providerBody = await providerResponse.json().catch(() => null);
-  const session = providerBody?.data;
-  const checkoutUrl = session?.attributes?.checkout_url;
-  if (!providerResponse.ok || session?.attributes?.livemode !== true
-    || !session?.id?.startsWith("cs_")
-    || !checkoutUrl?.startsWith("https://checkout.paymongo.com/")) {
-    console.error("PayMongo did not return a test Checkout Session", providerResponse.status);
-    return response({ error: "PayMongo could not create a live QR Ph payment link. Retry checkout shortly." }, 502);
+  if (created.error) {
+    return response({ orderId: newOrderId, canResumeOrder: true, error: created.error, liveMode: true }, 502);
   }
+  const { sessionId, checkoutUrl } = created;
 
   const { error: attachError } = await adminClient.rpc("attach_paymongo_checkout_session", {
     p_payment_id: paymentId,
-    p_provider_session_id: session.id,
+    p_provider_session_id: sessionId,
     p_checkout_url: checkoutUrl,
   });
   if (attachError) {
-    await fetch(`https://api.paymongo.com/v2/checkout_sessions/${encodeURIComponent(session.id)}/expire`, {
+    await fetch(`https://api.paymongo.com/v2/checkout_sessions/${encodeURIComponent(sessionId)}/expire`, {
       method: "POST",
       headers: { Authorization: `Basic ${btoa(`${paymongoSecretKey}:`)}` },
     }).catch(() => null);
-    return safeError(attachError, "The QR Ph payment link could not be attached to the order.");
+    console.error("Could not attach QR Ph session to saved order", attachError.code ?? "unknown");
+    return response({ orderId: newOrderId, canResumeOrder: true, error: "Your order is saved, but the QR Ph link could not be attached. Retry from the order page." }, 502);
   }
 
   return response({ orderId: newOrderId, checkoutUrl, liveMode: true });

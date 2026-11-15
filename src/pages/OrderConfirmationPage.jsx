@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import toast from "react-hot-toast";
 import {
@@ -18,6 +18,14 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import "../styles/OrderConfirmationPage.css";
 
+async function readCheckoutResponse(data, error) {
+  if (data) return data;
+  if (typeof error?.context?.clone === "function") {
+    return error.context.clone().json().catch(() => null);
+  }
+  return null;
+}
+
 const ORDER_STEPS = [
   { key: "1", title: "Order received", description: "The clinic has received your order." },
   { key: "2", title: "Payment confirmed", description: "Your QR Ph payment has been confirmed." },
@@ -34,6 +42,7 @@ function displayOrderReference(order) {
 }
 
 export default function OrderConfirmationPage() {
+  const location = useLocation();
   const { orderId } = useParams();
   const [searchParams] = useSearchParams();
   const [order, setOrder] = useState(null);
@@ -123,11 +132,13 @@ export default function OrderConfirmationPage() {
     setPaymentRetryAvailability("checking");
     supabase.functions.invoke("create-paymongo-checkout", {
       body: { orderId: Number(orderId) },
-    }).then(({ data, error }) => {
+    }).then(async ({ data, error }) => {
       if (!active) return;
-      if (data?.alreadyPaid || data?.paymentConfirmationPending) setPaymentRetryAvailability("confirming");
-      else if (data?.paymentWindowExpired || data?.orderNotPayable) setPaymentRetryAvailability("expired");
-      else setPaymentRetryAvailability(!error && data?.checkoutUrl ? "available" : "unavailable");
+      const result = await readCheckoutResponse(data, error);
+      if (!active) return;
+      if (result?.alreadyPaid || result?.paymentConfirmationPending) setPaymentRetryAvailability("confirming");
+      else if (result?.paymentWindowExpired || result?.orderNotPayable) setPaymentRetryAvailability("expired");
+      else setPaymentRetryAvailability(result?.checkoutUrl || result?.canResumeOrder ? "available" : "unavailable");
     }).catch(() => {
       if (active) setPaymentRetryAvailability("unavailable");
     });
@@ -150,24 +161,25 @@ export default function OrderConfirmationPage() {
     const { data, error } = await supabase.functions.invoke("create-paymongo-checkout", {
       body: { orderId: Number(orderId) },
     });
-    if (data?.alreadyPaid || data?.paymentConfirmationPending) {
+    const result = await readCheckoutResponse(data, error);
+    if (result?.alreadyPaid || result?.paymentConfirmationPending) {
       setPaymentRetryAvailability("confirming");
       toast("Checking your QR Ph payment. Please wait before trying again.");
       setRetryingPayment(false);
       return;
     }
-    if (data?.paymentWindowExpired || data?.orderNotPayable) {
+    if (result?.paymentWindowExpired || result?.orderNotPayable) {
       setPaymentRetryAvailability("expired");
       setRetryingPayment(false);
       return;
     }
-    if (error || !data?.checkoutUrl?.startsWith("https://checkout.paymongo.com/")) {
-      setPaymentRetryAvailability("unavailable");
-      toast.error(data?.error || error?.message || "We couldn’t check this payment. Refresh the page and try again.");
+    if (error || !result?.checkoutUrl?.startsWith("https://checkout.paymongo.com/")) {
+      setPaymentRetryAvailability(result?.canResumeOrder ? "available" : "unavailable");
+      toast.error(result?.error || error?.message || "We couldn’t check this payment. Refresh the page and try again.");
       setRetryingPayment(false);
       return;
     }
-    window.location.assign(data.checkoutUrl);
+    window.location.assign(result.checkoutUrl);
   };
 
   const handleCancelOrder = async () => {
@@ -222,6 +234,8 @@ export default function OrderConfirmationPage() {
       banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "Checking your QR Ph payment", description: "PayMongo is confirming the result. We’ll update the order as soon as it is verified." };
     } else if (paymentReturn === "cancelled") {
       banner = { tone: "pending", icon: <FaExclamationCircle aria-hidden="true" />, title: "Payment was not completed", description: paymentRetryAvailability === "available" ? "You can try QR Ph again while this order’s payment window is open." : "We’re checking whether this order can still be paid." };
+    } else if (paymentReturn === "setup-failed") {
+      banner = { tone: "pending", icon: <FaExclamationCircle aria-hidden="true" />, title: "Your order is saved", description: location.state?.checkoutError || (paymentRetryAvailability === "available" ? "The QR Ph page did not open. Your items are still reserved; try again while the payment window is open." : "The QR Ph page did not open. We’re checking whether the reserved order can still be paid.") };
     } else if (paymentRetryAvailability === "unavailable") {
       banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "We couldn’t check the payment", description: "Refresh this page to check the payment status before trying again." };
     } else {
