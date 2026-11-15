@@ -1,0 +1,40 @@
+.apo-clinic-staff-shell .apo-staff-signout { width: 100%; margin-top: 11px; padding: 7px 8px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fbfaf8; color: #5C574F; font: inherit; font-size: 11px; text-align: left; cursor: pointer; }
+.apo-clinic-staff-shell .apo-staff-signout:hover { border-color: #aaa69c; color: #1A1816; }
+.apo-staff-home { display: flex; flex-direction: column; gap: 16px; }
+.apo-staff-refresh { display: inline-flex; min-height: 37px; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid var(--apo-admin-line); border-radius: 4px; background: #fff; color: var(--apo-admin-ink); font: inherit; font-size: 12px; cursor: pointer; }
+.apo-staff-refresh:disabled { cursor: wait; opacity: .65; }
+.apo-staff-spin { animation: apo-staff-spin 1s linear infinite; }
+@keyframes apo-staff-spin { to { transform: rotate(360deg); } }
+.apo-staff-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--apo-admin-line); border-radius: 5px; background: #fff; }
+.apo-staff-summary article { position: relative; min-width: 0; min-height: 92px; padding: 13px 15px; }
+.apo-staff-summary article + article::before { position: absolute; top: 12px; bottom: 12px; left: 0; border-left: 1px solid var(--apo-admin-line); content: ""; }
+.apo-staff-summary article > span, .apo-staff-summary article small { display: block; color: #5C574F; font-size: 12px; }
+.apo-staff-summary article strong { display: block; margin: 5px 0 2px; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: 24px; line-height: 1; }
+.apo-staff-summary article small { color: #5C574F; font-size: 11px; }
+.apo-staff-summary article.is-attention strong { color: #9b6623; }
+.apo-staff-work-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(300px, .8fr); gap: 15px; align-items: start; }
+.apo-staff-work-panel { min-width: 0; min-height: 280px; padding: 15px 16px 12px; }
+.apo-staff-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 11px; border-bottom: 1px solid var(--apo-admin-line); }
+.apo-staff-panel-heading h2 { margin: 0; color: #1A1816; font-size: 14px; }
+.apo-staff-panel-heading p { margin: 4px 0 0; color: #5C574F; font-size: 11px; line-height: 1.4; }
+.apo-staff-panel-heading > a { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 4px; color: #356b5a; font-size: 11px; font-weight: 600; text-decoration: none; }
+.apo-staff-panel-heading > a:hover { color: var(--apo-admin-brand); text-decoration: underline; }
+.apo-staff-queue-list { display: grid; }
+.apo-staff-queue-row { display: flex; min-width: 0; min-height: 55px; align-items: center; gap: 10px; border-bottom: 1px solid #e7e4dd; }
+.apo-staff-queue-row:last-child { border-bottom: 0; }
+.apo-staff-queue-icon { display: grid; width: 29px; height: 29px; flex: 0 0 auto; place-items: center; border: 1px solid #e2ded6; border-radius: 50%; color: #5C574F; }
+.apo-staff-queue-info { display: grid; min-width: 0; flex: 1; gap: 4px; }
+.apo-staff-queue-info strong { overflow: hidden; color: #1A1816; font-size: 12px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.apo-staff-queue-info small { color: #5C574F; font-size: 11px; }
+.apo-staff-queue-row > a { display: grid; width: 30px; height: 30px; flex: 0 0 auto; place-items: center; border-radius: 4px; color: #5C574F; }
+.apo-staff-queue-row > a:hover { background: #f2f0ec; color: var(--apo-admin-brand); }
+.apo-staff-queue-time { width: 62px; flex: 0 0 auto; color: #1A1816; font-size: 11px; font-weight: 650; }
+.apo-staff-queue-row > svg { flex: 0 0 auto; color: #5C574F; }
+.apo-staff-empty { display: grid; min-height: 185px; align-content: center; justify-items: center; gap: 7px; color: #5C574F; text-align: center; }
+.apo-staff-empty strong { color: #1A1816; font-size: 12px; }
+.apo-staff-empty span { max-width: 320px; font-size: 11px; line-height: 1.5; }
+.apo-staff-hold-note { display: flex; align-items: flex-start; gap: 6px; margin: 9px 0 0; padding: 9px 10px; border: 1px solid #ead9b5; border-radius: 4px; background: #fbf4e6; color: #805e22; font-size: 11px; line-height: 1.45; }
+.apo-staff-hold-note svg { flex: 0 0 auto; margin-top: 1px; }
+.apo-staff-scope-note { margin: 0; padding-top: 4px; color: #5C574F; font-size: 11px; line-height: 1.5; }
+@media (max-width: 800px) { .apo-staff-work-grid { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .apo-staff-summary { grid-template-columns: 1fr; } .apo-staff-summary article { min-height: 78px; } .apo-staff-summary article + article::before { top: 0; right: 12px; bottom: auto; left: 12px; border-top: 1px solid var(--apo-admin-line); border-left: 0; } .apo-staff-home .apo-dashboard-title-row { align-items: center; } .apo-staff-summary article strong { font-size: 22px; } }

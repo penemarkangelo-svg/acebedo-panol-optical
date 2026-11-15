@@ -97,7 +97,7 @@ export default function ScreeningIntro({ onStart, onClose }) {
                     <div className="acebedo-intro-item-header">
                       <Icon
                         size={22}
-                        color="var(--acebedo-red);"
+                        color="var(--acebedo-red)"
                         strokeWidth={1.5}
                         aria-hidden="true"
                       />

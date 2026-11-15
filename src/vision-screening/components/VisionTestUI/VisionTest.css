@@ -29,7 +29,7 @@
 
 .vision-test__eyebrow {
   margin: 0 0 0.5rem;
-  color: var(--acebedo-red);
+  color: var(--acebedo-text-brand, #B8242F);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -166,6 +166,105 @@
   letter-spacing: 0.08em;
   line-height: 1.4;
   text-transform: uppercase;
+}
+
+/* Open questionnaire layout: centered in the space below the step rail. */
+.vision-test__questionnaire {
+  display: flex;
+  width: min(100%, 64rem);
+  min-height: clamp(26rem, calc(100dvh - 250px), 36rem);
+  flex-direction: column;
+  margin: 0 auto;
+  color: var(--acebedo-text);
+}
+
+.vision-test__questionnaire-header {
+  padding: 0.15rem 0 0.7rem;
+  border-bottom: 1px solid var(--acebedo-border);
+}
+
+.vision-test__questionnaire-header .acebedo-eyebrow {
+  margin: 0;
+  color: var(--acebedo-text);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.vision-test__questionnaire.is-age-question { min-height: 0; }
+.vision-test__questionnaire.is-age-question .vision-test__questionnaire-content {
+  flex: none;
+  justify-content: flex-start;
+  padding: 2rem 0 2.5rem;
+}
+
+.vision-test__questionnaire-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.35rem 0;
+}
+
+.vision-test__questionnaire-content .acebedo-heading-sm {
+  margin: 0;
+  color: var(--acebedo-text);
+  font-size: clamp(1.7rem, 3vw, 2.25rem);
+  line-height: 1.2;
+}
+
+.vision-test__questionnaire-input { width: 100%; margin-top: 1.4rem; }
+.vision-test__questionnaire-input > div { display: flex; flex-direction: column; gap: 0; }
+
+.vision-test__question-choice {
+  display: flex;
+  width: 100%;
+  min-height: 2.8rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--acebedo-border);
+  background: transparent;
+  color: var(--acebedo-text);
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.vision-test__question-choice:hover { background: var(--acebedo-surface-muted); }
+.vision-test__question-choice.is-selected { border-bottom-color: var(--acebedo-border-strong); background: var(--acebedo-red-soft); }
+.vision-test__question-choice input { flex: 0 0 auto; accent-color: var(--acebedo-red); }
+.vision-test__question-choice input:focus-visible { outline: 2px solid var(--acebedo-border-strong); outline-offset: 3px; }
+
+.vision-test__questionnaire-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--acebedo-border);
+}
+
+.vision-test__questionnaire-back {
+  min-height: 44px;
+  padding: 0.5rem 0.65rem;
+  border: 0;
+  border-radius: var(--acebedo-radius-sm);
+  background: transparent;
+  color: var(--acebedo-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms ease;
+}
+
+.vision-test__questionnaire-back:hover:not(:disabled) { background: var(--acebedo-surface-muted); }
+.vision-test__questionnaire-back:disabled { color: var(--acebedo-text-muted); opacity: 0.55; cursor: default; }
+.vision-test__questionnaire-back:focus-visible { outline: 2px solid var(--acebedo-red); outline-offset: 2px; }
+
+@media (max-width: 640px) {
+  .vision-test__questionnaire { min-height: calc(100dvh - 280px); }
+  .vision-test__questionnaire-content { padding: 1rem 0; }
+  .vision-test__questionnaire-actions .acebedo-btn { min-height: 44px; padding-inline: 0.8rem; font-size: 0.9rem; }
 }
 
 .vision-test__eye-list {
@@ -433,6 +532,21 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.65rem;
   margin-top: 1.7rem;
+}
+
+.vision-test__response-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.vision-test__trial-count {
+  color: var(--acebedo-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 /* Four direction controls: intentionally larger than the
@@ -987,7 +1101,7 @@
 
 .vision-results__eyebrow {
   margin: 0 0 8px;
-  color: var(--acebedo-red, #b3131b);
+  color: var(--acebedo-text-brand, #B8242F);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -1421,7 +1535,7 @@
 .acebedo-intro-title {
   margin: 0;
 
-  color: #1f1e1b;
+  color: #1A1816;
 
   font-family: Georgia, "Times New Roman", serif;
   font-size: 29px;
@@ -1440,7 +1554,7 @@
 .acebedo-intro-label {
   margin: 16px 0 8px;
 
-  color: #2a2925;
+  color: #1A1816;
 
   font-family: Georgia, "Times New Roman", serif;
   font-size: 17px;
@@ -1489,7 +1603,7 @@
 .acebedo-intro-item-title {
   margin: 0;
 
-  color: #292824;
+  color: #1A1816;
 
   font-family: Arial, sans-serif;
   font-size: 9px;
@@ -1500,7 +1614,7 @@
 .acebedo-intro-copy {
   margin: 0;
 
-  color: #6e6b63;
+  color: #5C574F;
 
   font-family: Arial, sans-serif;
   font-size: 8px;
@@ -1519,7 +1633,7 @@
   background: #eaf1eb;
   border-radius: 4px;
 
-  color: #4e514c;
+  color: #5C574F;
 
   font-family: Arial, sans-serif;
   font-size: 7.5px;
@@ -1527,7 +1641,7 @@
 }
 
 .acebedo-text-strong {
-  color: #292824;
+  color: #1A1816;
   font-weight: 600;
 }
 

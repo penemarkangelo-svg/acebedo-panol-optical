@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { QrCode } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { supabase } from "../lib/supabaseClient";
@@ -10,7 +11,7 @@ import "../styles/checkout.css";
 
 export default function CheckoutPage() {
   const { user } = useAuth();
-  const { cartItems, clearCart } = useCart();
+  const { cartItems, clearCart, cartId, isSyncing } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -22,6 +23,7 @@ export default function CheckoutPage() {
   const [contactName, setContactName] = useState(
     user?.user_metadata?.full_name || "",
   );
+  const [contactEmail, setContactEmail] = useState(user?.email || "");
   const [phone, setPhone] = useState("");
 
   const [address, setAddress] = useState("");
@@ -32,7 +34,12 @@ export default function CheckoutPage() {
 
   const [confirmCorrect, setConfirmCorrect] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
   const [touched, setTouched] = useState({});
+
+  useEffect(() => {
+    if (!contactEmail && user?.email) setContactEmail(user.email);
+  }, [contactEmail, user?.email]);
 
   const handleBlur = (field) => {
     setTouched((prev) => ({
@@ -43,8 +50,10 @@ export default function CheckoutPage() {
 
   const isFormValid = () => {
     if (!contactName.trim()) return false;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())) return false;
     if (!phone.trim()) return false;
     if (!confirmCorrect) return false;
+    if (selectedPaymentMethod !== "qrph") return false;
 
     if (!isPickup) {
       if (!address.trim()) return false;
@@ -77,11 +86,12 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (!isFormValid()) {
       toast.error(
-        "Please fill in all required fields and confirm the details.",
+        "Please fill in all required fields, choose QR Ph, and confirm the details.",
       );
 
       setTouched({
         contactName: true,
+        contactEmail: true,
         phone: true,
         ...(!isPickup && {
           address: true,
@@ -95,137 +105,68 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!user || !cartId) {
+      toast.error("Sign in and wait for your cart to finish syncing before checkout.");
+      if (!user) navigate("/login");
+      return;
+    }
+    if (isSyncing) {
+      toast.error("Your cart is still syncing. Please try again in a moment.");
+      return;
+    }
+
     setSaving(true);
 
     try {
       const deliveryAddress = isPickup
         ? null
         : `${address}, ${barangay}, ${city}, ${province} ${zip}`;
-
-      // 1. Create order
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          user_id: user.id,
-          customer_name: contactName,
-          email: user.email,
-          contact_number: phone,
-          fulfillment_method: shippingMethod,
-          delivery_address: deliveryAddress,
-          delivery_notes: null,
-          order_status: "pending",
-          payment_method: "paypal",
-          payment_status: "unpaid",
-          subtotal,
-          shipping_fee: shippingCost,
-          total,
-        })
-        .select()
-        .single();
-
-      if (orderError) {
-        console.error("Order creation failed:", {
-          message: orderError.message,
-          details: orderError.details,
-          hint: orderError.hint,
-          code: orderError.code,
-        });
-
-        throw orderError;
+      const idempotencyStorageKey = `apo-checkout:${cartId}`;
+      let idempotencyKey = sessionStorage.getItem(idempotencyStorageKey);
+      if (!idempotencyKey) {
+        idempotencyKey = crypto.randomUUID();
+        sessionStorage.setItem(idempotencyStorageKey, idempotencyKey);
       }
 
-      // 2. Create order items
-      const orderItems = selectedItems.map((item) => ({
-        order_id: order.id,
-        product_id: item.id,
-
-        product_name: item.name,
-        brand_name: item.brand || null,
-        frame_shape: item.shape || null,
-        frame_material: item.material || null,
-
-        product_color_id:
-          item.selectedOptions?.productColorId || null,
-
-        lens_type_id:
-          item.selectedOptions?.lensType || null,
-
-        coating_id:
-          item.selectedOptions?.coatingId || null,
-
-        quantity: item.quantity,
-        unit_price: item.price,
-        subtotal: item.price * item.quantity,
-
-        prescription_data:
-          item.selectedOptions?.prescription || null,
-
-        lens_package_name:
-          item.selectedOptions?.lensPackage || null,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // 3. Deduct stock
-      const productIds = selectedItems.map((item) => item.id);
-
-      const quantities = selectedItems.map(
-        (item) => item.quantity,
-      );
-
-      const productColorIds = selectedItems.map(
-        (item) =>
-          item.selectedOptions?.productColorId || null,
-      );
-
-      const { error: stockError } = await supabase.rpc(
-        "deduct_stock",
-        {
-          p_product_ids: productIds,
-          p_quantities: quantities,
-          p_product_color_ids: productColorIds,
+      const { data, error } = await supabase.functions.invoke("create-paymongo-checkout", {
+        body: {
+          cartId,
+          idempotencyKey,
+          contactName: contactName.trim(),
+          contactEmail: contactEmail.trim(),
+          contactNumber: phone.trim(),
+          fulfillmentMethod: shippingMethod,
+          deliveryAddress,
         },
-      );
+      });
 
-      if (stockError) {
-        await supabase
-          .from("order_items")
-          .delete()
-          .eq("order_id", order.id);
-
-        await supabase
-          .from("orders")
-          .delete()
-          .eq("id", order.id);
-
-        throw new Error(stockError.message);
+      if (error) throw error;
+      if (data?.alreadyPaid && data?.orderId) {
+        navigate(`/order-status/${data.orderId}`);
+        return;
+      }
+      if (!data?.checkoutUrl?.startsWith("https://checkout.paymongo.com/")) {
+        throw new Error(data?.error || "PayMongo did not return a valid QR Ph payment link.");
       }
 
-      // 4. Clear cart
-      await clearCart();
-
-      toast.success("Order placed successfully!");
-      navigate(`/order-status/${order.id}`);
+      sessionStorage.removeItem(idempotencyStorageKey);
+      await clearCart().catch((cartError) => {
+        console.error("The order was created, but the local cart could not be cleared.", cartError);
+      });
+      window.location.assign(data.checkoutUrl);
     } catch (err) {
       console.error(err);
-
-      toast.error(
-        err.message ||
-          "Failed to place order. Please try again.",
-      );
+      let errorMessage = err?.message;
+      if (typeof err?.context?.clone === "function") {
+        const responseBody = await err.context.clone().json().catch(() => null);
+        if (typeof responseBody?.error === "string") {
+          errorMessage = responseBody.error;
+        }
+      }
+      toast.error(errorMessage || "Could not start QR Ph checkout. Please try again.");
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleCreditCardClick = () => {
-    toast.info(
-      "Credit card payment is not available in this demo. Please use PayPal.",
-    );
   };
 
   if (selectedItems.length === 0) {
@@ -618,6 +559,31 @@ export default function CheckoutPage() {
 
                   </div>
                 )}
+
+                <div className="checkout-fields">
+                  <div className="checkout-field checkout-field-full">
+                    <label htmlFor="contact-email">
+                      Contact Email
+                      <span>*</span>
+                    </label>
+                    <input
+                      id="contact-email"
+                      type="email"
+                      autoComplete="email"
+                      value={contactEmail}
+                      onChange={(event) => setContactEmail(event.target.value)}
+                      onBlur={() => handleBlur("contactEmail")}
+                      className={
+                        touched.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())
+                          ? "checkout-input checkout-input-error"
+                          : "checkout-input"
+                      }
+                    />
+                    {touched.contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim()) && (
+                      <p className="checkout-error">Enter a valid email address for your order.</p>
+                    )}
+                  </div>
+                </div>
               </section>
 
               {/* PAYMENT */}
@@ -625,60 +591,20 @@ export default function CheckoutPage() {
                 <h2>Payment Method</h2>
 
                 <div className="checkout-payment-options">
-
                   <button
                     type="button"
-                    onClick={handlePlaceOrder}
+                    aria-pressed={selectedPaymentMethod === "qrph"}
+                    onClick={() => setSelectedPaymentMethod("qrph")}
                     disabled={saving}
-                    className={`checkout-payment-option ${
-                      saving
-                        ? "checkout-payment-disabled"
-                        : ""
-                    }`}
+                    className={`checkout-payment-option${selectedPaymentMethod === "qrph" ? " is-selected" : ""}`}
                   >
-                    <div className="checkout-payment-left">
-                      <span className="checkout-radio">
-                        <span />
-                      </span>
-
-                      <img
-                        src="https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_37x23.jpg"
-                        alt="PayPal"
-                      />
-
-                      <span>PayPal</span>
+                    <div className="checkout-payment-main">
+                      <span className="checkout-payment-logo"><QrCode aria-hidden="true" /><span>QR Ph</span></span>
                     </div>
-
-                    <span>
-                      Pay with your PayPal account
-                    </span>
+                    <span className="checkout-radio" aria-hidden="true"><span /></span>
                   </button>
-
-                  <button
-                    type="button"
-                    onClick={handleCreditCardClick}
-                    className="checkout-payment-option checkout-payment-card"
-                  >
-                    <div className="checkout-payment-left">
-                      <span className="checkout-lock">
-                        ♧
-                      </span>
-
-                      <span>
-                        Credit / Debit Card
-                      </span>
-
-                      <small>
-                        Demo only
-                      </small>
-                    </div>
-
-                    <span>
-                      Visa, Mastercard
-                    </span>
-                  </button>
-
                 </div>
+                <p className="checkout-payment-note">Pay with QR Ph using a supported bank or e-wallet app. Scanning the code will make a real payment.</p>
               </section>
 
             </section>
@@ -891,20 +817,18 @@ export default function CheckoutPage() {
                 type="button"
                 onClick={handlePlaceOrder}
                 disabled={
-                  saving || !isFormValid()
+                  saving || isSyncing || !isFormValid()
                 }
                 className="checkout-place-order"
               >
                 {saving
-                  ? "Processing..."
-                  : "Place Order"}
+                  ? "Opening QR Ph checkout..."
+                  : "Continue to QR Ph"}
               </button>
 
               {!isFormValid() && !saving && (
                 <p className="checkout-order-hint">
-                  Complete the required details, select
-                  a payment method and confirm above to
-                  place your order.
+                  Complete the required contact and fulfillment details, select QR Ph, then confirm above to continue.
                 </p>
               )}
 

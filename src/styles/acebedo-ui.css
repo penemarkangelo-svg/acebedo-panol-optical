@@ -19,13 +19,16 @@
   --acebedo-red: #B3131B;
   --acebedo-red-hover: #8E0E14;
   --acebedo-red-soft: #F7EBEB;
+  --acebedo-text-brand: #B8242F;
+  --acebedo-text-brand-hover: #9A1C26;
 
   /* ---------------------------------------------------------
      TEXT AND NEUTRALS
      --------------------------------------------------------- */
-  --acebedo-text: #1F1E1B;
-  --acebedo-text-muted: #6E6B63;
-  --acebedo-text-subtle: #68665F;
+  --acebedo-text: #1A1816;
+  --acebedo-text-muted: #5C574F;
+  --acebedo-text-subtle: #5C574F;
+  --acebedo-text-secondary: #5C574F;
 
   --acebedo-background: #F8F7F4;
   --acebedo-surface: #FFFFFF;
@@ -155,7 +158,7 @@
 
 .acebedo-eyebrow {
   margin: 0 0 var(--acebedo-space-sm);
-  color: var(--acebedo-red);
+  color: var(--acebedo-text-brand);
   font-family: var(--font-body);
   font-size: var(--acebedo-font-xs);
   font-weight: var(--acebedo-weight-bold);
@@ -342,14 +345,14 @@
    ========================================================= */
 
 .acebedo-link {
-  color: var(--acebedo-red);
+  color: var(--acebedo-text-brand);
   font-weight: var(--acebedo-weight-semibold);
   text-decoration: underline;
   text-underline-offset: 0.15em;
 }
 
 .acebedo-link:hover {
-  color: var(--acebedo-red-hover);
+  color: var(--acebedo-text-brand-hover);
 }
 
 
@@ -406,7 +409,7 @@
 .acebedo-input:focus-visible,
 .acebedo-select:focus-visible,
 .acebedo-textarea:focus-visible {
-  border-color: var(--acebedo-red);
+  border-color: var(--acebedo-text-brand, #B8242F);
   box-shadow: var(--acebedo-focus-ring);
 }
 
@@ -443,7 +446,7 @@
   width: 1.125rem;
   height: 1.125rem;
   flex: 0 0 auto;
-  accent-color: var(--acebedo-red);
+  accent-color: var(--acebedo-text-brand, #B8242F);
 }
 
 .acebedo-choice-label {
@@ -542,9 +545,16 @@
   display: flex;
   width: 100%;
   align-items: flex-start;
+  gap: 0;
   margin: 0;
-  padding: 0;
+  padding: 0.2rem 0;
   list-style: none;
+}
+
+.acebedo-screening-progress-wrap {
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--acebedo-border);
 }
 
 .acebedo-progress-step {
@@ -554,51 +564,62 @@
   flex: 1 1 0;
   flex-direction: column;
   align-items: center;
-  gap: var(--acebedo-space-sm);
+  gap: 0.35rem;
   color: var(--acebedo-text-muted);
-  font-size: var(--acebedo-font-sm);
-  line-height: var(--acebedo-line-normal);
+  font-size: 0.72rem;
+  line-height: 1.2;
   text-align: center;
+}
+
+.acebedo-progress-label {
+  display: block;
+  max-width: 100%;
+  color: inherit;
+  font-size: inherit;
+  font-weight: 500;
+  line-height: inherit;
+  white-space: nowrap;
 }
 
 .acebedo-progress-step::before {
   position: relative;
   z-index: 1;
   display: grid;
-  width: var(--acebedo-progress-node);
-  height: var(--acebedo-progress-node);
+  width: 1.15rem;
+  height: 1.15rem;
   place-items: center;
-  border: 2px solid var(--acebedo-border-strong);
+  border: 1px solid var(--acebedo-border-strong);
   border-radius: 50%;
-  background: var(--acebedo-surface);
+  background: var(--acebedo-background);
   color: var(--acebedo-text-muted);
   content: attr(data-step);
-  font-size: var(--acebedo-font-sm);
-  font-weight: var(--acebedo-weight-semibold);
+  font-size: 0.62rem;
+  font-weight: 600;
 }
 
 .acebedo-progress-step:not(:last-child)::after {
   position: absolute;
-  top: calc(var(--acebedo-progress-node) / 2 - var(--acebedo-progress-line) / 2);
-  left: calc(50% + var(--acebedo-progress-node) / 2);
-  width: calc(100% - var(--acebedo-progress-node));
-  height: var(--acebedo-progress-line);
+  top: 0.575rem;
+  left: calc(50% + 0.7rem);
+  width: calc(100% - 1.4rem);
+  height: 1px;
   background: var(--acebedo-border-strong);
   content: "";
 }
 
 .acebedo-progress-step.is-complete {
-  color: var(--acebedo-text);
+  color: var(--acebedo-text-muted);
 }
 
 .acebedo-progress-step.is-complete::before {
-  border-color: var(--acebedo-success);
-  background: var(--acebedo-success-bg);
-  color: var(--acebedo-success);
+  border-color: var(--acebedo-red);
+  background: var(--acebedo-red);
+  color: #FFFFFF;
+  content: "✓";
 }
 
 .acebedo-progress-step.is-complete:not(:last-child)::after {
-  background: var(--acebedo-success);
+  background: var(--acebedo-red);
 }
 
 .acebedo-progress-step.is-current {
@@ -610,6 +631,14 @@
   border-color: var(--acebedo-red);
   background: var(--acebedo-red);
   color: #FFFFFF;
+  box-shadow: 0 0 0 3px var(--acebedo-red-soft);
+}
+
+@media (max-width: 640px) {
+  .acebedo-progress-step { font-size: 0.62rem; }
+  .acebedo-progress-label { white-space: normal; overflow-wrap: anywhere; }
+  .acebedo-progress-step::before { width: 1rem; height: 1rem; }
+  .acebedo-progress-step:not(:last-child)::after { top: 0.5rem; left: calc(50% + 0.6rem); width: calc(100% - 1.2rem); }
 }
 
 
@@ -645,7 +674,7 @@
 }
 
 .acebedo-answer-btn:hover:not(:disabled) {
-  border-color: var(--acebedo-red);
+  border-color: var(--acebedo-text-brand, #B8242F);
   background: var(--acebedo-red-soft);
 }
 
@@ -751,7 +780,7 @@
   }
 
   .acebedo-progress-step {
-    font-size: var(--acebedo-font-xs);
+    font-size: 0.62rem;
   }
 }
 
@@ -1018,6 +1047,127 @@
     width: 100%;
   }
 }
+
+/* Current screening intro preparation layout */
+.acebedo-intro-preparation {
+  margin-top: 1.2rem;
+}
+
+.acebedo-intro-label {
+  margin: 0;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid var(--acebedo-border);
+  color: var(--acebedo-text);
+  font-family: var(--font-brand);
+  font-size: 1.25rem;
+  font-weight: var(--acebedo-weight-regular);
+  line-height: 1.3;
+}
+
+.acebedo-intro-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.acebedo-intro-tile {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.72fr) minmax(0, 1.8fr);
+  align-items: center;
+  gap: 1rem;
+  min-height: 3.85rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--acebedo-border);
+}
+
+.acebedo-intro-tile:last-child {
+  border-bottom: 0;
+}
+
+.acebedo-intro-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.acebedo-intro-item-header svg {
+  flex: 0 0 auto;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0.15rem;
+  border-radius: var(--acebedo-radius-sm);
+  background: var(--acebedo-red-soft);
+}
+
+.acebedo-intro-item-title {
+  margin: 0;
+  color: var(--acebedo-text);
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  font-weight: var(--acebedo-weight-semibold);
+  line-height: 1.4;
+}
+
+.acebedo-intro-copy {
+  margin: 0;
+  color: var(--acebedo-text-muted);
+  font-family: var(--font-body);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.acebedo-intro-disclaimer {
+  margin: 1rem 0 0;
+  padding: 0.8rem 0.9rem;
+  border-left: 3px solid var(--acebedo-border-strong);
+  border-radius: 0 var(--acebedo-radius-sm) var(--acebedo-radius-sm) 0;
+  background: var(--acebedo-background);
+  color: var(--acebedo-text);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.acebedo-intro-start {
+  min-height: 3.25rem;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.acebedo-intro-start:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--acebedo-red-hover);
+  box-shadow: 0 5px 14px rgba(142, 14, 20, 0.2);
+  transform: translateY(-1px);
+}
+
+.acebedo-intro-start:active:not(:disabled):not([aria-disabled="true"]) {
+  box-shadow: none;
+  transform: translateY(0);
+}
+
+.acebedo-intro-start:focus-visible {
+  outline: 3px solid var(--acebedo-red);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--acebedo-red-soft);
+}
+
+@media (max-width: 640px) {
+  .acebedo-intro-preparation {
+    margin-top: 0.9rem;
+  }
+
+  .acebedo-intro-tile {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+    padding: 0.7rem 0;
+  }
+
+  .acebedo-intro-copy {
+    padding-left: 2.25rem;
+  }
+}
 /* =========================================================
    VISUAL ACUITY TEST
    Clinical assessment workspace
@@ -1062,7 +1212,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 2rem;
-  padding: 1.5rem 1.75rem 1.25rem;
+  padding: 0.85rem 1.4rem 0.9rem;
   border-bottom: 1px solid var(--acebedo-border);
 }
 
@@ -1461,7 +1611,7 @@
   height: 1.75rem;
   margin: 0 auto 0.75rem;
   border: 3px solid var(--acebedo-neutral-bg);
-  border-top-color: var(--acebedo-red);
+  border-top-color: var(--acebedo-text-brand, #B8242F);
   border-radius: 50%;
   animation: acebedo-va-spin 1s linear infinite;
 }
@@ -1682,4 +1832,17 @@
 
 .acebedo-va-eye-item.is-complete .acebedo-va-eye-number svg {
   display: block;
+}
+
+/* Keep supporting text readable across Tailwind-based screens. */
+body .text-gray-400,
+body .text-gray-500,
+body .text-gray-600 {
+  color: #5C574F;
+}
+
+body input::placeholder,
+body textarea::placeholder {
+  color: #5C574F;
+  opacity: 1;
 }

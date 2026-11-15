@@ -6,6 +6,8 @@ import { ArrowLeftIcon, ArrowRightIcon, GlassesIcon } from "@solar-icons/react/l
 import toast from "react-hot-toast";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import TryOnModal from "../components/TryOnModal";
+import { getProductCategory, isEyewearType, requiresLensPackage } from "../utils/productTypes";
 import "../styles/ProductDetail.css";
 
 export default function ProductDetailPage() {
@@ -14,11 +16,15 @@ export default function ProductDetailPage() {
   const navigate = useNavigate();
 
   const [product, setProduct] = useState(null);
+  const [suggestedProducts, setSuggestedProducts] = useState([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionStart, setSuggestionStart] = useState(0);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState(null);
   const [mainImage, setMainImage] = useState("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [tryOnOpen, setTryOnOpen] = useState(false);
 
   const [visionMode, setVisionMode] = useState("plano");
   const [selectedPackageId, setSelectedPackageId] = useState(null);
@@ -39,7 +45,9 @@ export default function ProductDetailPage() {
           frame_shape:frame_attributes!products_frame_shape_id_fkey (name),
           frame_material:frame_attributes!products_frame_material_id_fkey (name),
           product_images (id, image_url, is_primary, sort_order),
-          product_colors (id, color_name, color_code, image_id, sort_order, stock)
+          product_colors (id, color_name, color_code, image_id, sort_order, stock,
+            product_color_images (product_image_id, sort_order, is_primary,
+              product_images!product_color_images_image_product_fkey (id, image_url, sort_order)))
         `)
         .eq("id", id)
         .single();
@@ -56,15 +64,28 @@ export default function ProductDetailPage() {
           images.map((image) => [String(image.id), image])
         );
 
-        // Resolve product_colors.image_id -> product_images.image_url.
         const colorsWithImages = (data.product_colors || []).map((color) => ({
           ...color,
-          image_url:
-            imageById.get(String(color.image_id))?.image_url || null,
+          gallery_images: [...(color.product_color_images || [])]
+            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+            .map((link) => ({ ...link.product_images, is_primary: Boolean(link.is_primary) }))
+            .filter((image) => image.id),
+          image_url: [...(color.product_color_images || [])]
+            .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+            .find((link) => link.is_primary)?.product_images?.image_url
+            || imageById.get(String(color.image_id))?.image_url
+            || null,
         }));
+
+        colorsWithImages.forEach((color) => {
+          if (!color.gallery_images.length && color.image_url) {
+            color.gallery_images = [{ id: `legacy-${color.id}`, image_url: color.image_url, is_primary: true, sort_order: 0 }];
+          }
+        });
 
         const productWithColors = {
           ...data,
+          category: getProductCategory(data),
           product_colors: colorsWithImages,
         };
 
@@ -95,6 +116,70 @@ export default function ProductDetailPage() {
       isMounted = false;
     };
   }, [id, navigate]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadSuggestions() {
+      if (!product || !isEyewearType(product.category || product.type)) {
+        setSuggestedProducts([]);
+        return;
+      }
+      setSuggestionsLoading(true);
+      const { data, error } = await supabase.from("products").select(`
+        id, name, price, stock, brand_id, frame_shape_id,
+        brands (name),
+        frame_shape:frame_attributes!products_frame_shape_id_fkey (name),
+        product_images (id, image_url, is_primary, sort_order),
+        product_colors (id, color_name, color_code, image_id, stock,
+          product_color_images (product_image_id, sort_order, is_primary,
+            product_images!product_color_images_image_product_fkey (id, image_url, sort_order)))
+      `).in("type", ["frame", "eyeglasses", "sunglasses"]).order("created_at", { ascending: false });
+      if (!active) return;
+      if (error) {
+        console.error("Unable to load related frames:", error);
+        setSuggestedProducts([]);
+      } else {
+        const related = (data || [])
+          .filter((candidate) => candidate.id !== product.id && (
+            (product.frame_shape_id && candidate.frame_shape_id === product.frame_shape_id) ||
+            (product.brand_id && candidate.brand_id === product.brand_id)
+          ))
+          .map((candidate) => {
+            const images = candidate.product_images || [];
+            const imageMap = new Map(images.map((image) => [String(image.id), image.image_url]));
+            const colors = (candidate.product_colors || []).map((color) => ({
+              ...color,
+              gallery_images: [...(color.product_color_images || [])]
+                .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                .map((link) => link.product_images)
+                .filter(Boolean),
+              image_url: [...(color.product_color_images || [])]
+                .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+                .find((link) => link.is_primary)?.product_images?.image_url
+                || imageMap.get(String(color.image_id)) || null,
+            }));
+            const available = colors.length
+              ? colors.some((color) => Number(color.stock || 0) > 0)
+              : Number(candidate.stock || 0) > 0;
+            return {
+              ...candidate,
+              product_images: images,
+              product_colors: colors,
+              suggestion_reason: product.frame_shape_id && candidate.frame_shape_id === product.frame_shape_id
+                ? "Similar shape"
+                : "More from this brand",
+              is_available: available,
+            };
+          })
+          .sort((a, b) => Number(b.is_available) - Number(a.is_available) || Number(b.suggestion_reason === "Similar shape") - Number(a.suggestion_reason === "Similar shape"));
+        setSuggestedProducts(related);
+        setSuggestionStart(0);
+      }
+      setSuggestionsLoading(false);
+    }
+    loadSuggestions();
+    return () => { active = false; };
+  }, [product]);
 
   useEffect(() => {
     let isMounted = true;
@@ -168,7 +253,7 @@ export default function ProductDetailPage() {
   }, [visionMode]);
 
   const availablePackages = useMemo(() => {
-    if (!product || product.type !== "frame") return [];
+    if (!product || !requiresLensPackage(product.category || product.type)) return [];
 
     if (visionMode === "plano") {
       return lensPackages.filter(
@@ -179,21 +264,14 @@ export default function ProductDetailPage() {
     return lensPackages;
   }, [product, visionMode, lensPackages]);
 
-  /*
-   * Each color is linked to its product image through image_id.
-   * For this version we intentionally use that resolved image for all
-   * three gallery positions so the gallery matches the approved UI.
-   */
   const galleryImages = useMemo(() => {
-    const colorImage = selectedColor?.image_url?.trim();
-    const image =
-      colorImage ||
-      mainImage ||
-      "https://placehold.co/900x675?text=No+Image";
-
-    // Reuse the selected color's resolved image for all three approved
-    // gallery positions.
-    return [image, image, image];
+    const colorImages = (selectedColor?.gallery_images || [])
+      .map((image) => image?.image_url?.trim())
+      .filter(Boolean);
+    const fallbackImage = selectedColor?.image_url?.trim()
+      || mainImage
+      || "https://placehold.co/900x675?text=No+Image";
+    return colorImages.length ? colorImages : [fallbackImage];
   }, [selectedColor, mainImage]);
 
   const handlePreviousImage = () => {
@@ -226,7 +304,7 @@ export default function ProductDetailPage() {
   if (!product) return null;
 
   const isAddToCartEnabled = () => {
-    if (product.type === "accessory") {
+    if (!isEyewearType(product.category || product.type)) {
       return (
         Number(product.stock) > 0 &&
         quantity <= Number(product.stock)
@@ -234,7 +312,7 @@ export default function ProductDetailPage() {
     }
 
     if (!selectedColor) return false;
-    if (!selectedPackageId) return false;
+    if (requiresLensPackage(product.category || product.type) && !selectedPackageId) return false;
     if (quantity > Number(selectedColor.stock || 0)) return false;
 
     return true;
@@ -242,7 +320,7 @@ export default function ProductDetailPage() {
 
   const getFrameValidationMessage = () => {
     if (!selectedColor) return "Please select a frame color.";
-    if (!selectedPackageId) return "Please select a lens package.";
+    if (requiresLensPackage(product.category || product.type) && !selectedPackageId) return "Please select a lens package.";
 
     if (quantity > Number(selectedColor.stock || 0)) {
       return `Only ${selectedColor.stock} available for this color.`;
@@ -254,7 +332,7 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (!isAddToCartEnabled()) return;
 
-    if (product.type === "accessory") {
+    if (!isEyewearType(product.category || product.type)) {
       if (quantity > Number(product.stock || 0)) {
         toast.error(`Only ${product.stock} available.`);
         return;
@@ -266,23 +344,24 @@ export default function ProductDetailPage() {
           name: product.name,
           price: Number(product.price),
           image: mainImage,
-          brand: "Accessory",
+          brand: product.brands?.name || "",
           shape: "",
           material: "",
+          type: product.category || getProductCategory(product),
         },
         quantity,
-        { type: "accessory" }
+        { type: product.category || getProductCategory(product) }
       );
 
       toast.success("Added to cart!");
       return;
     }
 
-    const chosenPackage = availablePackages.find(
-      (pkg) => pkg.id === selectedPackageId
-    );
+    const chosenPackage = requiresLensPackage(product.category || product.type)
+      ? availablePackages.find((pkg) => pkg.id === selectedPackageId)
+      : null;
 
-    if (!chosenPackage) {
+    if (requiresLensPackage(product.category || product.type) && !chosenPackage) {
       toast.error("Please select a valid lens package.");
       return;
     }
@@ -292,19 +371,21 @@ export default function ProductDetailPage() {
       return;
     }
 
-    const lensExtra = Number(chosenPackage.price) || 0;
+    const lensExtra = Number(chosenPackage?.price) || 0;
     const finalPrice = Number(product.price) + lensExtra;
 
     const config = {
+      type: product.category || getProductCategory(product),
       productColorId: selectedColor.id,
       color: selectedColor.color_name,
       colorHex: selectedColor.color_code,
-      visionMode:
-        visionMode === "plano" ? "Plano" : "Prescription Lens",
-      lensPackage: chosenPackage.displayName,
-      lensExtraCharge: lensExtra,
-      lensType: chosenPackage.lensType,
-      coatingId: chosenPackage.coatingId,
+      ...(chosenPackage ? {
+        visionMode: visionMode === "plano" ? "Plano" : "Prescription Lens",
+        lensPackage: chosenPackage.displayName,
+        lensExtraCharge: lensExtra,
+        lensType: chosenPackage.lensType,
+        coatingId: chosenPackage.coatingId,
+      } : {}),
     };
 
     addToCart(
@@ -316,6 +397,7 @@ export default function ProductDetailPage() {
         brand: product.brands?.name || "",
         shape: product.frame_shape?.name || "",
         material: product.frame_material?.name || "",
+        type: product.category || getProductCategory(product),
       },
       quantity,
       config
@@ -335,6 +417,7 @@ export default function ProductDetailPage() {
   const lensExtra = Number(selectedPackage?.price || 0);
   const finalPrice = Number(product.price) + lensExtra;
   const validationMessage = getFrameValidationMessage();
+  const visibleSuggestedProducts = suggestedProducts.slice(suggestionStart, suggestionStart + 3);
 
   const handleColorToggle = (color) => {
     if (Number(color.stock || 0) <= 0) return;
@@ -344,7 +427,6 @@ export default function ProductDetailPage() {
       product.product_images?.[0]?.image_url ||
       "https://placehold.co/900x675?text=No+Image";
 
-    // image_url was resolved from product_colors.image_id when the product loaded.
     const selectedColorImage = color.image_url || fallbackImage;
 
     setSelectedColor(color);
@@ -360,120 +442,80 @@ export default function ProductDetailPage() {
   };
 
   const handleTryOn = () => {
-    /*
-     * The existing codebase does not yet connect this page to the
-     * Try-On modal. Keep the approved button in place without changing
-     * the existing cart/product behavior.
-     */
-    toast("Try-On is ready to be connected to the Try-On experience.");
+    setTryOnOpen(true);
   };
 
-  if (product.type === "accessory") {
+  const focusLensSelection = () => {
+    window.setTimeout(() => {
+      document.getElementById("pdp-lens-selection")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 0);
+  };
+
+  if (!isEyewearType(product.category || product.type)) {
     const accessoryStock = Number(product.stock || 0);
+    const isEyedrops = (product.category || product.type) === "eyedrops";
+    const categoryLabel = isEyedrops ? "Eyedrops" : "Accessories";
 
     return (
       <>
         <Header />
 
-        <main className="bg-white py-12 px-6 md:px-12 lg:px-20">
-          <div className="max-w-4xl mx-auto">
-            <button
-              onClick={() => navigate(-1)}
-              className="mb-6 text-gray-500 hover:text-[#D32F2F] transition flex items-center gap-1 text-sm"
-              aria-label="Go back"
-            >
-              <FaArrowLeft className="w-6 h-6" />
-            </button>
-
-            <div className="grid md:grid-cols-2 gap-12">
-              <div className="aspect-square rounded-2xl overflow-hidden bg-gray-100 shadow-md">
-                <img
-                  src={mainImage}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-[#212529]">
-                  {product.name}
-                </h1>
-
-                <p className="text-gray-500 mt-2">
-                  {product.description}
-                </p>
-
-                <div className="mt-4">
-                  <span className="text-3xl font-black text-[#D32F2F]">
-                    ₱{Number(product.price).toFixed(2)}
-                  </span>
+        <main className="pdp-page pdp-care-page">
+          <div className="pdp-container">
+            <div className="pdp-care-layout">
+              <section className="pdp-gallery pdp-care-gallery" aria-label={`${product.name} images`}>
+                <div className="pdp-gallery__main pdp-care-image">
+                  <img src={mainImage} alt={`${product.name} packaging`} className="pdp-gallery__image" />
                 </div>
-
-                <div className="mt-3">
-                  <span
-                    className={`text-sm px-3 py-1 rounded-full ${
-                      accessoryStock > 0
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {accessoryStock > 0
-                      ? `In stock (${accessoryStock})`
-                      : "Out of stock"}
-                  </span>
+                <div className="pdp-care-image-caption">
+                  <span className="pdp-care-image-index">01 / 01</span>
+                  <p>{isEyedrops ? "Product packaging shown. Read the product label before use." : "Product image shown for reference."}</p>
                 </div>
+                <p className="pdp-care-image-category">Eye care / {categoryLabel}</p>
+              </section>
 
-                <div className="mt-6">
-                  <label className="block text-sm font-semibold text-[#212529] mb-2">
-                    Quantity
-                  </label>
-
-                  <div className="flex items-center border border-gray-300 rounded-md w-fit">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setQuantity((current) =>
-                          Math.max(1, current - 1)
-                        )
-                      }
-                      className="px-3 py-1 text-gray-600 hover:bg-gray-100"
-                    >
-                      -
-                    </button>
-
-                    <span className="px-4 py-1 min-w-[40px] text-center font-medium">
-                      {quantity}
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setQuantity((current) =>
-                          Math.min(accessoryStock, current + 1)
-                        )
-                      }
-                      disabled={quantity >= accessoryStock}
-                      className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-40"
-                    >
-                      +
-                    </button>
+              <section className="pdp-details pdp-care-details">
+                <div className="pdp-product-heading">
+                  <div>
+                    <p className="pdp-kicker pdp-care-kicker">Eye care / {isEyedrops ? "Daily essentials" : "Accessories"}</p>
+                    <h1 className="pdp-title">{product.name}</h1>
+                    <p className="pdp-subtitle">{product.description || categoryLabel}</p>
                   </div>
+                  <span className={`pdp-stock ${accessoryStock > 0 ? "pdp-stock--available" : "pdp-stock--unavailable"}`}>
+                    {accessoryStock > 0 ? `In stock · ${accessoryStock} available` : "Out of stock"}
+                  </span>
                 </div>
 
-                <button
-                  onClick={handleAddToCart}
-                  disabled={
-                    !accessoryStock || quantity > accessoryStock
-                  }
-                  className={`mt-8 w-full py-3 rounded-lg font-semibold transition shadow-md ${
-                    !accessoryStock || quantity > accessoryStock
-                      ? "bg-gray-300 cursor-not-allowed text-gray-500"
-                      : "bg-[#D32F2F] text-white hover:bg-[#B71C1C]"
-                  }`}
-                >
-                  Add to Cart
-                </button>
-              </div>
+                <div className="pdp-care-price">₱{Number(product.price).toFixed(2)}</div>
+
+                <div className="pdp-care-checkout">
+                  <div className="pdp-care-quantity-row">
+                    <span className="pdp-label">Quantity</span>
+                    <div className="pdp-quantity__control" aria-label="Quantity">
+                      <button type="button" onClick={() => setQuantity((current) => Math.max(1, current - 1))} disabled={quantity <= 1} aria-label="Decrease quantity">−</button>
+                      <span aria-live="polite">{quantity}</span>
+                      <button type="button" onClick={() => setQuantity((current) => Math.min(accessoryStock, current + 1))} disabled={quantity >= accessoryStock} aria-label="Increase quantity">+</button>
+                    </div>
+                  </div>
+                  <button type="button" onClick={handleAddToCart} disabled={!accessoryStock || quantity > accessoryStock} className={`pdp-add-button ${accessoryStock > 0 && quantity <= accessoryStock ? "pdp-add-button--enabled" : "pdp-add-button--disabled"}`}>
+                    Add to bag
+                  </button>
+                  <p className="pdp-care-checkout-note">Shipping cost is calculated at checkout.</p>
+                </div>
+
+                <details className="pdp-care-disclosure" open>
+                  <summary>Product information</summary>
+                  <p>{product.description || "Product details are not available."}</p>
+                </details>
+                {isEyedrops && <details className="pdp-care-disclosure">
+                  <summary>Use and precautions</summary>
+                  <p>Read the product label and use only as directed. Ask your eye-care professional if you have questions about this product.</p>
+                </details>}
+                <details className="pdp-care-disclosure">
+                  <summary>Shipping information</summary>
+                  <p>Shipping cost and available fulfillment options are shown during checkout.</p>
+                </details>
+              </section>
             </div>
           </div>
         </main>
@@ -548,31 +590,24 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <div className="pdp-gallery__thumbs">
-                {galleryImages.map((image, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => selectGalleryImage(index)}
-                    className={`pdp-gallery__thumb ${
-                      activeImageIndex === index
-                        ? "pdp-gallery__thumb--active"
-                        : ""
-                    }`}
-                    aria-label={`View product image ${index + 1}`}
-                  >
-                    <img
-                      src={image}
-                      alt=""
-                    />
-                  </button>
-                ))}
-              </div>
-
-              <div className="pdp-gallery__under-row">
-                <span className="pdp-gallery__detail-label">
-                  Front &amp; temple detail
-                </span>
+              <div className="pdp-gallery__thumb-row">
+                <div className="pdp-gallery__thumbs">
+                  {galleryImages.map((image, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => selectGalleryImage(index)}
+                      className={`pdp-gallery__thumb ${
+                        activeImageIndex === index
+                          ? "pdp-gallery__thumb--active"
+                          : ""
+                      }`}
+                      aria-label={`View product image ${index + 1}`}
+                    >
+                      <img src={image} alt="" />
+                    </button>
+                  ))}
+                </div>
 
                 <button
                   type="button"
@@ -582,6 +617,12 @@ export default function ProductDetailPage() {
                   <GlassesIcon size={20} strokeWidth={1.8} aria-hidden="true" />
                   <span>Try-on</span>
                 </button>
+              </div>
+
+              <div className="pdp-gallery__under-row">
+                <span className="pdp-gallery__detail-label">
+                  Front &amp; temple detail
+                </span>
               </div>
             </section>
 
@@ -633,7 +674,7 @@ export default function ProductDetailPage() {
               <div className="pdp-section">
                 <div className="pdp-section__label-row">
                   <label className="pdp-label">
-                    Frame Color
+                    Color
                   </label>
 
                   {selectedColor && (
@@ -680,7 +721,8 @@ export default function ProductDetailPage() {
 
               </div>
 
-              <div className="pdp-section">
+              {requiresLensPackage(product.category || product.type) && <>
+              <div className="pdp-section" id="pdp-lens-selection">
                 <label className="pdp-label">Lens Type</label>
 
                 <div className="pdp-mode-grid">
@@ -777,6 +819,7 @@ export default function ProductDetailPage() {
                     </p>
                   )}
               </div>
+              </>}
 
               <div className="pdp-checkout">
                 <div className="pdp-checkout__row">
@@ -841,23 +884,48 @@ export default function ProductDetailPage() {
                   )}
               </div>
 
-              <div className="pdp-description">
-                <h2>Description</h2>
-                <p>
-                  {product.description ||
-                    "Elegant frame designed for comfort and style."}
-                </p>
-              </div>
             </section>
           </div>
 
-          <section className="pdp-information">
-            <h2>Product information</h2>
+          <section className="pdp-information pdp-description-block">
+            <h2>Description</h2>
+            <p>{product.description || "Elegant frame designed for comfort and style."}</p>
           </section>
+
+          {(suggestionsLoading || suggestedProducts.length > 0) && <section className="pdp-related">
+            <div className="pdp-related__heading">
+              <div><p className="pdp-kicker">FRAME DISCOVERY</p><h2>You may also like</h2></div>
+              {suggestedProducts.length > 3 && <div className="pdp-related__controls">
+                <button type="button" onClick={() => setSuggestionStart((index) => Math.max(0, index - 1))} disabled={suggestionStart === 0} aria-label="Previous suggested frames"><ArrowLeftIcon size={17} /></button>
+                <button type="button" onClick={() => setSuggestionStart((index) => Math.min(suggestedProducts.length - 3, index + 1))} disabled={suggestionStart >= suggestedProducts.length - 3} aria-label="Next suggested frames"><ArrowRightIcon size={17} /></button>
+              </div>}
+            </div>
+            {suggestionsLoading ? <p className="pdp-related__message">Finding frames you may like…</p> : <div className="pdp-related__grid">
+              {visibleSuggestedProducts.map((suggestion) => {
+                const image = suggestion.product_colors.find((color) => Number(color.stock || 0) > 0 && color.image_url)?.image_url
+                  || suggestion.product_images.find((item) => item.is_primary)?.image_url
+                  || suggestion.product_images[0]?.image_url;
+                const availableColors = suggestion.product_colors.filter((color) => Number(color.stock || 0) > 0).length;
+                return <article className="pdp-related-card" key={suggestion.id}>
+                  <button className="pdp-related-card__image-button" type="button" onClick={() => navigate(`/product/${suggestion.id}`)} aria-label={`View ${suggestion.name}`}>
+                    {image ? <img src={image} alt={suggestion.name} loading="lazy" /> : <span className="pdp-related-card__no-image">Image unavailable</span>}
+                    <span className="pdp-related-card__reason">{suggestion.suggestion_reason}</span>
+                  </button>
+                  <div className="pdp-related-card__details">
+                    <span className="pdp-related-card__brand">{suggestion.brands?.name || "Acebedo Panol Optical"}</span>
+                    <button className="pdp-related-card__name" type="button" onClick={() => navigate(`/product/${suggestion.id}`)}>{suggestion.name}</button>
+                    <p>{suggestion.frame_shape?.name || "Optical frame"}{availableColors ? ` · ${availableColors} colors` : ""}</p>
+                    <div className="pdp-related-card__bottom"><strong>₱{Number(suggestion.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2 })}</strong><span>{suggestion.is_available ? "Available" : "Out of stock"}</span></div>
+                  </div>
+                </article>;
+              })}
+            </div>}
+          </section>}
         </div>
       </main>
 
       <Footer />
+      {tryOnOpen && isEyewearType(product.category || product.type) && <TryOnModal product={product} selectedColor={selectedColor} onClose={() => setTryOnOpen(false)} onSelectLenses={focusLensSelection} />}
     </>
   );
 }

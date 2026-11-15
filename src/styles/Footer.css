@@ -1,0 +1,212 @@
+.acebedo-footer {
+  border-top: 1px solid #D6D3CE;
+  background: #F8F7F4;
+  color: #1A1816;
+}
+
+.acebedo-footer__inner {
+  width: min(calc(100% - 64px), 1280px);
+  margin: 0 auto;
+}
+
+.acebedo-footer__main {
+  display: grid;
+  grid-template-columns: minmax(240px, .8fr) minmax(0, 1.2fr);
+  gap: clamp(32px, 5vw, 72px);
+  padding: clamp(46px, 7vw, 78px) 0 50px;
+  border-bottom: 1px solid #D6D3CE;
+}
+
+.acebedo-footer__brand {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.acebedo-footer__wordmark {
+  display: inline-flex;
+  flex-direction: column;
+  color: #B8242F;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: .045em;
+  line-height: .9;
+  text-decoration: none;
+}
+
+.acebedo-footer__wordmark span {
+  margin-top: 7px;
+  color: #5C574F;
+  font-family: Arial, sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: .23em;
+}
+
+.acebedo-footer__brand p {
+  max-width: 450px;
+  margin: 26px 0 0;
+  color: #5C574F;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.acebedo-footer__links {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(12px, 2vw, 26px);
+}
+
+.acebedo-footer__location {
+  display: grid;
+  grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr);
+  align-items: center;
+  gap: clamp(28px, 6vw, 84px);
+  padding: 32px 0;
+  border-bottom: 1px solid #D6D3CE;
+}
+
+.acebedo-footer__location-copy h2 {
+  margin: 7px 0 12px;
+  color: #1A1816;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 400;
+  letter-spacing: -.025em;
+  line-height: 1.1;
+}
+
+.acebedo-footer__eyebrow {
+  margin: 0;
+  color: #5C574F;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: .13em;
+}
+
+.acebedo-footer__location-copy>p:not(.acebedo-footer__eyebrow) {
+  margin: 0;
+  color: #5C574F;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.acebedo-footer__directions {
+  display: inline-flex;
+  gap: 9px;
+  margin-top: 16px;
+  color: #B8242F;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.acebedo-footer__directions:hover {
+  color: #9A1C26;
+}
+
+.acebedo-footer__map {
+  min-height: 220px;
+  overflow: hidden;
+  background: #EDEAE3;
+}
+
+.acebedo-footer__map iframe {
+  display: block;
+  width: 100%;
+  height: 240px;
+  border: 0;
+  filter: grayscale(.55) contrast(.95);
+}
+
+.acebedo-footer__group {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.acebedo-footer__group h2 {
+  margin: 1px 0 7px;
+  color: #1A1816;
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.acebedo-footer__group a {
+  color: #5C574F;
+  font-size: 12px;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.acebedo-footer__group p,
+.acebedo-footer__group>span {
+  margin: 0;
+  color: #5C574F;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.acebedo-footer__group a:hover {
+  color: #9A1C26;
+}
+
+.acebedo-footer__bottom {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px 0 20px;
+  color: #5C574F;
+  font-size: 10px;
+}
+
+.acebedo-footer a:focus-visible {
+  outline: 2px solid #B8242F;
+  outline-offset: 4px;
+}
+
+@media (max-width: 700px) {
+  .acebedo-footer__inner {
+    width: min(calc(100% - 40px), 560px);
+  }
+
+  .acebedo-footer__main {
+    grid-template-columns: 1fr;
+    gap: 38px;
+    padding: 42px 0 36px;
+  }
+
+  .acebedo-footer__links {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .acebedo-footer__location {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 30px 0;
+  }
+
+  .acebedo-footer__map,
+  .acebedo-footer__map iframe {
+    min-height: 210px;
+    height: 210px;
+  }
+}
+
+@media (max-width: 420px) {
+  .acebedo-footer__inner {
+    width: calc(100% - 32px);
+  }
+
+  .acebedo-footer__bottom {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+}

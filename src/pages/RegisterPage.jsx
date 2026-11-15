@@ -93,8 +93,8 @@ export default function RegisterPage() {
   return (
     <>
       <Header />
-      <main className="bg-white min-h-[calc(100vh-200px)] flex items-center justify-center px-6 md:px-12 lg:px-20 py-12">
-        <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-stretch shadow-xl rounded-2xl overflow-hidden bg-[#F8F9FA] border border-gray-200">
+      <main className="bg-[#F8F7F4] min-h-[calc(100vh-200px)] flex items-center justify-center px-6 md:px-12 lg:px-20 py-12">
+        <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-stretch shadow-sm rounded-xl overflow-hidden bg-[#FEFDFB]">
           {/* Left side: Image – stable, no resizing */}
           <div className="hidden md:block h-full">
             <img src={registerImage} alt="Acebedo Panol Optical" className="w-full h-full object-cover" />
@@ -102,20 +102,20 @@ export default function RegisterPage() {
 
           <div className="px-8 py-12 md:px-12">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-[#212529]">Create your account</h2>
-              <p className="text-[#212529]/70 mt-2">Join Acebedo Panol Optical today</p>
+              <h2 className="text-3xl font-bold text-[#1A1816]">Create your account</h2>
+              <p className="text-[#5C574F] mt-2">Join Acebedo Panol Optical today</p>
             </div>
 
             <form onSubmit={handleSubmit} noValidate className="space-y-5">
               {/* Full Name */}
               <div>
-                <label className="block text-sm font-medium text-[#212529] mb-1">Full Name</label>
+                <label className="block text-sm font-medium text-[#1A1816] mb-1">Full Name</label>
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   onBlur={() => handleBlur("fullName")}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D32F2F] outline-none transition"
+                  className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition"
                   placeholder="Juan dela Cruz"
                   required
                 />
@@ -126,7 +126,7 @@ export default function RegisterPage() {
 
               {/* Email with inline validation */}
               <div>
-                <label className="block text-sm font-medium text-[#212529] mb-1">Email address</label>
+                <label className="block text-sm font-medium text-[#1A1816] mb-1">Email address</label>
                 <input
                   type="email"
                   value={email}
@@ -135,7 +135,7 @@ export default function RegisterPage() {
                     if (touched.email) setEmailError(validateEmailFormat(e.target.value));
                   }}
                   onBlur={() => handleBlur("email")}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D32F2F] outline-none transition"
+                  className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition"
                   placeholder="you@example.com"
                   required
                 />
@@ -144,7 +144,7 @@ export default function RegisterPage() {
 
               {/* Password with strength indicator and eye toggle */}
               <div>
-                <label className="block text-sm font-medium text-[#212529] mb-1">Password</label>
+                <label className="block text-sm font-medium text-[#1A1816] mb-1">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -155,7 +155,7 @@ export default function RegisterPage() {
                       setPasswordFocused(false);
                       handleBlur("password");
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D32F2F] outline-none transition pr-10"
+                    className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition pr-10"
                     placeholder="Create a strong password"
                     required
                   />
@@ -195,14 +195,14 @@ export default function RegisterPage() {
 
               {/* Confirm Password with eye toggle */}
               <div>
-                <label className="block text-sm font-medium text-[#212529] mb-1">Confirm Password</label>
+                <label className="block text-sm font-medium text-[#1A1816] mb-1">Confirm Password</label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     onBlur={() => handleBlur("confirmPassword")}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#D32F2F] outline-none transition pr-10"
+                    className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition pr-10"
                     placeholder="Repeat your password"
                     required
                   />
@@ -221,22 +221,22 @@ export default function RegisterPage() {
 
               <button
                 type="submit"
-                className="w-full bg-[#D32F2F] text-white py-2 rounded-lg font-semibold hover:bg-[#B71C1C] transition shadow-md"
+                className="w-full bg-[#B8242F] text-white py-2 rounded-lg font-semibold hover:bg-[#9A1C26] transition"
               >
                 Create Account
               </button>
             </form>
 
-            <p className="text-xs text-[#212529]/50 text-center mt-6">
+            <p className="text-xs text-[#5C574F] text-center mt-6">
               By signing up, you agree to our{" "}
-              <a href="#" className="text-[#D32F2F] hover:text-[#B71C1C] hover:underline">Terms of Service</a>{" "}
+              <a href="#" className="text-[#B8242F] hover:text-[#9A1C26] hover:underline">Terms of Service</a>{" "}
               and{" "}
-              <a href="#" className="text-[#D32F2F] hover:text-[#B71C1C] hover:underline">Privacy Policy</a>.
+              <a href="#" className="text-[#B8242F] hover:text-[#9A1C26] hover:underline">Privacy Policy</a>.
             </p>
 
-            <p className="text-center text-sm text-[#212529]/70 mt-6">
+            <p className="text-center text-sm text-[#5C574F] mt-6">
               Already have an account?{" "}
-              <Link to="/login" className="text-[#D32F2F] font-semibold hover:text-[#B71C1C] hover:underline">
+              <Link to="/login" className="text-[#B8242F] font-semibold hover:text-[#9A1C26] hover:underline">
                 Log In
               </Link>
             </p>

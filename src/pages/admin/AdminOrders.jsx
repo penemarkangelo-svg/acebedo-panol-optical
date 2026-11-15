@@ -1,229 +1,209 @@
-import React, { useState, useEffect } from "react";
-import { Search, RotateCw, ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, ArrowRight, ClipboardList, RefreshCw, Search } from "lucide-react";
 import AdminOrderDetails from "./AdminOrderDetails";
 import { supabase } from "../../lib/supabaseClient";
+import "../../styles/AdminOrders.css";
 
-export default function AdminOrders() {
+const STATUS_OPTIONS = [
+  ["pending", "Pending"],
+  ["confirmed", "Confirmed"],
+  ["processing", "Processing"],
+  ["ready_for_pickup", "Ready for pickup"],
+  ["out_for_delivery", "Out for delivery"],
+  ["completed", "Completed"],
+  ["cancelled", "Cancelled"],
+  ["manual_review", "Manual review"],
+];
+
+const PRESCRIPTION_LABELS = {
+  pending_review: "Review needed",
+  validated: "Verified",
+  rejected: "Resubmission needed",
+};
+
+const money = (value) => `₱${Number(value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const orderNumber = (order) => `#APO-${order.id}`;
+const humanize = (value = "pending") => value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+export default function AdminOrders({ staffMode = false }) {
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [prescriptionStatuses, setPrescriptionStatuses] = useState({});
+  const [prescriptionStatusUnavailable, setPrescriptionStatusUnavailable] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [fulfillmentFilter, setFulfillmentFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("orders")
-        .select("*") // Select all columns from orders table
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      setOrders(data || []);
-    } catch (err) {
-      console.error("Error fetching orders:", err);
-    } finally {
+    setLoading(true);
+    setLoadError(false);
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Failed to load orders:", error);
+      setOrders([]);
+      setPrescriptionStatuses({});
+      setLoadError(true);
       setLoading(false);
+      return;
     }
+
+    const rows = data || [];
+    setOrders(rows);
+    if (rows.length) {
+      const { data: uploads, error: uploadError } = await supabase
+        .from("order_prescription_uploads")
+        // Staff need the status only; do not request document paths or clinical details.
+        .select("order_id, status, uploaded_at")
+        .in("order_id", rows.map((row) => row.id))
+        .order("uploaded_at", { ascending: false });
+
+      if (uploadError) {
+        console.error("Could not load prescription status labels:", uploadError);
+        setPrescriptionStatuses({});
+        setPrescriptionStatusUnavailable(true);
+      } else {
+        const byOrder = {};
+        (uploads || []).forEach((upload) => {
+          if (!byOrder[upload.order_id]) byOrder[upload.order_id] = [];
+          byOrder[upload.order_id].push(upload.status);
+        });
+        setPrescriptionStatuses(byOrder);
+        setPrescriptionStatusUnavailable(false);
+      }
+    } else {
+      setPrescriptionStatuses({});
+      setPrescriptionStatusUnavailable(false);
+    }
+    setLoading(false);
   };
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  useEffect(() => { fetchOrders(); }, []);
 
-  // Filtering logic using the correct column names
-  const filteredOrders = orders.filter((order) => {
-    // Status filter
-    const status = (order.order_status || "").toLowerCase();
-    const matchesStatus =
-      statusFilter === "All" || status === statusFilter.toLowerCase();
+  const filteredOrders = useMemo(() => orders.filter((order) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch = !query || [
+      String(order.id),
+      `apo-${order.id}`,
+      order.customer_name,
+      order.email,
+      order.contact_number,
+    ].some((value) => String(value || "").toLowerCase().includes(query));
+    const matchesStatus = statusFilter === "all" || order.order_status === statusFilter;
+    const matchesFulfillment = fulfillmentFilter === "all" || order.fulfillment_method === fulfillmentFilter;
+    return matchesSearch && matchesStatus && matchesFulfillment;
+  }), [orders, searchQuery, statusFilter, fulfillmentFilter]);
 
-    // Search filter (order ID, customer name, email)
-    const search = searchQuery.toLowerCase();
-    const matchesSearch =
-      String(order.id).toLowerCase().includes(search) ||
-      (order.customer_name || "").toLowerCase().includes(search) ||
-      (order.email || "").toLowerCase().includes(search);
+  const manualReviewCount = orders.filter((order) => order.order_status === "manual_review").length;
+  const needsPrescriptionReview = orders.filter((order) => (prescriptionStatuses[order.id] || []).includes("pending_review")).length;
 
-    return matchesStatus && matchesSearch;
-  });
-
-  const handleOpenDetails = (order) => {
-    setSelectedOrder(order);
-    setIsPanelOpen(true);
+  const handleStatusUpdate = (orderId, newStatus) => {
+    setOrders((current) => current.map((order) => order.id === orderId ? { ...order, order_status: newStatus } : order));
+    setSelectedOrder((current) => current?.id === orderId ? { ...current, order_status: newStatus } : current);
   };
 
-  // Callback to update status locally after change in details panel
-  const handleUpdateLocalStatus = (orderId, newStatus) => {
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId ? { ...o, order_status: newStatus } : o,
-      ),
-    );
+  const getPrescriptionDisplay = (orderId) => {
+    if (prescriptionStatusUnavailable) return { label: "Status unavailable", tone: "neutral" };
+    const statuses = prescriptionStatuses[orderId] || [];
+    if (!statuses.length) return { label: "Not uploaded", tone: "neutral" };
+    if (statuses.includes("pending_review")) return { label: PRESCRIPTION_LABELS.pending_review, tone: "attention" };
+    if (statuses.includes("rejected")) return { label: PRESCRIPTION_LABELS.rejected, tone: "attention" };
+    return { label: PRESCRIPTION_LABELS.validated, tone: "complete" };
   };
-
-  const getStatusBadgeClass = (status) => {
-    const s = (status || "").toLowerCase();
-    if (s === "ready_for_pickup")
-      return "bg-blue-50 text-blue-600 border border-blue-200";
-    if (s === "pending")
-      return "bg-amber-50 text-amber-600 border border-amber-200";
-    if (s === "processing")
-      return "bg-purple-50 text-purple-600 border border-purple-200";
-    if (s === "cancelled")
-      return "bg-red-50 text-red-600 border border-red-200";
-    if (s === "completed")
-      return "bg-green-50 text-green-600 border border-green-200";
-    return "bg-gray-50 text-gray-600 border border-gray-200";
-  };
-
-  // Format order number as #APO-{id}
-  const formatOrderNumber = (order) => `#APO-${order.id}`;
 
   return (
-    <div className="p-6 bg-white min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between pb-6 mb-6 border-b border-gray-100">
+    <div className="apo-orders-page">
+      <header className="apo-orders-header">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-            Order Management
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Track patient prescription fulfillment sequences and verification
-            workflows.
-          </p>
+          <p className="apo-orders-eyebrow">Commerce</p>
+          <h1>Order Management</h1>
+          <p className="apo-orders-subtitle">Review orders, follow pickup or delivery progress, and check prescription review status.</p>
         </div>
-        <div className="flex items-center gap-3 mt-4 md:mt-0">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search orders..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-2 w-64 text-sm rounded-lg border border-gray-300 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
-            />
-          </div>
-          <div className="relative">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none bg-white border border-gray-300 rounded-lg pl-4 pr-10 py-2 text-sm font-medium text-gray-700 focus:outline-none focus:border-gray-400 cursor-pointer"
-            >
-              <option value="All">All Channels</option>
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="ready_for_pickup">Ready for Pickup</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-          </div>
-          <button
-            onClick={fetchOrders}
-            disabled={loading}
-            className={`p-2 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors ${loading ? "animate-spin" : ""}`}
-            title="Refresh Ledger"
-          >
-            <RotateCw className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
+        <button className="apo-orders-refresh" type="button" onClick={fetchOrders} disabled={loading} aria-label="Refresh orders">
+          <RefreshCw size={16} className={loading ? "is-spinning" : ""} /><span>Refresh</span>
+        </button>
+      </header>
 
-      {/* Orders Table */}
-      <div className="overflow-x-auto border border-gray-200 rounded-xl bg-white shadow-sm">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50 text-[11px] font-bold tracking-wider text-gray-500 uppercase">
-              <th className="py-3.5 px-6">Order #</th>
-              <th className="py-3.5 px-6">Customer</th>
-              <th className="py-3.5 px-6">Placement Date</th>
-              <th className="py-3.5 px-6">Total</th>
-              <th className="py-3.5 px-6">Status</th>
-              <th className="py-3.5 px-6 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-            {loading ? (
-              <tr>
-                <td colSpan="6" className="py-10 text-center text-gray-400">
-                  Synchronizing records...
-                </td>
-              </tr>
-            ) : filteredOrders.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="py-10 text-center text-gray-400">
-                  No orders match the criteria.
-                </td>
-              </tr>
-            ) : (
-              filteredOrders.map((order) => (
-                <tr
-                  key={order.id}
-                  className="hover:bg-gray-50/70 transition-colors"
-                >
-                  <td className="py-4 px-6 font-semibold text-gray-900">
-                    {formatOrderNumber(order)}
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-gray-900">
-                        {order.customer_name || "Guest"}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {order.email || ""}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-gray-500">
-                    {order.created_at
-                      ? new Date(order.created_at).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : "N/A"}
-                  </td>
-                  <td className="py-4 px-6 font-medium text-gray-900">
-                    ₱
-                    {(order.total || 0).toLocaleString("en-PH", {
-                      minimumFractionDigits: 2,
-                    })}
-                  </td>
-                  <td className="py-4 px-6">
-                    <span
-                      className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full uppercase tracking-wide ${getStatusBadgeClass(order.order_status)}`}
-                    >
-                      {order.order_status || "Pending"}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    <button
-                      onClick={() => handleOpenDetails(order)}
-                      className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
-                    >
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Slide‑out details panel */}
-      {isPanelOpen && selectedOrder && (
-        <AdminOrderDetails
-          order={selectedOrder}
-          isOpen={isPanelOpen}
-          onClose={() => {
-            setIsPanelOpen(false);
-            setSelectedOrder(null);
-          }}
-          onStatusUpdate={handleUpdateLocalStatus}
-        />
+      {(manualReviewCount > 0 || needsPrescriptionReview > 0) && (
+        <section className="apo-orders-attention" aria-label="Orders needing attention">
+          <AlertTriangle size={18} aria-hidden="true" />
+          <div>
+            <strong>Orders needing attention</strong>
+            <p>
+              {manualReviewCount > 0 && <span>{manualReviewCount} fulfillment {manualReviewCount === 1 ? "hold" : "holds"} for manual review</span>}
+              {manualReviewCount > 0 && needsPrescriptionReview > 0 && <span> · </span>}
+              {needsPrescriptionReview > 0 && <span>{needsPrescriptionReview} prescription {needsPrescriptionReview === 1 ? "awaits" : "await"} Optometrist review</span>}
+            </p>
+          </div>
+          {manualReviewCount > 0 && <button type="button" onClick={() => setStatusFilter("manual_review")}>View held orders <ArrowRight size={14} /></button>}
+        </section>
       )}
+
+      <section className="apo-orders-directory">
+        <div className="apo-orders-directory-heading">
+          <div><h2>Orders</h2><span>{filteredOrders.length} {filteredOrders.length === 1 ? "order" : "orders"}</span></div>
+          <span className="apo-orders-sort-note">Newest first</span>
+        </div>
+
+        <div className="apo-orders-filters">
+          <label className="apo-orders-search">
+            <Search size={16} aria-hidden="true" />
+            <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search order number, customer, or email" aria-label="Search orders" />
+          </label>
+          <label>
+            <span>Order status</span>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <option value="all">All statuses</option>
+              {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <label>
+            <span>Fulfillment</span>
+            <select value={fulfillmentFilter} onChange={(event) => setFulfillmentFilter(event.target.value)}>
+              <option value="all">Pickup &amp; delivery</option>
+              <option value="pickup">Pickup</option>
+              <option value="delivery">Delivery</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="apo-orders-table-wrap apo-admin-fit-table-wrap">
+          <table className="apo-orders-table apo-admin-fit-table">
+            <thead><tr>
+              <th>Order</th><th>Customer</th><th>Placed</th><th>Fulfillment</th><th>Prescription</th><th>Total</th><th>Status</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="8" className="apo-orders-empty"><RefreshCw size={17} className="is-spinning" /> Loading orders…</td></tr>
+              ) : loadError ? (
+                <tr><td colSpan="8" className="apo-orders-empty"><ClipboardList size={18} /> Orders could not be loaded. Refresh to try again.</td></tr>
+              ) : filteredOrders.length === 0 ? (
+                <tr><td colSpan="8" className="apo-orders-empty"><ClipboardList size={18} /> No orders match these filters.</td></tr>
+              ) : filteredOrders.map((order) => {
+                const prescription = getPrescriptionDisplay(order.id);
+                return <tr key={order.id}>
+                  <td><strong className="apo-orders-id">{orderNumber(order)}</strong></td>
+                  <td><strong className="apo-orders-customer">{order.customer_name || "Guest"}</strong><small>{order.email || order.contact_number || "Contact not provided"}</small></td>
+                  <td>{order.created_at ? new Date(order.created_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "—"}</td>
+                  <td><span className="apo-orders-fulfillment">{order.fulfillment_method === "delivery" ? "Delivery" : "Pickup"}</span></td>
+                  <td><span className={`apo-orders-prescription is-${prescription.tone}`}><i aria-hidden="true" />{prescription.label}</span></td>
+                  <td className="apo-orders-money">{money(order.total)}</td>
+                  <td><span className={`apo-orders-status is-${order.order_status || "pending"}`}>{humanize(order.order_status)}</span></td>
+                  <td><button className="apo-orders-view" type="button" onClick={() => setSelectedOrder(order)}>View details <ArrowRight size={14} /></button></td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="apo-orders-table-footer"><span>Showing {filteredOrders.length} of {orders.length} orders</span><span>Amounts shown in PHP</span></div>
+      </section>
+
+      {selectedOrder && <AdminOrderDetails order={selectedOrder} isOpen onClose={() => setSelectedOrder(null)} onStatusUpdate={handleStatusUpdate} staffMode={staffMode} />}
     </div>
   );
 }

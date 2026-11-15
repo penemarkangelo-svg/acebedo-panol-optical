@@ -9,16 +9,18 @@ const stages = [
 
 export default function VisionProgress({
   currentStage = 0,
+  skipQuestionnaire = false,
 }) {
   return (
     <nav
       aria-label="Vision screening progress"
-      className="w-full"
+      className="w-full acebedo-vision-progress"
     >
       <ol className="acebedo-progress">
-        {stages.map((stage, index) => {
-          const isCurrent = index === currentStage;
-          const isComplete = index < currentStage;
+        {(skipQuestionnaire ? stages.slice(1) : stages).map((stage, index) => {
+          const adjustedIndex = skipQuestionnaire ? index + 1 : index;
+          const isCurrent = adjustedIndex === currentStage;
+          const isComplete = adjustedIndex < currentStage;
 
           return (
             <li
@@ -26,27 +28,15 @@ export default function VisionProgress({
               data-step={index + 1}
               className={[
                 "acebedo-progress-step",
-                isComplete
-                  ? "is-complete"
-                  : "",
-                isCurrent
-                  ? "is-current"
-                  : "",
-              ].join(" ")}
-              aria-current={
-                isCurrent ? "step" : undefined
-              }
+                isComplete ? "is-complete" : "",
+                isCurrent ? "is-current" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              aria-current={isCurrent ? "step" : undefined}
             >
               <span
-                className={[
-                  "text-xs leading-tight",
-                  "hidden sm:block",
-                  isCurrent
-                    ? "font-semibold text-[var(--acebedo-text)]"
-                    : isComplete
-                      ? "text-[var(--acebedo-text)]"
-                      : "text-[var(--acebedo-text-muted)]",
-                ].join(" ")}
+                className="acebedo-progress-label"
               >
                 {stage}
               </span>

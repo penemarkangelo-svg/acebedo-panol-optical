@@ -1,0 +1,90 @@
+.apo-inventory-page { display: flex; flex-direction: column; gap: 15px; }
+.apo-inventory-header { margin-bottom: 0; }
+.apo-inventory-header .apo-dashboard-title-row { padding: 21px 0 17px; }
+.apo-inventory-header .apo-dashboard-title-row h1 { font-size: clamp(27px, 2.7vw, 34px); }
+.apo-inventory-subtitle { margin: 6px 0 0; color: #5C574F; font-size: 13px; }
+
+.apo-inventory-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--apo-admin-line); border-radius: 5px; background: #fff; }
+.apo-inventory-metric { position: relative; min-width: 0; min-height: 87px; padding: 13px 16px 12px; }
+.apo-inventory-metric + .apo-inventory-metric::before { position: absolute; top: 12px; bottom: 12px; left: 0; border-left: 1px solid var(--apo-admin-line); content: ""; }
+.apo-inventory-metric > span, .apo-inventory-metric small { display: block; color: #5C574F; font-size: 12px; }
+.apo-inventory-metric strong { display: block; margin: 4px 0 1px; color: var(--apo-admin-ink); font-family: var(--font-brand, Georgia, serif); font-size: 24px; font-weight: 600; line-height: 1.1; }
+.apo-inventory-metric small { color: var(--apo-admin-muted); font-size: 11px; }
+.apo-inventory-metric.is-alert strong { color: var(--apo-admin-brand); }
+
+.apo-inventory-directory { box-sizing: border-box; width: 100%; min-width: 0; padding: 14px 11px 10px; }
+.apo-inventory-directory-heading { align-items: center; padding-bottom: 9px; }
+.apo-inventory-directory-heading h2 { margin: 0; color: #1A1816; font-size: 14px; font-weight: 700; }
+.apo-inventory-filters { display: grid; grid-template-columns: minmax(230px, 1.6fr) minmax(145px, .8fr) minmax(165px, .95fr) minmax(180px, .95fr); gap: 8px; padding: 11px 0 10px; }
+.apo-inventory-search { min-height: 38px; }
+.apo-inventory-table-wrap { min-width: 0; border-top: 1px solid var(--apo-admin-line); border-bottom: 1px solid #e7e4dd; }
+.apo-inventory-table { width: 100%; border-collapse: collapse; text-align: left; }
+.apo-inventory-table th { padding: 10px 8px; background: #f2f0ec; color: #1A1816; font-size: 10px; font-weight: 700; letter-spacing: .045em; white-space: nowrap; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th { overflow-wrap: normal; white-space: nowrap; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(1),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(1) { width: 20%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(2),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(2) { width: 12%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(3),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(3) { width: 14%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(6),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(6) { width: 8%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(7),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(7) { width: 18%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(8),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(8) { width: 12%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(2),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(2),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(3),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(3) { overflow-wrap: normal; white-space: nowrap; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(6),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(6) { text-align: right; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(8),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(8) { text-align: center; }
+.apo-inventory-table td { padding: 9px 8px; border-bottom: 1px solid #e7e4dd; color: #5C574F; font-size: 12px; white-space: nowrap; }
+.apo-inventory-table tbody tr:last-child td { border-bottom: 0; }
+.apo-inventory-product { display: flex; min-width: 0; align-items: center; gap: 8px; }
+.apo-inventory-product-icon { display: grid; width: 27px; height: 27px; flex: 0 0 auto; place-items: center; border: 1px solid #e4e0d8; border-radius: 4px; background: #f4f2ed; color: #5C574F; }
+.apo-inventory-product strong { color: #1A1816; font-size: 12px; font-weight: 650; }
+.apo-inventory-color { display: inline-flex; align-items: center; gap: 7px; }
+.apo-inventory-color i { width: 11px; height: 11px; flex: 0 0 auto; border: 1px solid rgb(38 36 31 / 18%); border-radius: 50%; }
+.apo-inventory-number { font-variant-numeric: tabular-nums; }
+.apo-inventory-number.is-available { color: #1A1816; font-weight: 700; }
+.apo-inventory-threshold-value { color: #1A1816; font-size: 11px; }
+.apo-inventory-threshold-value small { display: block; margin-top: 2px; color: #5C574F; font-size: 10px; }
+.apo-inventory-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border: 1px solid #ddd9cf; border-radius: 10px; background: #efede8; color: #5C574F; font-size: 10px; }
+.apo-inventory-status::before { width: 6px; height: 6px; border-radius: 50%; background: currentColor; content: ""; }
+.apo-inventory-status.is-available { border-color: #c6ddcb; background: #eff7ef; color: #276746; }
+.apo-inventory-status.is-low { border-color: #e8d9b8; background: #fbf3e5; color: #805e22; }
+.apo-inventory-status.is-out { border-color: #eac8c6; background: #fbefee; color: #a92727; }
+.apo-inventory-table-message { height: 110px; color: #5C574F !important; text-align: center; }
+.apo-inventory-footer { display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; color: #5C574F; font-size: 11px; }
+.apo-inventory-note { margin: -4px 0 0; color: #5C574F; font-size: 11px; }
+
+@media (max-width: 1000px) {
+  .apo-inventory-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .apo-inventory-metric:nth-child(3), .apo-inventory-metric:nth-child(4) { border-top: 1px solid var(--apo-admin-line); }
+  .apo-inventory-metric:nth-child(3)::before { display: none; }
+  .apo-inventory-filters { grid-template-columns: minmax(190px, 1fr) minmax(145px, .7fr); }
+  .apo-inventory-search { grid-column: 1 / -1; }
+}
+
+@media (max-width: 600px) {
+  .apo-inventory-header .apo-dashboard-title-row { padding: 17px 0 14px; }
+  .apo-inventory-metrics { grid-template-columns: 1fr 1fr; }
+  .apo-inventory-metric { min-height: 77px; padding: 11px; }
+  .apo-inventory-metric:nth-child(2)::before, .apo-inventory-metric:nth-child(4)::before { display: none; }
+  .apo-inventory-metric:nth-child(3)::before { display: block; }
+  .apo-inventory-directory { padding: 12px 11px 9px; }
+  .apo-inventory-filters { grid-template-columns: 1fr; }
+  .apo-inventory-search { grid-column: auto; }
+  .apo-inventory-footer { flex-direction: column; gap: 4px; }
+}

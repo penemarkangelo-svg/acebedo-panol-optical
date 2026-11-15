@@ -15,6 +15,8 @@ export const MEDIAPIPE = {
   wasmUrl: "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm",
   modelUrl:
     "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+  handModelUrl:
+    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
 };
 
 /* Same capture size in Setup and Acuity, so the saved face position is comparable */
@@ -48,7 +50,7 @@ export const SETUP = {
 /* Visual acuity (Landolt C + adaptive staircase) */
 export const ACUITY = {
   eyeOrder: ["right", "left"], // master copy: no "both"
-  trialsPerEye: 18,
+  trialsPerEye: 15,
   testDistanceMm: 500, // approximate near-viewing position
   startLogMAR: 1.2, // first C is large and obvious (about 43 px at 3.78 px/mm)
   minLogMAR: -0.1,
@@ -65,6 +67,11 @@ export const POSITION_MONITOR = {
   checkIntervalMs: 200,
   smoothing: 0.08,
   eyeCoveredThreshold: 0.18,
+  handEyeOverlapThreshold: 0.14,
+  handCoverConfirmScore: 1.5,
+  handCoverMaxScore: 3,
+  handCoverMissDecay: 0.5,
+  handDetectionConfidence: 0.4,
   warning: { scale: 0.25, x: 0.35, y: 0.35 },
   pause: { scale: 0.35, x: 0.45, y: 0.45 },
   resume: { scale: 0.2, x: 0.3, y: 0.3 },

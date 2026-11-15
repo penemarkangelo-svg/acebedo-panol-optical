@@ -1,0 +1,456 @@
+.apo-admin-shell {
+  --apo-admin-brand: var(--acebedo-red, #b3131b);
+  --apo-admin-bg: #fbfaf8;
+  --apo-admin-rail: #f2f0ec;
+  --apo-admin-side: #fbfaf8;
+  --apo-admin-card: #fff;
+  --apo-admin-line: #d6d1c6;
+  --apo-admin-ink: #26241f;
+  --apo-admin-muted: #747168;
+  display: flex;
+  min-height: 100vh;
+  color: var(--apo-admin-ink);
+  background: var(--apo-admin-bg);
+  font-family: var(--font-body, Inter, system-ui, sans-serif);
+}
+
+.apo-admin-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex: 0 0 232px;
+  flex-direction: column;
+  height: 100vh;
+  padding: 24px 17px 15px;
+  background: var(--apo-admin-rail);
+  border-right: 1px solid var(--apo-admin-line);
+}
+
+.apo-admin-brand {
+  display: flex;
+  align-items: center;
+  min-height: 62px;
+  padding: 0 7px 17px;
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--apo-admin-line);
+}
+
+.apo-admin-profile strong,
+.apo-admin-profile small {
+  display: block;
+}
+
+.apo-admin-brand-wordmark strong {
+  display: block;
+  color: #d51016;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  line-height: 1;
+}
+
+.apo-admin-brand-wordmark .apo-admin-brand-subline {
+  display: block;
+  margin-top: 4px;
+  color: #5C574F;
+  font-size: 10px;
+  letter-spacing: 0.26em;
+}
+
+.apo-admin-brand-compact { display: none; }
+
+.apo-admin-nav {
+  scrollbar-color: #c6c2b9 transparent;
+  scrollbar-width: thin;
+}
+
+.apo-admin-nav::-webkit-scrollbar { width: 5px; }
+.apo-admin-nav::-webkit-scrollbar-track { background: transparent; }
+.apo-admin-nav::-webkit-scrollbar-thumb { border-radius: 99px; background: #c6c2b9; }
+.apo-admin-nav::-webkit-scrollbar-thumb:hover { background: #97938a; }
+
+.apo-admin-nav {
+  flex: 1;
+  overflow: auto;
+  padding-top: 18px;
+}
+
+.apo-admin-nav-group + .apo-admin-nav-group { margin-top: 19px; }
+
+.apo-admin-nav-label {
+  margin: 0 8px 7px;
+  color: #5C574F;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.apo-admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  margin: 2px 0;
+  padding: 7px 9px;
+  color: #5C574F;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  border-radius: 5px;
+  font-size: 13px;
+  text-decoration: none;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.apo-admin-nav-link > span { flex: 1; min-width: 0; line-height: 1.35; }
+.apo-admin-nav-link small { margin-left: auto; padding: 2px 5px; border-radius: 3px; background: #e9e6de; color: #5C574F; font-size: 10px; font-weight: 600; }
+.apo-admin-nav-link svg { width: 15px; height: 15px; flex: 0 0 auto; }
+.apo-admin-nav-link:hover { background: #e9e6de; color: var(--apo-admin-ink); }
+.apo-admin-nav-link.is-active { color: #1A1816; background: #e3e0d7; font-weight: 650; }
+.apo-admin-nav-link.is-active svg { color: inherit; }
+.apo-admin-nav-link.is-disabled { color: #5C574F; cursor: not-allowed; opacity: 1; }
+
+.apo-admin-workspace-shell {
+  --apo-admin-bg: #F2F3F3;
+  --apo-admin-card: #FFFFFF;
+  --apo-admin-side: #FFFFFF;
+  --apo-admin-line: #E2E4E6;
+  --apo-admin-ink: #1A1816;
+  --apo-admin-muted: #5C574F;
+  --apo-admin-brand: #B8242F;
+}
+.apo-admin-workspace-shell .apo-admin-sidebar { background: #F8F7F4; border-right-color: #E2E4E6; }
+.apo-admin-workspace-shell .apo-admin-brand { color: #1A1816; border-bottom-color: #E2E4E6; }
+.apo-admin-workspace-shell .apo-admin-brand-compact { color: #B8242F; border-color: #E2E4E6; }
+.apo-admin-workspace-shell .apo-admin-brand-wordmark strong { color: #B8242F; }
+.apo-admin-workspace-shell .apo-admin-brand-wordmark .apo-admin-brand-subline { color: #5C574F; }
+.apo-admin-workspace-shell .apo-admin-nav { scrollbar-color: #D2C9BA transparent; }
+.apo-admin-workspace-shell .apo-admin-nav::-webkit-scrollbar-thumb { background: #D2C9BA; }
+.apo-admin-workspace-shell .apo-admin-nav::-webkit-scrollbar-thumb:hover { background: #B8AE9E; }
+.apo-admin-workspace-shell .apo-admin-nav-label { color: #1A1816; }
+.apo-admin-workspace-shell .apo-admin-nav-link { color: #5C574F; }
+.apo-admin-workspace-shell .apo-admin-nav-link small { background: #EDE7DB; color: #5C574F; }
+.apo-admin-workspace-shell .apo-admin-nav-link:hover { background: #EDE7DB; color: #1A1816; }
+.apo-admin-workspace-shell .apo-admin-nav-link.is-active { background: #B8242F; color: #FFF; font-weight: 650; box-shadow: none; }
+.apo-admin-workspace-shell .apo-admin-nav-link.is-active svg { color: #FFF; }
+.apo-admin-workspace-shell .apo-admin-nav-link.is-disabled { color: #5C574F; }
+.apo-admin-workspace-shell .apo-admin-sidebar-footer { border-top-color: #E2E4E6; }
+.apo-admin-workspace-shell .apo-admin-avatar { background: #EDE7DB; color: #1A1816; }
+.apo-admin-workspace-shell .apo-admin-profile strong { color: #1A1816; }
+.apo-admin-workspace-shell .apo-admin-profile small { color: #5C574F; }
+
+.apo-admin-sidebar-footer {
+  border-top: 1px solid var(--apo-admin-line);
+  padding: 14px 6px 0;
+}
+
+.apo-admin-profile { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.apo-admin-avatar { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #e3e0d7; font-size: 10px; font-weight: 700; }
+.apo-admin-profile > span:last-child { min-width: 0; }
+.apo-admin-profile strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.apo-admin-profile small { margin-top: 2px; color: var(--apo-admin-muted); font-size: 11px; }
+
+.apo-admin-main { min-width: 0; flex: 1; padding: 0 clamp(20px, 3.2vw, 48px) 24px; }
+
+.apo-dashboard { width: min(100%, 1440px); margin: 0 auto; }
+.apo-dashboard-header { border-bottom: 1px solid var(--apo-admin-line); }
+.apo-dashboard-topbar { display: flex; min-height: 62px; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 12px; border-bottom: 1px solid var(--apo-admin-line); }
+.apo-dashboard-search { display: flex; width: min(420px, 48vw); min-height: 42px; align-items: center; gap: 10px; padding: 0 12px; color: #5C574F; border: 1px solid #bdb8ad; border-radius: 5px; background: #fff; box-shadow: 0 1px 2px rgb(35 31 24 / 5%); transition: border-color 140ms ease, box-shadow 140ms ease; }
+.apo-dashboard-search:focus-within { border-color: var(--apo-admin-brand); box-shadow: 0 0 0 3px rgb(179 19 27 / 10%); }
+.apo-dashboard-search > svg { flex: 0 0 auto; color: #5C574F; }
+.apo-dashboard-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #1A1816; font: inherit; font-size: 13px; }
+.apo-dashboard-search input::placeholder { color: #5C574F; opacity: 1; }
+.apo-dashboard-search-clear { min-height: 44px; padding: 0 4px; color: #5C574F; border: 0; background: transparent; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.apo-dashboard-search-status { color: #5C574F; font-size: 11px; }
+.apo-dashboard-title-row { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 20px 0 17px; }
+.apo-dashboard-eyebrow { margin: 0 0 3px; color: var(--apo-admin-brand); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.apo-dashboard-title-row h1 { margin: 0; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: clamp(28px, 3vw, 36px); font-weight: 400; letter-spacing: -0.035em; line-height: 1.1; }
+.apo-dashboard-date { margin: 5px 0 0; color: var(--apo-admin-muted); font-size: 12px; }
+.apo-dashboard-header-actions { display: flex; align-items: center; gap: 8px; }
+.apo-dashboard-primary-action { display: inline-flex; min-height: 38px; align-items: center; gap: 7px; padding: 0 12px; border: 1px solid var(--apo-admin-line); border-radius: 4px; color: #5C574F; font-size: 12px; text-decoration: none; }
+.apo-dashboard-primary-action { color: #fff; border-color: #292721; background: #292721; font-weight: 600; }
+.apo-dashboard-primary-action:hover { background: var(--apo-admin-brand); border-color: var(--apo-admin-brand); }
+
+.apo-dashboard-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 16px 0 18px; border: 0; border-radius: 5px; background: var(--apo-admin-card); }
+.apo-metric-card { position: relative; min-width: 0; padding: 14px 17px 13px; background: #fff; }
+.apo-metric-card + .apo-metric-card::before { position: absolute; top: 13px; bottom: 13px; left: 0; border-left: 1px solid var(--apo-admin-line); content: ""; }
+.apo-metric-card--brand { background: #fff; border-radius: 4px 0 0 4px; }
+.apo-metric-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #5C574F; font-size: 12px; }
+.apo-metric-label svg { color: #5C574F; }
+.apo-metric-card--brand .apo-metric-label svg { color: var(--apo-admin-brand); }
+.apo-metric-card strong { display: block; margin: 5px 0 2px; font-family: var(--font-brand, Georgia, serif); font-size: 23px; font-weight: 600; letter-spacing: -0.035em; }
+.apo-metric-card small { color: var(--apo-admin-muted); font-size: 11px; }
+.apo-metric-card--alert strong { color: var(--apo-admin-brand); }
+
+.apo-dashboard-columns { display: grid; grid-template-columns: minmax(0, 1.72fr) minmax(275px, 0.92fr); gap: 18px; align-items: stretch; }
+.apo-dashboard-primary-column { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.apo-dashboard-panel { min-width: 0; padding: 14px 15px; border: 0; border-radius: 5px; background: var(--apo-admin-card); box-shadow: 0 1px 3px rgb(35 31 24 / 5%); }
+.apo-panel-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--apo-admin-line); }
+.apo-panel-heading h2, .apo-side-heading h2 { margin: 0; color: #1A1816; font-size: 14px; font-weight: 700; }
+.apo-panel-heading p { margin: 4px 0 0; color: var(--apo-admin-muted); font-size: 11px; }
+.apo-panel-period, .apo-panel-count { padding-top: 2px; color: var(--apo-admin-muted); font-size: 11px; white-space: nowrap; }
+.apo-sales-summary { display: flex; align-items: baseline; gap: 11px; padding: 10px 0 1px; }
+.apo-sales-summary strong { font-family: var(--font-brand, Georgia, serif); font-size: 24px; font-weight: 600; letter-spacing: -0.03em; }
+.apo-sales-summary span { display: inline-flex; align-items: center; gap: 4px; color: #5C574F; font-size: 11px; }
+.apo-sales-chart { display: grid; height: 143px; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; padding: 12px 6px 0; border-bottom: 1px solid var(--apo-admin-line); background: repeating-linear-gradient(to bottom, transparent 0, transparent 35px, #eeece6 36px); }
+.apo-chart-day { display: grid; min-width: 0; grid-template-rows: 17px 1fr 18px; justify-items: center; }
+.apo-chart-value { overflow: hidden; max-width: 100%; color: #5C574F; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.apo-chart-track { display: flex; width: 100%; height: 100%; align-items: end; justify-content: center; }
+.apo-chart-bar { width: min(34px, 60%); min-height: 2px; background: #c7c2b5; transition: height 180ms ease; }
+.apo-chart-bar.is-today { background: var(--apo-admin-brand); }
+.apo-chart-label { padding-top: 4px; color: var(--apo-admin-muted); font-size: 11px; }
+.apo-chart-unavailable { align-self: center; grid-column: 1 / -1; margin: 0; color: var(--apo-admin-muted); font-size: 12px; text-align: center; }
+.apo-dashboard-empty-note { margin: 8px 0 0; color: var(--apo-admin-muted); font-size: 11px; }
+
+.apo-panel-link { display: inline-flex; align-items: center; gap: 5px; color: var(--apo-admin-brand); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.apo-dashboard-table-wrap { width: 100%; min-width: 0; overflow-x: auto; overscroll-behavior-inline: contain; }
+.apo-dashboard-table { width: 100%; table-layout: fixed; border-collapse: collapse; text-align: left; }
+.apo-dashboard-table th { padding: 10px 8px; color: #1A1816; background: #f2f0ec; font-size: 11px; font-weight: 650; letter-spacing: 0.035em; text-transform: uppercase; overflow-wrap: anywhere; }
+.apo-dashboard-table td { padding: 10px 8px; border-bottom: 1px solid #e9e6df; color: #5C574F; font-size: 12px; overflow-wrap: anywhere; }
+.apo-dashboard-table:not(.apo-dashboard-table--stock) th:nth-child(1) { width: 12%; }
+.apo-dashboard-table:not(.apo-dashboard-table--stock) th:nth-child(2) { width: 25%; }
+.apo-dashboard-table:not(.apo-dashboard-table--stock) th:nth-child(3) { width: 18%; }
+.apo-dashboard-table:not(.apo-dashboard-table--stock) th:nth-child(4) { width: 20%; }
+.apo-dashboard-table:not(.apo-dashboard-table--stock) th:nth-child(5) { width: 25%; }
+.apo-dashboard-table--stock th:nth-child(1) { width: 50%; }
+.apo-dashboard-table--stock th:nth-child(2) { width: 17%; }
+.apo-dashboard-table--stock th:nth-child(3) { width: 33%; }
+.apo-dashboard-table tr:last-child td { border-bottom: 0; }
+.apo-dashboard-table td:first-child { color: #1A1816; font-weight: 650; }
+.apo-dashboard-table-empty { padding: 17px 7px !important; color: var(--apo-admin-muted) !important; text-align: center; }
+.apo-status-pill { display: inline-flex; max-width: 100%; padding: 4px 7px; border: 1px solid #ddd9cf; border-radius: 3px; background: #f2f1ed; color: #5C574F; font-size: 11px; line-height: 1.25; text-transform: capitalize; }
+.apo-status-pill--paid, .apo-status-pill--completed, .apo-status-pill--confirmed, .apo-status-pill--ready-for-pickup { color: #276746; border-color: #c6ddcb; background: #eff7ef; }
+.apo-status-pill--pending, .apo-status-pill--processing { color: #805400; border-color: #e8d19a; background: #fff6e3; }
+.apo-status-pill--cancelled, .apo-status-pill--failed, .apo-status-pill--no-show { color: #9d3234; border-color: #e6c0c1; background: #fbefed; }
+.apo-stock-flag { display: inline-flex; align-items: center; gap: 5px; color: var(--apo-admin-brand); font-size: 11px; }
+
+.apo-dashboard-side-column { display: flex; min-width: 0; flex-direction: column; align-self: stretch; background: var(--apo-admin-side); border: 0; border-radius: 5px; box-shadow: 0 1px 3px rgb(35 31 24 / 5%); }
+.apo-side-section { min-height: 180px; padding: 16px 15px 14px; }
+.apo-actions-section { min-height: 225px; }
+.apo-appointments-section { min-height: 205px; }
+.apo-activity-section { min-height: 190px; }
+.apo-side-section + .apo-side-section { border-top: 1px solid #d6d2c8; }
+.apo-side-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #d6d2c8; }
+.apo-side-heading h2 { font-size: 14px; }
+.apo-side-heading > span { color: var(--apo-admin-muted); font-size: 11px; white-space: nowrap; }
+.apo-side-subheading { padding: 12px 0 7px; color: #5C574F; font-size: 12px; font-weight: 700; }
+.apo-action-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 16px; gap: 9px; align-items: center; min-height: 54px; color: inherit; border-top: 1px solid #d9d5cb; text-decoration: none; }
+.apo-action-row > svg { color: #5C574F; }
+.apo-action-row > span:nth-child(2) { min-width: 0; }
+.apo-action-row strong, .apo-action-row small, .apo-appointment-row strong, .apo-appointment-row small, .apo-activity-row strong, .apo-activity-row small { display: block; }
+.apo-action-row strong { color: #5C574F; font-size: 12px; font-weight: 650; }
+.apo-action-row small { margin-top: 3px; color: var(--apo-admin-muted); font-size: 11px; }
+.apo-action-icon { display: grid; width: 24px; height: 24px; place-items: center; color: #5C574F; }
+.apo-appointment-row { display: grid; grid-template-columns: 55px minmax(0, 1fr) auto; gap: 9px; align-items: center; min-height: 52px; border-bottom: 1px solid #d9d5cb; }
+.apo-appointment-row time { color: #5C574F; font-size: 11px; font-weight: 650; }
+.apo-appointment-row strong { overflow: hidden; color: #5C574F; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.apo-appointment-row small { margin-top: 3px; color: var(--apo-admin-muted); font-size: 11px; }
+.apo-side-empty { margin: 0; padding: 14px 0 2px; color: var(--apo-admin-muted); font-size: 12px; }
+.apo-activity-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 7px; align-items: center; min-height: 42px; border-bottom: 1px solid #d9d5cb; }
+.apo-activity-icon { display: grid; width: 21px; height: 21px; place-items: center; color: #5C574F; }
+.apo-activity-row strong { color: #5C574F; font-size: 12px; font-weight: 600; }
+.apo-activity-row small, .apo-activity-row time { margin-top: 3px; color: var(--apo-admin-muted); font-size: 11px; }
+.apo-dashboard-footer { display: flex; justify-content: space-between; gap: 15px; padding: 13px 0 0; color: var(--apo-admin-muted); font-size: 10px; }
+
+.apo-dashboard a:focus-visible,
+.apo-dashboard button:focus-visible,
+.apo-dashboard-table-wrap:focus-visible,
+.apo-admin-workspace-shell .apo-admin-nav-link:focus-visible {
+  outline: 3px solid #B8242F;
+  outline-offset: 2px;
+}
+
+@media (min-width: 1500px) {
+  .apo-dashboard-columns { grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.9fr); }
+}
+
+@media (max-width: 1050px) {
+  .apo-admin-sidebar { flex-basis: 205px; }
+  .apo-admin-main { padding-right: 22px; padding-left: 22px; }
+  .apo-dashboard-columns { grid-template-columns: minmax(0, 1.45fr) minmax(255px, 0.9fr); gap: 12px; }
+  .apo-dashboard-table th, .apo-dashboard-table td { padding-right: 5px; padding-left: 5px; }
+}
+
+@media (max-width: 800px) {
+  .apo-admin-sidebar { position: static; flex-basis: 64px; align-items: center; padding: 15px 8px; }
+  .apo-admin-brand { justify-content: center; padding: 0 0 15px; }
+  .apo-admin-brand-wordmark, .apo-admin-nav-label, .apo-admin-nav-link small, .apo-admin-profile > span:last-child { display: none; }
+  .apo-admin-workspace-shell .apo-admin-nav-link > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+  .apo-admin-brand-compact { display: grid; width: 30px; height: 30px; place-items: center; color: var(--apo-admin-brand); border: 1px solid #c8c2b8; border-radius: 50%; font-family: Georgia, serif; font-size: 17px; font-weight: 700; }
+  .apo-admin-nav { width: 100%; }
+  .apo-admin-nav-group + .apo-admin-nav-group { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--apo-admin-line); }
+  .apo-admin-nav-link { justify-content: center; min-height: 44px; padding: 9px 4px; }
+  .apo-admin-nav-link svg { width: 18px; height: 18px; }
+  .apo-admin-profile { justify-content: center; }
+  .apo-admin-main { padding-right: 18px; padding-left: 18px; }
+  .apo-dashboard-columns { grid-template-columns: 1fr; }
+  .apo-dashboard-side-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .apo-dashboard-table:not(.apo-dashboard-table--stock) { min-width: 560px; }
+  .apo-dashboard-table--stock { min-width: 420px; }
+  .apo-side-section + .apo-side-section { border-top: 0; }
+  .apo-side-section:nth-child(even) { border-left: 1px solid #d6d2c8; }
+  .apo-side-section:nth-child(n + 3) { border-top: 1px solid #d6d2c8; }
+}
+
+@media (max-width: 560px) {
+  .apo-admin-sidebar { flex-basis: 52px; padding-right: 5px; padding-left: 5px; }
+  .apo-admin-main { padding: 0 12px 18px; }
+  .apo-dashboard-topbar { min-height: 54px; }
+  .apo-dashboard-search { width: 100%; min-height: 44px; }
+  .apo-dashboard-title-row { align-items: start; }
+  .apo-dashboard-header-actions { flex-direction: column; align-items: end; }
+  .apo-dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .apo-metric-card:nth-child(3)::before { display: none; }
+  .apo-metric-card:nth-child(n + 3) { border-top: 1px solid var(--apo-admin-line); }
+  .apo-dashboard-side-column { grid-template-columns: 1fr; }
+  .apo-side-section:nth-child(even) { border-left: 0; }
+  .apo-side-section:nth-child(n + 2) { border-top: 1px solid #d6d2c8; }
+  .apo-dashboard-footer { flex-direction: column; gap: 5px; }
+}
+
+/* Keep admin directory tables fitted to the workspace without horizontal scrolling. */
+.apo-products-header .apo-dashboard-topbar,
+.apo-inventory-header .apo-dashboard-topbar { border-bottom: 0; }
+
+.apo-dashboard .apo-admin-fit-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: visible;
+}
+
+.apo-dashboard .apo-admin-fit-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.apo-dashboard .apo-admin-fit-table th,
+.apo-dashboard .apo-admin-fit-table td {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.apo-dashboard .apo-admin-fit-table.apo-products-table th:nth-child(1),
+.apo-dashboard .apo-admin-fit-table.apo-products-table td:nth-child(1) { width: 22%; }
+.apo-dashboard .apo-admin-fit-table.apo-products-table th:nth-child(2),
+.apo-dashboard .apo-admin-fit-table.apo-products-table td:nth-child(2) { width: 10%; }
+.apo-dashboard .apo-admin-fit-table.apo-products-table th:nth-child(3),
+.apo-dashboard .apo-admin-fit-table.apo-products-table td:nth-child(3),
+.apo-dashboard .apo-admin-fit-table.apo-products-table th:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-products-table td:nth-child(4) { width: 12%; }
+.apo-dashboard .apo-admin-fit-table.apo-products-table th:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-products-table td:nth-child(5) { width: 10%; }
+.apo-dashboard .apo-admin-fit-table.apo-products-table th:nth-child(6),
+.apo-dashboard .apo-admin-fit-table.apo-products-table td:nth-child(6) { width: 13%; }
+.apo-dashboard .apo-admin-fit-table.apo-products-table th:nth-child(7),
+.apo-dashboard .apo-admin-fit-table.apo-products-table td:nth-child(7) { width: 11%; }
+.apo-dashboard .apo-admin-fit-table.apo-products-table th:nth-child(8),
+.apo-dashboard .apo-admin-fit-table.apo-products-table td:nth-child(8) { width: 10%; }
+
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(1),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(1) { width: 17%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(2),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(2) { width: 10%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(3),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(3) { width: 12%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(6),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(6) { width: 7%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(7),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(7) { width: 14%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(8),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(8) { width: 11%; }
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table th:nth-child(9),
+.apo-dashboard .apo-admin-fit-table.apo-inventory-table td:nth-child(9) { width: 15%; }
+
+.apo-dashboard .apo-admin-fit-table.apo-orders-table th:nth-child(1),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table td:nth-child(1) { width: 11%; }
+.apo-dashboard .apo-admin-fit-table.apo-orders-table th:nth-child(2),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table td:nth-child(2) { width: 16%; }
+.apo-dashboard .apo-admin-fit-table.apo-orders-table th:nth-child(3),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table td:nth-child(3) { width: 15%; }
+.apo-dashboard .apo-admin-fit-table.apo-orders-table th:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table td:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table th:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table td:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table th:nth-child(7),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table td:nth-child(7),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table th:nth-child(8),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table td:nth-child(8) { width: 12%; }
+.apo-dashboard .apo-admin-fit-table.apo-orders-table th:nth-child(6),
+.apo-dashboard .apo-admin-fit-table.apo-orders-table td:nth-child(6) { width: 10%; }
+
+.apo-dashboard .apo-admin-fit-table.apo-payments-table th:nth-child(1),
+.apo-dashboard .apo-admin-fit-table.apo-payments-table td:nth-child(1) { width: 15%; }
+.apo-dashboard .apo-admin-fit-table.apo-payments-table th:nth-child(2),
+.apo-dashboard .apo-admin-fit-table.apo-payments-table td:nth-child(2) { width: 20%; }
+.apo-dashboard .apo-admin-fit-table.apo-payments-table th:nth-child(3),
+.apo-dashboard .apo-admin-fit-table.apo-payments-table td:nth-child(3) { width: 14%; }
+.apo-dashboard .apo-admin-fit-table.apo-payments-table th:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-payments-table td:nth-child(4) { width: 10%; }
+.apo-dashboard .apo-admin-fit-table.apo-payments-table th:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-payments-table td:nth-child(5) { width: 11%; }
+.apo-dashboard .apo-admin-fit-table.apo-payments-table th:nth-child(6),
+.apo-dashboard .apo-admin-fit-table.apo-payments-table td:nth-child(6),
+.apo-dashboard .apo-admin-fit-table.apo-payments-table th:nth-child(7),
+.apo-dashboard .apo-admin-fit-table.apo-payments-table td:nth-child(7) { width: 15%; }
+
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table th:nth-child(1),
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table td:nth-child(1) { width: 13%; }
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table th:nth-child(2),
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table td:nth-child(2) { width: 17%; }
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table th:nth-child(3),
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table td:nth-child(3) { width: 25%; }
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table th:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table td:nth-child(4) { width: 13%; }
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table th:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table td:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table th:nth-child(6),
+.apo-dashboard .apo-admin-fit-table.apo-prescriptions-table td:nth-child(6) { width: 16%; }
+
+.apo-dashboard .apo-admin-fit-table.apo-screenings-table th:nth-child(1),
+.apo-dashboard .apo-admin-fit-table.apo-screenings-table td:nth-child(1) { width: 20%; }
+.apo-dashboard .apo-admin-fit-table.apo-screenings-table th:nth-child(2),
+.apo-dashboard .apo-admin-fit-table.apo-screenings-table td:nth-child(2) { width: 18%; }
+.apo-dashboard .apo-admin-fit-table.apo-screenings-table th:nth-child(3),
+.apo-dashboard .apo-admin-fit-table.apo-screenings-table td:nth-child(3) { width: 27%; }
+.apo-dashboard .apo-admin-fit-table.apo-screenings-table th:nth-child(4),
+.apo-dashboard .apo-admin-fit-table.apo-screenings-table td:nth-child(4) { width: 18%; }
+.apo-dashboard .apo-admin-fit-table.apo-screenings-table th:nth-child(5),
+.apo-dashboard .apo-admin-fit-table.apo-screenings-table td:nth-child(5) { width: 17%; }
+.apo-dashboard .apo-admin-fit-table td > * { max-width: 100%; overflow-wrap: anywhere; }
+
+.apo-dashboard .apo-admin-fit-table .apo-products-product-cell,
+.apo-dashboard .apo-admin-fit-table .apo-inventory-product {
+  min-width: 0;
+}
+
+.apo-dashboard .apo-admin-fit-table .apo-products-product-cell strong,
+.apo-dashboard .apo-admin-fit-table .apo-orders-customer,
+.apo-dashboard .apo-admin-fit-table .apo-prescriptions-file-name {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.apo-dashboard .apo-admin-fit-table .apo-products-actions { flex-wrap: wrap; }
+.apo-dashboard .apo-admin-fit-table.apo-orders-table td small { max-width: 100%; white-space: normal; }
+.apo-dashboard .apo-admin-fit-table .apo-products-availability,
+.apo-dashboard .apo-admin-fit-table .apo-orders-prescription,
+.apo-dashboard .apo-admin-fit-table .apo-orders-status,
+.apo-dashboard .apo-admin-fit-table .apo-payments-status,
+.apo-dashboard .apo-admin-fit-table .apo-prescriptions-status,
+.apo-dashboard .apo-admin-fit-table .apo-screening-visit-status {
+  max-width: 100%;
+  flex-wrap: wrap;
+  white-space: normal;
+}

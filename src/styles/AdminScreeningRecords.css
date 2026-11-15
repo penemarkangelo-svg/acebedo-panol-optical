@@ -1,0 +1,100 @@
+.apo-screenings-page { display: flex; min-width: 0; flex-direction: column; gap: 15px; padding-bottom: 8px; color: var(--apo-admin-ink, #26241f); }
+.apo-screenings-header { display: flex; align-items: end; justify-content: space-between; gap: 18px; padding: 22px 0 16px; border-bottom: 1px solid var(--apo-admin-line, #d6d1c6); }
+.apo-screenings-eyebrow { margin: 0 0 5px; color: var(--apo-admin-brand, #b3131b); font-size: 10px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+.apo-screenings-header h1 { margin: 0; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: clamp(27px, 2.7vw, 34px); font-weight: 400; letter-spacing: -.035em; line-height: 1.12; }
+.apo-screenings-subtitle { margin: 6px 0 0; color: #5C574F; font-size: 13px; }
+.apo-screenings-refresh { display: inline-flex; min-height: 37px; align-items: center; justify-content: center; gap: 7px; padding: 0 11px; border: 1px solid var(--apo-admin-line, #d6d1c6); border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 12px; cursor: pointer; }
+.apo-screenings-refresh:disabled { opacity: .6; cursor: wait; }
+.apo-screenings-boundary-note, .apo-screenings-footnote { display: flex; align-items: flex-start; gap: 8px; margin: 0; color: #5C574F; font-size: 11px; line-height: 1.5; }
+.apo-screenings-boundary-note { padding: 10px 12px; border: 1px solid #d6d1c6; border-left: 3px solid #426550; border-radius: 4px; background: #f2f0ec; }
+.apo-screenings-boundary-note svg, .apo-screenings-footnote svg { flex: 0 0 auto; margin-top: 1px; color: #426550; }
+.apo-screenings-boundary-note p { margin: 0; }
+.apo-screenings-directory { min-width: 0; padding: 14px 15px 11px; border: 1px solid var(--apo-admin-line, #d6d1c6); border-radius: 5px; background: #fff; }
+.apo-screenings-directory-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--apo-admin-line, #d6d1c6); }
+.apo-screenings-directory-heading > div { display: flex; align-items: baseline; gap: 9px; }
+.apo-screenings-directory-heading h2 { margin: 0; color: #1A1816; font-size: 14px; font-weight: 700; }
+.apo-screenings-directory-heading > div > span, .apo-screenings-directory-heading > span { color: #5C574F; font-size: 11px; }
+.apo-screenings-filters { display: grid; grid-template-columns: minmax(230px, 1fr) minmax(170px, .45fr) minmax(180px, .5fr); gap: 9px; padding: 11px 0; }
+.apo-screenings-search { display: flex; min-width: 0; align-items: center; gap: 7px; padding-left: 10px; border: 1px solid #d6d1c6; border-radius: 4px; color: #5C574F; }
+.apo-screenings-search input, .apo-screenings-filters select { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 12px; }
+.apo-screenings-search input { height: 34px; padding-left: 0; border: 0; outline: 0; }
+.apo-screenings-filters label:not(.apo-screenings-search) { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; color: #5C574F; font-size: 11px; }
+.apo-screenings-search:focus-within, .apo-screenings-filters select:focus { border-color: #888277; outline: 2px solid rgb(179 19 27 / 9%); }
+.apo-screenings-table-wrap { min-width: 0; border-top: 1px solid #e7e4dd; border-bottom: 1px solid #e7e4dd; }
+.apo-screenings-table { width: 100%; border-collapse: collapse; text-align: left; }
+.apo-screenings-table th { padding: 9px; background: #f2f0ec; color: #5C574F; font-size: 10px; font-weight: 700; letter-spacing: .055em; text-transform: uppercase; white-space: nowrap; }
+.apo-screenings-table td { padding: 10px 9px; border-bottom: 1px solid #e9e6df; color: #5C574F; font-size: 12px; vertical-align: middle; }
+.apo-screenings-table tbody tr:last-child td { border-bottom: 0; }
+.apo-screenings-table tbody tr:hover { background: #fbfaf7; }
+.apo-screenings-table td > strong, .apo-screenings-table td > small { display: block; }
+.apo-screenings-table td > strong { color: #1A1816; font-size: 12px; font-weight: 650; }
+.apo-screenings-table td > small { display: flex; align-items: center; gap: 4px; margin-top: 4px; color: #5C574F; font-size: 10px; }
+.apo-screenings-visit-status { display: inline-flex; width: fit-content; align-items: center; margin-top: 5px; padding: 3px 7px; border: 1px solid #ddd9cf; border-radius: 10px; background: #f1efea; color: #5C574F; font-size: 10px; }
+.apo-screenings-visit-status.is-confirmed { border-color: #c8dece; background: #eff7f0; color: #316746; }
+.apo-screenings-visit-status.is-completed { border-color: #d6d1c6; background: #f2f0ec; color: #5C574F; }
+.apo-screenings-view { display: inline-flex; align-items: center; gap: 5px; padding: 5px 0; border: 0; background: transparent; color: #356b5a; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.apo-screenings-view:hover { color: var(--apo-admin-brand, #b3131b); text-decoration: underline; }
+.apo-screenings-table-message { height: 140px; color: #5C574F !important; text-align: center; }
+.apo-screenings-table-message svg { margin-right: 6px; vertical-align: middle; }
+.apo-screenings-table-message.is-error { color: #9e3832 !important; }
+.apo-screenings-directory-footer { display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; color: #5C574F; font-size: 11px; }
+
+.apo-screening-overlay { position: fixed; z-index: 80; inset: 0; display: flex; justify-content: flex-end; }
+.apo-screening-backdrop { position: absolute; inset: 0; border: 0; background: rgb(25 24 21 / 40%); cursor: default; }
+.apo-screening-drawer { position: relative; display: flex; width: min(660px, 96vw); height: 100%; flex-direction: column; border-left: 1px solid #d6d1c6; background: #fbfaf8; box-shadow: -12px 0 36px rgb(25 24 21 / 12%); }
+.apo-screening-drawer-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 15px; border-bottom: 1px solid #d6d1c6; background: #f2f0ec; }
+.apo-screening-drawer-header h2 { margin: 0; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: 22px; font-weight: 500; }
+.apo-screening-drawer-header p:not(.apo-screening-eyebrow) { margin: 4px 0 0; color: #5C574F; font-size: 12px; }
+.apo-screening-close { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #5C574F; cursor: pointer; }
+.apo-screening-drawer-content { flex: 1; overflow-y: auto; padding: 17px 21px; }
+.apo-screening-detail-section { padding: 0 0 15px; margin-bottom: 14px; border-bottom: 1px solid #e2ded6; }
+.apo-screening-section-heading { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; color: #5C574F; }
+.apo-screening-section-heading h3 { margin: 0; color: #1A1816; font-size: 13px; font-weight: 700; }
+.apo-screening-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px 16px; margin: 0; }
+.apo-screening-detail-grid dt { margin-bottom: 3px; color: #5C574F; font-size: 10px; }
+.apo-screening-detail-grid dd { overflow-wrap: anywhere; margin: 0; color: #1A1816; font-size: 12px; font-weight: 550; }
+.apo-screening-results-section > .apo-screening-section-heading { margin-bottom: 12px; }
+.apo-screening-finding { padding: 12px 0; border-top: 1px solid #e2ded6; }
+.apo-screening-finding-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+.apo-screening-finding-heading h4 { margin: 0; color: #1A1816; font-size: 12px; font-weight: 700; }
+.apo-screening-finding-heading p { margin: 3px 0 0; color: #5C574F; font-size: 10px; }
+.apo-screening-finding-heading > span { color: #5C574F; font-size: 10px; }
+.apo-screening-eyes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.apo-screening-eyes article { min-width: 0; padding: 10px; border: 1px solid #e2ded6; border-radius: 4px; background: #fff; }
+.apo-screening-eyes article > span { display: block; color: #5C574F; font-size: 10px; }
+.apo-screening-eyes article > strong { display: block; margin-top: 5px; color: #1A1816; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.apo-screening-eyes article > p { margin: 6px 0 0; color: #5C574F; font-size: 11px; line-height: 1.45; }
+.apo-screening-finding-flag { display: inline-flex; margin-top: 5px; padding: 3px 6px; border-radius: 9px; background: #fbf4e6; color: #805e22; font-size: 10px; }
+.apo-screening-result-notes { display: grid; gap: 4px; padding-left: 17px; margin: 8px 0 0; color: #5C574F; font-size: 10px; line-height: 1.45; }
+.apo-screening-no-findings { padding: 12px; border: 1px solid #e2ded6; border-radius: 4px; color: #5C574F; font-size: 11px; }
+.apo-screening-calibration { margin: 7px 0 0; color: #5C574F; font-size: 10px; }
+.apo-screening-disclaimer { display: flex; gap: 8px; padding: 11px; margin-top: 8px; border: 1px solid #ead9b5; border-radius: 4px; background: #fbf4e6; color: #75551f; }
+.apo-screening-disclaimer svg { flex: 0 0 auto; margin-top: 1px; }
+.apo-screening-disclaimer p { margin: 0; font-size: 11px; line-height: 1.5; }
+.apo-screening-disclaimer strong { display: block; margin-bottom: 2px; font-size: 12px; }
+.apo-screening-drawer-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 21px; border-top: 1px solid #d6d1c6; background: #fff; }
+.apo-screening-drawer-footer span { display: inline-flex; align-items: center; gap: 5px; color: #5C574F; font-size: 11px; }
+.apo-screening-drawer-footer button { min-height: 36px; padding: 0 12px; border: 1px solid #292721; border-radius: 4px; background: #292721; color: #fff; font: inherit; font-size: 11px; cursor: pointer; }
+.is-spinning { animation: apo-screening-spin 1s linear infinite; }
+@keyframes apo-screening-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 1000px) {
+  .apo-screenings-filters { grid-template-columns: minmax(200px, 1fr) minmax(150px, .8fr); }
+  .apo-screenings-search { grid-column: 1 / -1; }
+}
+@media (max-width: 650px) {
+  .apo-screenings-header { align-items: flex-start; padding: 17px 0 13px; }
+  .apo-screenings-header h1 { font-size: 26px; }
+  .apo-screenings-subtitle { max-width: 35ch; font-size: 12px; line-height: 1.45; }
+  .apo-screenings-refresh { min-height: 34px; padding: 0 8px; font-size: 11px; }
+  .apo-screenings-directory { padding: 12px 10px 9px; }
+  .apo-screenings-filters { grid-template-columns: 1fr; }
+  .apo-screenings-search { grid-column: auto; }
+  .apo-screenings-filters label:not(.apo-screenings-search) { grid-template-columns: 48px minmax(0, 1fr); }
+  .apo-screenings-directory-footer { flex-direction: column; gap: 4px; }
+  .apo-screening-drawer-header { padding: 16px 14px 12px; }
+  .apo-screening-drawer-content { padding: 14px; }
+  .apo-screening-drawer-footer { padding: 10px 14px; }
+  .apo-screening-detail-grid { gap: 10px; }
+  .apo-screening-eyes { grid-template-columns: 1fr; }
+}

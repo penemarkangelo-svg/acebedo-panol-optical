@@ -1,500 +1,370 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
-  X,
-  Loader2,
-  CreditCard,
-  Package,
-  Eye,
+  AlertTriangle,
+  Check,
   CheckCircle2,
   Circle,
-  AlertCircle,
+  ClipboardCheck,
+  CreditCard,
+  Image as ImageIcon,
+  Loader2,
+  MapPin,
+  Package,
+  Truck,
+  X,
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
+import "../../styles/AdminOrderDetails.css";
 
-const STEPS = [
-  { id: 1, title: "Order received" },
-  { id: 2, title: "Payment confirmed" },
-  { id: 3, title: "Prescription verification" },
-  { id: 4, title: "Lenses being crafted" },
-  { id: 5, title: "Ready for pickup" },
-  { id: 6, title: "Picked up" },
-];
+const PICKUP_STEPS = ["Order received", "Processing", "Ready for pickup", "Picked up"];
+const DELIVERY_STEPS = ["Order received", "Processing", "Out for delivery", "Delivered"];
 
-export default function AdminOrderDetailPanel({
-  order,
-  isOpen,
-  onClose,
-  onStatusUpdate,
-}) {
+const PRESCRIPTION_LABELS = {
+  pending_review: "Awaiting Optometrist review",
+  validated: "Verified by Optometrist",
+  rejected: "Needs a new prescription",
+};
+
+const formatPrice = (value) =>
+  `₱${Number(value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const formatStatus = (value = "pending") =>
+  value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+
+function getCurrentStep(status, isPickup) {
+  if (["pending", "confirmed"].includes(status)) return 0;
+  if (status === "processing") return 1;
+  if (status === (isPickup ? "ready_for_pickup" : "out_for_delivery")) return 2;
+  if (status === "completed") return 3;
+  return -1;
+}
+
+export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatusUpdate, staffMode = false }) {
   const [orderItems, setOrderItems] = useState([]);
-  const [loadingItems, setLoadingItems] = useState(false);
-  const [selectedStatus, setSelectedStatus] = useState(
-    order?.order_status || "pending",
-  );
+  const [prescriptionUploads, setPrescriptionUploads] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [prescriptionUnavailable, setPrescriptionUnavailable] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState(order?.order_status || "pending");
   const [savingStatus, setSavingStatus] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
-  const [stepStatuses, setStepStatuses] = useState({});
-  const [expandedStep, setExpandedStep] = useState(null);
-  const [updatingStepId, setUpdatingStepId] = useState(null);
+
+  useEffect(() => {
+    setSelectedStatus(order?.order_status || "pending");
+  }, [order?.id, order?.order_status]);
 
   useEffect(() => {
     if (!isOpen || !order?.id) return;
-    const fetchData = async () => {
-      setLoadingItems(true);
-      // Fetch order items with product images
-      const { data: itemsData, error: itemsError } = await supabase
-        .from("order_items")
-        .select(
-          `
-          *,
-          product:product_id (
-            id,
-            name,
-            product_images (image_url, is_primary)
-          )
-        `,
-        )
-        .eq("order_id", order.id);
-      if (!itemsError && itemsData) {
-        const enriched = itemsData.map((item) => ({
-          ...item,
-          image_url:
-            item.product?.product_images?.find((img) => img.is_primary)
-              ?.image_url ||
-            item.product?.product_images?.[0]?.image_url ||
-            null,
-        }));
-        setOrderItems(enriched);
-      }
-      // Fetch step statuses
-      const { data: orderData, error: orderError } = await supabase
-        .from("orders")
-        .select("step_statuses")
-        .eq("id", order.id)
-        .single();
-      if (!orderError && orderData?.step_statuses) {
-        setStepStatuses(orderData.step_statuses);
+    let cancelled = false;
+
+    const fetchDetails = async () => {
+      setLoading(true);
+      setLoadError(false);
+      setPrescriptionUnavailable(false);
+
+      const [itemsResult, prescriptionsResult] = await Promise.all([
+        supabase
+          .from("order_items")
+          .select(`*, product:product_id (id, name, product_images (image_url, is_primary))`)
+          .eq("order_id", order.id)
+          .order("id", { ascending: true }),
+        // Deliberately request status metadata only. Staff must not receive file paths or clinical details here.
+        supabase
+          .from("order_prescription_uploads")
+          .select("id, status, uploaded_at, reviewed_at")
+          .eq("order_id", order.id)
+          .order("uploaded_at", { ascending: false }),
+      ]);
+
+      if (cancelled) return;
+      if (itemsResult.error) {
+        console.error("Failed to load order items:", itemsResult.error);
+        setLoadError(true);
+        setOrderItems([]);
       } else {
-        const defaultStatuses = {};
-        STEPS.forEach((step) => {
-          defaultStatuses[step.id] = "Pending";
-        });
-        setStepStatuses(defaultStatuses);
+        const items = itemsResult.data || [];
+        const colorIds = [...new Set(items.map((item) => item.product_color_id).filter(Boolean))];
+        let colorImages = new Map();
+
+        if (colorIds.length) {
+          const colorsResult = await supabase
+            .from("product_colors")
+            .select("id, color_name, product_color_images(sort_order, is_primary, product_images!product_color_images_image_product_fkey(image_url))")
+            .in("id", colorIds);
+
+          if (!cancelled && !colorsResult.error) {
+            colorImages = new Map((colorsResult.data || []).map((color) => {
+              const images = (color.product_color_images || [])
+                .filter((entry) => entry.product_images?.image_url)
+                .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.sort_order - b.sort_order);
+              return [color.id, { colorName: color.color_name, imageUrl: images[0]?.product_images?.image_url || null }];
+            }));
+          } else if (colorsResult.error) {
+            console.error("Failed to load color-specific product photos:", colorsResult.error);
+          }
+        }
+
+        if (cancelled) return;
+        setOrderItems(items.map((item) => {
+          const productImages = (item.product?.product_images || []).slice().sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+          const colorInfo = colorImages.get(item.product_color_id);
+          return {
+            ...item,
+            color_name: colorInfo?.colorName || null,
+            image_url: colorInfo?.imageUrl || productImages[0]?.image_url || null,
+          };
+        }));
       }
-      setLoadingItems(false);
+
+      if (prescriptionsResult.error) {
+        console.error("Prescription status is unavailable:", prescriptionsResult.error);
+        setPrescriptionUnavailable(true);
+        setPrescriptionUploads([]);
+      } else {
+        setPrescriptionUploads(prescriptionsResult.data || []);
+      }
+      setLoading(false);
     };
-    fetchData();
+
+    fetchDetails();
+    return () => { cancelled = true; };
   }, [isOpen, order?.id]);
 
-  const updateStepStatus = async (stepId, newStatus) => {
-    setUpdatingStepId(stepId);
-    const updatedStatuses = { ...stepStatuses, [stepId]: newStatus };
-    const { error } = await supabase
-      .from("orders")
-      .update({ step_statuses: updatedStatuses })
-      .eq("id", order.id);
-    if (error) {
-      console.error("Failed to update step status:", error);
-    } else {
-      setStepStatuses(updatedStatuses);
-      setExpandedStep(null);
-      toast.success(`Step ${stepId} status updated to ${newStatus}`);  
-    }
-    setUpdatingStepId(null);
-  };
-
-  const getStepIcon = (status) => {
-    if (status === "Completed")
-      return (
-        <CheckCircle2 className="text-emerald-600 fill-emerald-50" size={19} />
-      );
-    if (status === "In progress")
-      return (
-        <Circle
-          className="text-amber-500 fill-amber-500/20 animate-pulse"
-          size={19}
-        />
-      );
-    if (status === "Skipped")
-      return <AlertCircle className="text-gray-400 fill-gray-50" size={19} />;
-    return <Circle className="text-gray-300" size={19} />;
-  };
-
-  const formatPrice = (price) => `₱${Number(price || 0).toFixed(2)}`;
-
-const handleGlobalStatusUpdate = async () => {
-  if (selectedStatus === order.order_status) {
-    // No change to main order status – just close quietly
-    onClose();
-    return;
-  }
-  setSavingStatus(true);
-  const { error } = await supabase
-    .from("orders")
-    .update({ order_status: selectedStatus, updated_at: new Date() })
-    .eq("id", order.id);
-  if (error) {
-    console.error("Failed to update order status:", error);
-    toast.error("Failed to update order status");
-  } else {
-    toast.success(
-      `Order status updated to ${selectedStatus.replace(/_/g, " ")}`,
-    );
-    if (onStatusUpdate) onStatusUpdate(order.id, selectedStatus);
-  }
-  setSavingStatus(false);
-  onClose();
-};
+  const isPickup = order?.fulfillment_method !== "delivery";
+  const steps = isPickup ? PICKUP_STEPS : DELIVERY_STEPS;
+  const currentStep = getCurrentStep(order?.order_status, isPickup);
+  const itemCount = useMemo(
+    () => orderItems.reduce((sum, item) => sum + Number(item.quantity || 0), 0),
+    [orderItems],
+  );
 
   if (!isOpen || !order) return null;
 
-  const totalQuantity = orderItems.reduce(
-    (sum, item) => sum + (item.quantity || 1),
-    0,
-  );
-  const subtotal = orderItems.reduce(
-    (sum, item) => sum + (item.unit_price || 0) * (item.quantity || 1),
-    0,
-  );
-  const shipping = order.shipping_fee || 0;
-  const total = (order.total || subtotal + shipping).toFixed(2);
-  const isPickup = order.fulfillment_method === "pickup";
+  const isManualReview = order.order_status === "manual_review";
+  const isClosed = ["completed", "cancelled"].includes(order.order_status);
+  const isBlocked = isManualReview || isClosed;
+  const subtotal = Number(order.subtotal ?? orderItems.reduce((sum, item) => sum + Number(item.subtotal || 0), 0));
+  const shipping = Number(order.shipping_fee || 0);
+  const total = Number(order.total ?? subtotal + shipping);
 
-  // Adjust step titles for delivery
-  const displaySteps = STEPS.map((step) => {
-    if (!isPickup && step.id === 5)
-      return { ...step, title: "Out for delivery" };
-    if (!isPickup && step.id === 6) return { ...step, title: "Delivered" };
-    if (isPickup && step.id === 6) return { ...step, title: "Picked up" };
-    return step;
-  });
+  const handleStatusSave = async () => {
+    if (selectedStatus === order.order_status) {
+      onClose();
+      return;
+    }
+    if (isBlocked) return;
+
+    setSavingStatus(true);
+    const { data: updatedOrder, error } = await supabase
+      .from("orders")
+      .update({ order_status: selectedStatus })
+      .eq("id", order.id)
+      .select("id, order_status")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Failed to update order status:", error);
+      toast.error(error.code === "42501" ? "You do not have permission to update this order." : "Could not update this order. Please try again.");
+      setSavingStatus(false);
+      return;
+    }
+
+    if (!updatedOrder) {
+      toast.error("The order was not updated. Check your active staff access and try again.");
+      setSavingStatus(false);
+      return;
+    }
+
+    toast.success("Order status updated.");
+    onStatusUpdate?.(updatedOrder.id, updatedOrder.order_status);
+    setSavingStatus(false);
+    onClose();
+  };
+
+  const getPrescriptionSummary = () => {
+    if (prescriptionUnavailable) return { label: "Status unavailable", tone: "is-neutral" };
+    if (!prescriptionUploads.length) return { label: "No prescription uploaded", tone: "is-neutral" };
+    if (prescriptionUploads.some((upload) => upload.status === "pending_review")) {
+      return { label: PRESCRIPTION_LABELS.pending_review, tone: "is-pending" };
+    }
+    if (prescriptionUploads.some((upload) => upload.status === "rejected")) {
+      return { label: PRESCRIPTION_LABELS.rejected, tone: "is-attention" };
+    }
+    return { label: PRESCRIPTION_LABELS.validated, tone: "is-complete" };
+  };
+
+  const prescriptionSummary = getPrescriptionSummary();
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden font-sans">
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-4xl bg-white shadow-2xl flex flex-col transform transition-all">
-          {/* Header */}
-          <div className="p-5 border-b border-gray-200 flex items-center justify-between bg-white">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                Order #{order.id}
-              </h2>
-              <p className="text-sm text-gray-500 mt-0.5">
-                Placed on {new Date(order.created_at).toLocaleDateString()}
-              </p>
+    <div className="apo-order-overlay" role="presentation">
+      <button className="apo-order-backdrop" type="button" aria-label="Close order details" onClick={onClose} />
+      <aside className="apo-order-panel" role="dialog" aria-modal="true" aria-labelledby="apo-order-title">
+        <header className="apo-order-header">
+          <div>
+            <p className="apo-order-eyebrow">Order details</p>
+            <h2 id="apo-order-title">Order #APO-{order.id}</h2>
+            <p className="apo-order-date">
+              Placed {order.created_at ? new Date(order.created_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "—"}
+            </p>
+            <div className="apo-order-tags">
+              <span className={`apo-order-status-tag status-${order.order_status}`}>{formatStatus(order.order_status)}</span>
+              <span className="apo-order-method-tag">{isPickup ? "Pickup" : "Delivery"}</span>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X size={20} />
-            </button>
           </div>
+          <button className="apo-order-close" type="button" aria-label="Close" onClick={onClose}><X size={19} /></button>
+        </header>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/30">
-            {/* Customer Information */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider border-b pb-2 mb-3">
-                Customer details
-              </h3>
-              <div className="space-y-1">
-                <p className="text-gray-800">
-                  <span className="font-medium">Name:</span>{" "}
-                  {order.customer_name || "N/A"}
-                </p>
-                <p className="text-gray-800">
-                  <span className="font-medium">Email:</span>{" "}
-                  {order.email || "N/A"}
-                </p>
-                <p className="text-gray-800">
-                  <span className="font-medium">Phone:</span>{" "}
-                  {order.contact_number || "N/A"}
-                </p>
-                <p className="text-gray-800">
-                  <span className="font-medium">Fulfillment:</span>{" "}
-                  {isPickup ? "Pickup at Rosario Branch" : "Delivery"}
-                </p>
-                {order.delivery_address && (
-                  <p className="text-gray-800">
-                    <span className="font-medium">Address:</span>{" "}
-                    {order.delivery_address}
-                  </p>
-                )}
+        <div className="apo-order-content">
+          {isManualReview && (
+            <section className="apo-order-review-alert" aria-label="Fulfillment blocked">
+              <AlertTriangle size={18} aria-hidden="true" />
+              <div>
+                <strong>Fulfillment blocked — manual review required</strong>
+                <p>Payment was confirmed after the stock reservation expired. Do not prepare, release, or deliver this order while it is under review.</p>
               </div>
-            </div>
+            </section>
+          )}
 
-            {/* Order Items */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider border-b pb-2 mb-3">
-                Items ordered ({totalQuantity} items)
-              </h3>
-              {loadingItems ? (
-                <div className="flex justify-center py-6">
-                  <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {orderItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex gap-4 border-b border-gray-100 pb-4 last:border-0"
+          <section className="apo-order-section apo-order-progress">
+            <div className="apo-order-section-heading">
+              <div><h3>Fulfillment progress</h3><p>Update the order as it moves through the clinic.</p></div>
+              {isPickup ? <MapPin size={17} aria-hidden="true" /> : <Truck size={17} aria-hidden="true" />}
+            </div>
+            <ol className="apo-order-step-list">
+              {steps.map((step, index) => {
+                const done = currentStep >= 0 && index < currentStep;
+                const active = currentStep === index;
+                return (
+                  <li key={step} className={`${done ? "is-done" : ""} ${active ? "is-current" : ""}`}>
+                    <span className="apo-order-step-icon">{done ? <Check size={14} /> : active ? <Circle size={10} fill="currentColor" /> : <Circle size={10} />}</span>
+                    <span>{step}</span>
+                  </li>
+                );
+              })}
+            </ol>
+            {isManualReview && <p className="apo-order-inline-note">Progress is paused until the payment and stock issue is resolved.</p>}
+          </section>
+
+          <section className="apo-order-section">
+            <div className="apo-order-section-heading">
+              <div><h3>Items ordered</h3><p>{itemCount} {itemCount === 1 ? "item" : "items"} · Product and option details</p></div>
+            </div>
+            {loading ? (
+              <div className="apo-order-loading"><Loader2 size={19} className="animate-spin" /> Loading items…</div>
+            ) : loadError ? (
+              <p className="apo-order-empty">Order items could not be loaded.</p>
+            ) : orderItems.length === 0 ? (
+              <p className="apo-order-empty">No item details are available.</p>
+            ) : (
+              <div className="apo-order-items">
+                {orderItems.map((item) => (
+                  <article className="apo-order-item" key={item.id}>
+                    <button
+                      className={`apo-order-item-image${item.image_url ? " has-image" : ""}`}
+                      type="button"
+                      disabled={!item.image_url}
+                      onClick={() => item.image_url && setPreviewImage(item.image_url)}
+                      aria-label={item.image_url ? `Preview ${item.product_name || item.product?.name}` : "No product image available"}
                     >
-                      <div
-                        className="w-16 h-16 bg-gray-50 rounded-lg border border-gray-200 flex-shrink-0 overflow-hidden cursor-pointer"
-                        onClick={() =>
-                          item.image_url && setPreviewImage(item.image_url)
-                        }
-                      >
-                        {item.image_url ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.product_name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-xs">
-                            <Package size={24} />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">
-                          {item.product_name}
-                        </h4>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {item.selected_color && (
-                            <span>Color: {item.selected_color} · </span>
-                          )}
-                          Qty: {item.quantity}
-                          {item.lens_package_name && (
-                            <span> · Lens: {item.lens_package_name}</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Unit price: {formatPrice(item.unit_price)}{" "}
-                          &nbsp;|&nbsp; Subtotal: {formatPrice(item.subtotal)}
-                        </p>
-                        {item.prescription_data && (
-                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
-                            <div className="flex items-center gap-1 mb-1">
-                              <Eye size={12} className="text-gray-500" />
-                              <span className="font-medium text-gray-700">
-                                Prescription details
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-4 gap-1 text-[11px]">
-                              <div>
-                                <span className="font-medium">OD:</span>{" "}
-                                {item.prescription_data.odSphere || "0.00"} /{" "}
-                                {item.prescription_data.odCylinder || "0.00"} /{" "}
-                                {item.prescription_data.odAxis || "0"}°
-                              </div>
-                              <div>
-                                <span className="font-medium">OS:</span>{" "}
-                                {item.prescription_data.osSphere || "0.00"} /{" "}
-                                {item.prescription_data.osCylinder || "0.00"} /{" "}
-                                {item.prescription_data.osAxis || "0"}°
-                              </div>
-                              {item.prescription_data.pd && (
-                                <div>
-                                  <span className="font-medium">PD:</span>{" "}
-                                  {item.prescription_data.pd} mm
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">
-                          {formatPrice(item.subtotal)}
-                        </p>
-                      </div>
+                      {item.image_url ? <img src={item.image_url} alt={item.product_name || item.product?.name || "Product"} /> : <ImageIcon size={22} />}
+                    </button>
+                    <div className="apo-order-item-info">
+                      <strong>{item.product_name || item.product?.name || "Product"}</strong>
+                      <span>
+                        {item.color_name && <>{item.color_name} · </>}
+                        Qty {item.quantity}
+                        {item.lens_package_name && <> · {item.lens_package_name}</>}
+                      </span>
+                      {(item.brand_name || item.frame_shape || item.frame_material) && (
+                        <small>{[item.brand_name, item.frame_shape, item.frame_material].filter(Boolean).join(" · ")}</small>
+                      )}
+                      <small>{formatPrice(item.unit_price)} each</small>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Payment Summary */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-              <div className="flex items-center gap-2 mb-3">
-                <CreditCard size={16} className="text-gray-500" />
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
-                  Payment summary
-                </h3>
+                    <strong className="apo-order-item-total">{formatPrice(item.subtotal)}</strong>
+                  </article>
+                ))}
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">
-                    Subtotal ({totalQuantity} items)
-                  </span>
-                  <span className="font-medium">{formatPrice(subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Shipping</span>
-                  <span className="font-medium">
-                    {isPickup ? "Pickup (Free)" : formatPrice(shipping)}
-                  </span>
-                </div>
-                <div className="border-t pt-2 mt-2 flex justify-between font-bold">
-                  <span>Total</span>
-                  <span className="text-red-600 text-lg">
-                    {formatPrice(total)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Payment method</span>
-                  <span>{order.payment_method || "PayPal (simulated)"}</span>
-                </div>
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>Payment status</span>
-                  <span>{order.payment_status || "unpaid"}</span>
-                </div>
-              </div>
+            )}
+            <div className="apo-order-total-list">
+              <div><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div>
+              <div><span>{isPickup ? "Pickup" : "Delivery"}</span><strong>{shipping === 0 ? "Free" : formatPrice(shipping)}</strong></div>
+              <div className="is-total"><span>Order total</span><strong>{formatPrice(total)}</strong></div>
             </div>
+          </section>
 
-            {/* Clinic Order Timeline Progress */}
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-              <span className="text-[10px] font-bold text-gray-400 tracking-wider uppercase block mb-4">
-                Clinic Order Timeline Progress
-              </span>
-              <div className="relative border-l-2 border-gray-200 ml-3 space-y-5 pl-6">
-                {displaySteps.map((step) => {
-                  const isExpanded = expandedStep === step.id;
-                  const currentStatus = stepStatuses[step.id] || "Pending";
-                  const isLoading = updatingStepId === step.id;
-                  return (
-                    <div key={step.id} className="relative">
-                      <button
-                        onClick={() =>
-                          setExpandedStep(isExpanded ? null : step.id)
-                        }
-                        className="absolute -left-[32px] top-0.5 bg-white rounded-full p-0.5 focus:outline-none"
-                      >
-                        {isLoading ? (
-                          <Loader2
-                            size={19}
-                            className="text-gray-400 animate-spin"
-                          />
-                        ) : (
-                          getStepIcon(currentStatus)
-                        )}
-                      </button>
-                      <div className="flex flex-col">
-                        <button
-                          onClick={() =>
-                            setExpandedStep(isExpanded ? null : step.id)
-                          }
-                          className="text-left font-bold text-sm text-gray-800 hover:text-gray-600 focus:outline-none flex items-center gap-2"
-                        >
-                          <span>{step.title}</span>
-                          <span
-                            className={`text-[10px] px-2 py-0.5 rounded-md font-semibold border ${
-                              currentStatus === "Completed"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                : currentStatus === "In progress"
-                                  ? "bg-amber-50 text-amber-700 border-amber-100"
-                                  : currentStatus === "Skipped"
-                                    ? "bg-gray-100 text-gray-600 border-gray-200"
-                                    : "bg-gray-50 text-gray-400 border-gray-100"
-                            }`}
-                          >
-                            {currentStatus}
-                          </span>
-                        </button>
-                        {isExpanded && (
-                          <div className="mt-2.5 flex flex-wrap gap-1.5 p-1.5 bg-gray-50 border border-gray-200 rounded-lg">
-                            {[
-                              "Pending",
-                              "In progress",
-                              "Completed",
-                              "Skipped",
-                            ].map((opt) => (
-                              <button
-                                key={opt}
-                                onClick={() => updateStepStatus(step.id, opt)}
-                                disabled={isLoading}
-                                className={`text-[11px] font-bold px-2.5 py-1 rounded transition-all ${
-                                  currentStatus === opt
-                                    ? "bg-white text-gray-900 shadow-xs border border-gray-300"
-                                    : "text-gray-500 hover:text-gray-900"
-                                }`}
-                              >
-                                {opt}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+          <section className="apo-order-section">
+            <div className="apo-order-section-heading"><div><h3>Customer</h3><p>Contact details for this order</p></div></div>
+            <dl className="apo-order-info-grid">
+              <div><dt>Name</dt><dd>{order.customer_name || "Not provided"}</dd></div>
+              <div><dt>Email</dt><dd>{order.email || "Not provided"}</dd></div>
+              <div><dt>Phone</dt><dd>{order.contact_number || "Not provided"}</dd></div>
+            </dl>
+          </section>
+
+          <section className="apo-order-section">
+            <div className="apo-order-section-heading">
+              <div><h3>{isPickup ? "Pickup" : "Delivery"}</h3><p>{isPickup ? "Collection method" : "Recipient and destination"}</p></div>
+              {isPickup ? <MapPin size={17} aria-hidden="true" /> : <Truck size={17} aria-hidden="true" />}
             </div>
-          </div>
+            {isPickup ? (
+              <div className="apo-order-fulfillment-card"><MapPin size={17} /><span>Clinic pickup</span></div>
+            ) : (
+              <dl className="apo-order-info-grid">
+                <div className="is-wide"><dt>Delivery address</dt><dd>{order.delivery_address || "Address not available"}</dd></div>
+                {order.delivery_notes && <div className="is-wide"><dt>Delivery notes</dt><dd>{order.delivery_notes}</dd></div>}
+              </dl>
+            )}
+          </section>
 
-          {/* Footer – global status update */}
-          <div className="p-5 bg-white border-t border-gray-200 space-y-4">
-            <div className="flex gap-4 items-end">
-              <div className="flex-1">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-                  Order status
-                </label>
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full text-sm font-medium p-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                >
+          <section className="apo-order-section">
+            <div className="apo-order-section-heading"><div><h3>Payment</h3><p>{staffMode ? "Payment verification is read-only and requires an administrator." : "Payment verification is read-only in order details."}</p></div><CreditCard size={17} aria-hidden="true" /></div>
+            <div className="apo-order-payment-card">
+              <div className="apo-order-payment-total"><span>Order total</span><strong>{formatPrice(total)}</strong></div>
+              <div className="apo-order-payment-state"><span>Payment record</span><span className="apo-order-status-tag is-neutral">Not available in this view</span></div>
+              <p>{staffMode ? "Ask an administrator to confirm payment before completing fulfillment. Do not mark the order paid here." : "Check the payment record in Payment Management before treating this order as paid."}</p>
+            </div>
+          </section>
+
+          <section className="apo-order-section">
+            <div className="apo-order-section-heading"><div><h3>Prescription status</h3><p>Review is handled by an Optometrist.</p></div><ClipboardCheck size={17} aria-hidden="true" /></div>
+            <div className={`apo-order-prescription-status ${prescriptionSummary.tone}`}>
+              {prescriptionSummary.tone === "is-complete" ? <CheckCircle2 size={18} /> : prescriptionSummary.tone === "is-attention" ? <AlertTriangle size={18} /> : <Circle size={18} />}
+              <span>{prescriptionSummary.label}</span>
+              {!prescriptionUnavailable && prescriptionUploads.length > 0 && <small>{prescriptionUploads.length} uploaded {prescriptionUploads.length === 1 ? "file" : "files"}</small>}
+            </div>
+          </section>
+        </div>
+
+        <footer className="apo-order-footer">
+          {isBlocked ? (
+            <div className="apo-order-footer-message">{isManualReview ? "Fulfillment is blocked pending review." : `This order is ${formatStatus(order.order_status).toLowerCase()}.`}</div>
+          ) : (
+            <>
+              <label htmlFor="apo-order-status">Next order status</label>
+              <div className="apo-order-footer-controls">
+                <select id="apo-order-status" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>
                   <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
                   <option value="processing">Processing</option>
-                  <option value="ready_for_pickup">Ready for pickup</option>
-                  <option value="completed">Completed</option>
+                  {isPickup ? <option value="ready_for_pickup">Ready for pickup</option> : <option value="out_for_delivery">Out for delivery</option>}
+                  <option value="completed">{isPickup ? "Picked up" : "Delivered"}</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
+                <button type="button" onClick={handleStatusSave} disabled={savingStatus}>
+                  {savingStatus && <Loader2 size={15} className="animate-spin" />}
+                  {savingStatus ? "Saving…" : "Save status"}
+                </button>
               </div>
-              <button
-                onClick={handleGlobalStatusUpdate}
-                disabled={savingStatus}
-                className="px-6 py-2.5 bg-[#D32F2F] text-white font-semibold rounded-lg hover:bg-[#B71C1C] transition flex items-center gap-2"
-              >
-                {savingStatus && <Loader2 size={16} className="animate-spin" />}{" "}
-                Save & Close
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+            </>
+          )}
+        </footer>
+      </aside>
 
-      {/* Image preview modal */}
       {previewImage && (
-        <div
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-          onClick={() => setPreviewImage(null)}
-        >
-          <div
-            className="max-w-3xl max-h-[90vh] overflow-auto bg-white rounded-xl p-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <img
-              src={previewImage}
-              alt="Product preview"
-              className="w-full h-auto rounded-lg"
-            />
-            <div className="text-center mt-2">
-              <button
-                onClick={() => setPreviewImage(null)}
-                className="text-sm text-gray-500 hover:text-gray-700"
-              >
-                Close
-              </button>
-            </div>
-          </div>
+        <div className="apo-order-image-preview" role="dialog" aria-modal="true" aria-label="Product image preview" onClick={() => setPreviewImage(null)}>
+          <button type="button" aria-label="Close image preview" onClick={() => setPreviewImage(null)}><X size={20} /></button>
+          <img src={previewImage} alt="Order product preview" onClick={(event) => event.stopPropagation()} />
         </div>
       )}
     </div>
