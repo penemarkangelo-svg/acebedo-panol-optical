@@ -9,6 +9,7 @@ import {
 
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "./AuthContext";
+import { getProductCategory } from "../utils/productTypes";
 
 const CartContext = createContext();
 
@@ -128,6 +129,10 @@ export const CartProvider = ({ children }) => {
         quantity,
         unit_price,
         extras,
+        product_colors:product_colors!cart_items_product_color_id_fkey (
+          product_color_images (sort_order, is_primary,
+            product_images!product_color_images_image_product_fkey (image_url))
+        ),
         products (
           id,
           name,
@@ -160,20 +165,25 @@ export const CartProvider = ({ children }) => {
       );
 
       const primaryImage = images.find((image) => image.is_primary);
+      const selectedColorImages = [...(item.product_colors?.product_color_images || [])]
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      const selectedColorPrimary = selectedColorImages.find((image) => image.is_primary);
 
       return {
         id: item.product_id,
         name: product.name || "Unknown product",
         price: Number(item.unit_price) || 0,
         image:
+          selectedColorPrimary?.product_images?.image_url ||
+          selectedColorImages[0]?.product_images?.image_url ||
           primaryImage?.image_url ||
           images[0]?.image_url ||
           "https://placehold.co/400x300?text=No+Image",
         brand:
-          product.brands?.name ||
-          (product.type === "accessory" ? "Accessory" : null),
+          product.brands?.name || null,
         shape: product.frame_shape?.name || "",
         material: product.frame_material?.name || "",
+        type: getProductCategory(product),
         quantity: item.quantity,
         selectedOptions,
       };
@@ -385,6 +395,7 @@ export const CartProvider = ({ children }) => {
             brand: product.brand,
             shape: product.shape,
             material: product.material,
+            type: product.type || incomingOptions.type || "",
             quantity,
             selectedOptions: incomingOptions,
           },
@@ -454,6 +465,7 @@ export const CartProvider = ({ children }) => {
         clearCart,
         totalItems,
         subtotal,
+        cartId,
         loading,
         isSyncing,
       }}

@@ -125,7 +125,7 @@ export default function CartPage() {
               const baseFramePrice = item.price - lensExtra;
 
               const isAccessory =
-                item.brand === "Accessory" || item.type === "accessory";
+                item.brand === "Accessory" || ["accessory", "eyedrops"].includes(item.type);
 
               const itemTotal = item.price * item.quantity;
 

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import VisionTestLayout from "./VisionTestUI/VisionTestLayout";
-import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+import { FaceLandmarker, FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 import { ACUITY, CAMERA, MEDIAPIPE, POSITION_MONITOR, SESSION_KEYS } from "../constants/screeningConfig";
 import { clamp, getLandoltGeometry, getMinDisplayLogMAR, round } from "../utils/acuityMath";
 import { estimateLogMAR, nextLogMAR } from "../utils/staircase";
 import { getMovementMessage, getRelativeFaceMetrics, smoothMetrics } from "../utils/facePosition";
+import { isEyeCoveredByHand, updateHandCoverConfidence } from "../utils/eyeCover.js";
 import {
   ArrowDownIcon,
   ArrowLeftIcon,
@@ -17,7 +18,7 @@ import {
 } from "@solar-icons/react/linear";
 
 /* Values come from constants/screeningConfig.js. Edit them there. */
-const { wasmUrl: MEDIAPIPE_WASM_URL, modelUrl: FACE_MODEL_URL } = MEDIAPIPE;
+const { wasmUrl: MEDIAPIPE_WASM_URL, modelUrl: FACE_MODEL_URL, handModelUrl: HAND_MODEL_URL } = MEDIAPIPE;
 const CALIBRATION_KEY = SESSION_KEYS.calibration;
 const {
   eyeOrder: EYE_ORDER,
@@ -30,6 +31,11 @@ const {
 const {
   checkIntervalMs: FACE_CHECK_INTERVAL,
   eyeCoveredThreshold: EYE_COVERED_THRESHOLD,
+  handEyeOverlapThreshold: HAND_EYE_OVERLAP_THRESHOLD,
+  handCoverConfirmScore: HAND_COVER_CONFIRM_SCORE,
+  handCoverMaxScore: HAND_COVER_MAX_SCORE,
+  handCoverMissDecay: HAND_COVER_MISS_DECAY,
+  handDetectionConfidence: HAND_DETECTION_CONFIDENCE,
   warningConfirmMs: MOVEMENT_WARNING_CONFIRMATION_MS,
   pauseConfirmMs: MOVEMENT_PAUSE_CONFIRMATION_MS,
   faceLostMs: FACE_LOST_CONFIRMATION_MS,
@@ -98,6 +104,7 @@ export default function VisualAcuity({ onContinue, onComplete }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const faceLandmarkerRef = useRef(null);
+  const handLandmarkerRef = useRef(null);
   const faceAnimationRef = useRef(null);
   const lastFaceDetectionRef = useRef(0);
   const movementWarningStartedRef = useRef(null);
@@ -111,6 +118,7 @@ export default function VisualAcuity({ onContinue, onComplete }) {
   const savedBaselineRef = useRef(null); // face position saved by Environment Setup
   const trialHistoryRef = useRef([]);
   const eyeCoverWarningRef = useRef("");
+  const coveredEyeConfidenceRef = useRef({ left: 0, right: 0 });
 
   const [calibration, setCalibration] = useState(null);
   const [localBaseline, setLocalBaseline] = useState(null);
@@ -173,6 +181,9 @@ export default function VisualAcuity({ onContinue, onComplete }) {
       if (faceLandmarkerRef.current) {
         try { faceLandmarkerRef.current.close(); } catch { /* ignore */ }
       }
+      if (handLandmarkerRef.current) {
+        try { handLandmarkerRef.current.close(); } catch { /* ignore */ }
+      }
     };
   }, []);
 
@@ -209,21 +220,33 @@ export default function VisualAcuity({ onContinue, onComplete }) {
       setCameraReady(true);
 
       const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
-      const landmarker = await FaceLandmarker.createFromOptions(vision, {
-        baseOptions: { modelAssetPath: FACE_MODEL_URL, delegate: "GPU" },
-        runningMode: "VIDEO",
-        numFaces: 2,
-        minFaceDetectionConfidence: 0.6,
-        minFacePresenceConfidence: 0.6,
-        minTrackingConfidence: 0.6,
-        outputFaceBlendshapes: true,
-        outputFacialTransformationMatrixes: false,
-      });
+      const [landmarker, handLandmarker] = await Promise.all([
+        FaceLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: FACE_MODEL_URL, delegate: "GPU" },
+          runningMode: "VIDEO",
+          numFaces: 2,
+          minFaceDetectionConfidence: 0.6,
+          minFacePresenceConfidence: 0.6,
+          minTrackingConfidence: 0.6,
+          outputFaceBlendshapes: true,
+          outputFacialTransformationMatrixes: false,
+        }),
+        HandLandmarker.createFromOptions(vision, {
+          baseOptions: { modelAssetPath: HAND_MODEL_URL, delegate: "GPU" },
+          runningMode: "VIDEO",
+          numHands: 2,
+          minHandDetectionConfidence: HAND_DETECTION_CONFIDENCE,
+          minHandPresenceConfidence: HAND_DETECTION_CONFIDENCE,
+          minTrackingConfidence: HAND_DETECTION_CONFIDENCE,
+        }),
+      ]);
       if (!mountedRef.current) {
         landmarker.close();
+        handLandmarker.close();
         return;
       }
       faceLandmarkerRef.current = landmarker;
+      handLandmarkerRef.current = handLandmarker;
       setFaceTrackingReady(true);
     } catch (error) {
       console.error("Visual acuity camera/tracking error:", error);
@@ -274,6 +297,7 @@ export default function VisualAcuity({ onContinue, onComplete }) {
 
       try {
         const result = landmarker.detectForVideo(video, now);
+        const hands = handLandmarkerRef.current?.detectForVideo(video, now)?.landmarks || [];
         const faces = result?.faceLandmarks || [];
 
         if (faces.length === 0) {
@@ -304,10 +328,12 @@ export default function VisualAcuity({ onContinue, onComplete }) {
         const smoothed = smoothMetrics(smoothedMetricsRef.current, metrics);
         smoothedMetricsRef.current = smoothed;
 
-        /* Eye cover verification (smoothed blink blendshapes) */
+        /* Confirm the covered eye with hand/eye overlap; keep the tested eye open. */
         let coverWarning = "";
         const blendshapes = result.faceBlendshapes?.[0]?.categories;
-        if (blendshapes && localBaselineRef.current) {
+        if (localBaselineRef.current && !blendshapes) {
+          coverWarning = "We can't verify your eyes right now. Please face the camera.";
+        } else if (blendshapes && localBaselineRef.current) {
           const rawLeft = blendshapes.find((c) => c.categoryName === "eyeBlinkLeft")?.score || 0;
           const rawRight = blendshapes.find((c) => c.categoryName === "eyeBlinkRight")?.score || 0;
           if (!smoothed.blink) smoothed.blink = { left: rawLeft, right: rawRight };
@@ -316,12 +342,26 @@ export default function VisualAcuity({ onContinue, onComplete }) {
           const left = smoothed.blink.left;
           const right = smoothed.blink.right;
 
-          if (currentEyeRef.current === "right") {
-            if (left < EYE_COVERED_THRESHOLD) coverWarning = "Please close your left eye to continue.";
-            else if (right > EYE_COVERED_THRESHOLD) coverWarning = "Please keep your testing eye (right) open.";
-          } else if (currentEyeRef.current === "left") {
-            if (right < EYE_COVERED_THRESHOLD) coverWarning = "Please close your right eye to continue.";
-            else if (left > EYE_COVERED_THRESHOLD) coverWarning = "Please keep your testing eye (left) open.";
+          const coveredEye = currentEyeRef.current === "right" ? "left" : "right";
+          const overlapDetected = isEyeCoveredByHand(
+            faces[0],
+            hands,
+            coveredEye,
+            HAND_EYE_OVERLAP_THRESHOLD
+          );
+          coveredEyeConfidenceRef.current[coveredEye] = updateHandCoverConfidence(
+            coveredEyeConfidenceRef.current[coveredEye],
+            overlapDetected,
+            HAND_COVER_MAX_SCORE,
+            HAND_COVER_MISS_DECAY
+          );
+          const handCoverConfirmed =
+            coveredEyeConfidenceRef.current[coveredEye] >= HAND_COVER_CONFIRM_SCORE;
+          if (!handCoverConfirmed) coverWarning = `Please cover your ${coveredEye} eye with your hand.`;
+          else if (currentEyeRef.current === "right" && right > EYE_COVERED_THRESHOLD) {
+            coverWarning = "Please keep your testing eye (right) open.";
+          } else if (currentEyeRef.current === "left" && left > EYE_COVERED_THRESHOLD) {
+            coverWarning = "Please keep your testing eye (left) open.";
           }
         }
         if (coverWarning !== eyeCoverWarningRef.current) {
@@ -515,7 +555,6 @@ export default function VisualAcuity({ onContinue, onComplete }) {
 
   /* ---------- Derived UI state ---------- */
   const shouldLockTest = pausedForPosition || !!eyeCoverWarning;
-  const tone = pausedForPosition ? "bad" : positionWarning ? "warn" : "ok";
   /* Target oval: where the face was at baseline (video is mirrored) */
   const b = localBaseline;
   const ovalStyle = b
@@ -576,7 +615,7 @@ export default function VisualAcuity({ onContinue, onComplete }) {
 
   return (
     <section className={page}>
-     <div className="acebedo-container py-8 md:py-12">
+     <div className="acebedo-container pb-8 pt-2 md:pb-12 md:pt-3">
         <VisionTestLayout
           eyebrow="Distance vision / visual acuity"
           title="Visual Acuity Test"
@@ -831,7 +870,12 @@ status={
           responses={
             localBaseline ? (
               <div>
-                <p className="vision-test__section-label">Choose a direction</p>
+                <div className="vision-test__response-heading">
+                  <p className="vision-test__section-label">Choose a direction</p>
+                  <span className="vision-test__trial-count" role="status" aria-live="polite">
+                    Test {trialIndex + 1} of {TRIALS_PER_EYE}
+                  </span>
+                </div>
                 <h2 className="vision-test__panel-title">
                   Which way is the opening?
                 </h2>

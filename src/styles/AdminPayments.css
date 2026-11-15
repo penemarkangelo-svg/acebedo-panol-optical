@@ -1,0 +1,100 @@
+.apo-payments-page { display: flex; min-width: 0; flex-direction: column; gap: 15px; padding-bottom: 8px; color: var(--apo-admin-ink, #26241f); }
+.apo-payments-header { display: flex; align-items: end; justify-content: space-between; gap: 18px; padding: 22px 0 16px; border-bottom: 1px solid var(--apo-admin-line, #d6d1c6); }
+.apo-payments-eyebrow { margin: 0 0 5px; color: var(--apo-admin-brand, #b3131b); font-size: 10px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+.apo-payments-header h1 { margin: 0; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: clamp(27px, 2.7vw, 34px); font-weight: 400; letter-spacing: -.035em; line-height: 1.12; }
+.apo-payments-subtitle { margin: 6px 0 0; color: #5C574F; font-size: 13px; }
+.apo-payments-refresh { display: inline-flex; min-height: 37px; align-items: center; justify-content: center; gap: 7px; padding: 0 11px; border: 1px solid var(--apo-admin-line, #d6d1c6); border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 12px; cursor: pointer; }
+.apo-payments-refresh:disabled { opacity: .6; cursor: wait; }
+.apo-payments-directory { min-width: 0; padding: 14px 15px 11px; border: 1px solid var(--apo-admin-line, #d6d1c6); border-radius: 5px; background: #fff; }
+.apo-payments-directory-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--apo-admin-line, #d6d1c6); }
+.apo-payments-directory-heading > div { display: flex; align-items: baseline; gap: 9px; }
+.apo-payments-directory-heading h2 { margin: 0; color: #1A1816; font-size: 14px; font-weight: 700; }
+.apo-payments-directory-heading > div > span, .apo-payments-directory-heading > span { color: #5C574F; font-size: 11px; }
+.apo-payments-filters { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(190px, .38fr); gap: 9px; padding: 11px 0; }
+.apo-payments-search { display: flex; min-width: 0; align-items: center; gap: 7px; padding-left: 10px; border: 1px solid #d6d1c6; border-radius: 4px; color: #5C574F; }
+.apo-payments-search input, .apo-payments-filters select { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 12px; }
+.apo-payments-search input { height: 34px; padding-left: 0; border: 0; outline: 0; }
+.apo-payments-filters label:not(.apo-payments-search) { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; color: #5C574F; font-size: 11px; }
+.apo-payments-search:focus-within, .apo-payments-filters select:focus { border-color: #888277; outline: 2px solid rgb(179 19 27 / 9%); }
+.apo-payments-table-wrap { min-width: 0; border-top: 1px solid #e7e4dd; border-bottom: 1px solid #e7e4dd; }
+.apo-payments-table { width: 100%; border-collapse: collapse; text-align: left; }
+.apo-payments-table th { padding: 9px; background: #f2f0ec; color: #5C574F; font-size: 10px; font-weight: 700; letter-spacing: .055em; text-transform: uppercase; white-space: nowrap; }
+.apo-payments-table td { padding: 10px 9px; border-bottom: 1px solid #e9e6df; color: #5C574F; font-size: 12px; vertical-align: middle; }
+.apo-payments-table tbody tr:last-child td { border-bottom: 0; }
+.apo-payments-table tbody tr:hover { background: #fbfaf7; }
+.apo-payments-table td > strong, .apo-payments-table td > small { display: block; }
+.apo-payments-table td > strong { color: #1A1816; font-size: 12px; font-weight: 650; }
+.apo-payments-table td > small { margin-top: 4px; color: #5C574F; font-size: 10px; }
+.apo-payments-table .apo-payments-amount { color: #1A1816; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.apo-payments-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border: 1px solid #ddd9cf; border-radius: 12px; background: #f1efea; color: #5C574F; font-size: 10px; white-space: nowrap; }
+.apo-payments-status.is-pending { border-color: #ead9b5; background: #fbf4e6; color: #805e22; }
+.apo-payments-status.is-paid { border-color: #c8dece; background: #eff7f0; color: #316746; }
+.apo-payments-status.is-failed, .apo-payments-status.is-cancelled { border-color: #e8cfcc; background: #fbf0ef; color: #9e3832; }
+.apo-payments-status.is-unknown { border-color: #ddd9cf; background: #f1efea; color: #5C574F; }
+.apo-payments-view { display: inline-flex; align-items: center; gap: 5px; padding: 5px 0; border: 0; background: transparent; color: #356b5a; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.apo-payments-view:hover { color: var(--apo-admin-brand, #b3131b); text-decoration: underline; }
+.apo-payments-table-message { height: 150px; color: #5C574F !important; text-align: center; }
+.apo-payments-table-message > div { display: inline-grid; gap: 5px; max-width: 520px; margin-left: 8px; text-align: left; vertical-align: middle; }
+.apo-payments-table-message > div strong { color: #1A1816; font-size: 12px; }
+.apo-payments-table-message > div small { color: #5C574F; font-size: 11px; line-height: 1.5; }
+.apo-payments-table-message svg { margin-right: 5px; vertical-align: middle; }
+.apo-payments-table-message.is-error { color: #805e22 !important; }
+.apo-payments-directory-footer { display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; color: #5C574F; font-size: 11px; }
+.apo-payments-note { display: flex; align-items: flex-start; gap: 6px; margin: -4px 0 0; color: #5C574F; font-size: 11px; line-height: 1.5; }
+.apo-payments-note svg { flex: 0 0 auto; margin-top: 1px; }
+
+.apo-payment-overlay { position: fixed; z-index: 80; inset: 0; display: flex; justify-content: flex-end; }
+.apo-payment-backdrop { position: absolute; inset: 0; border: 0; background: rgb(25 24 21 / 40%); cursor: default; }
+.apo-payment-drawer { position: relative; display: flex; width: min(540px, 95vw); height: 100%; flex-direction: column; border-left: 1px solid #d6d1c6; background: #fbfaf8; box-shadow: -12px 0 36px rgb(25 24 21 / 12%); }
+.apo-payment-drawer-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 15px; border-bottom: 1px solid #d6d1c6; background: #f2f0ec; }
+.apo-payment-drawer-header h2 { margin: 0; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: 22px; font-weight: 500; }
+.apo-payment-drawer-header p:not(.apo-payment-eyebrow) { margin: 4px 0 0; color: #5C574F; font-size: 12px; }
+.apo-payment-close { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #5C574F; cursor: pointer; }
+.apo-payment-drawer-content { flex: 1; overflow-y: auto; padding: 17px 21px; }
+.apo-payment-detail-section { padding: 0 0 15px; margin-bottom: 14px; border-bottom: 1px solid #e2ded6; }
+.apo-payment-section-heading { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; color: #5C574F; }
+.apo-payment-section-heading h3 { margin: 0; color: #1A1816; font-size: 13px; font-weight: 700; }
+.apo-payment-detail-status { display: flex; align-items: center; gap: 9px; padding: 11px; border: 1px solid #ddd9cf; border-radius: 4px; background: #f1efea; color: #5C574F; }
+.apo-payment-detail-status.is-pending { border-color: #ead9b5; background: #fbf4e6; color: #805e22; }
+.apo-payment-detail-status.is-paid { border-color: #c8dece; background: #eff7f0; color: #316746; }
+.apo-payment-detail-status.is-failed, .apo-payment-detail-status.is-cancelled { border-color: #e8cfcc; background: #fbf0ef; color: #9e3832; }
+.apo-payment-detail-status > div { display: grid; gap: 3px; }
+.apo-payment-detail-status strong { font-size: 12px; }
+.apo-payment-detail-status small { color: inherit; font-size: 10px; opacity: .86; }
+.apo-payment-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px 16px; margin: 0; }
+.apo-payment-detail-grid > div { min-width: 0; }
+.apo-payment-detail-grid dt { margin-bottom: 3px; color: #5C574F; font-size: 10px; }
+.apo-payment-detail-grid dd { overflow-wrap: anywhere; margin: 0; color: #1A1816; font-size: 12px; font-weight: 550; }
+.apo-payment-detail-grid .apo-payment-amount { font-size: 16px; font-weight: 700; }
+.apo-payment-detail-grid .apo-payment-reference-field { grid-column: 1 / -1; }
+.apo-payment-capitalize { text-transform: capitalize; }
+.apo-payment-hold-note { display: flex; gap: 8px; margin-bottom: 16px; padding: 11px; border: 1px solid #ead9b5; border-radius: 4px; background: #fbf4e6; color: #75551f; }
+.apo-payment-hold-note svg { flex: 0 0 auto; margin-top: 1px; }
+.apo-payment-hold-note p { margin: 0; font-size: 11px; line-height: 1.5; }
+.apo-payment-hold-note strong { display: block; margin-bottom: 2px; font-size: 12px; }
+.apo-payment-readonly-note { display: flex; gap: 7px; padding: 10px; border: 1px solid #e2ded6; border-radius: 4px; background: #f2f0ec; color: #5C574F; }
+.apo-payment-readonly-note svg { flex: 0 0 auto; }
+.apo-payment-readonly-note p { margin: 0; font-size: 11px; line-height: 1.5; }
+.apo-payment-drawer-footer { display: flex; justify-content: space-between; gap: 10px; padding: 12px 21px; border-top: 1px solid #d6d1c6; background: #fff; }
+.apo-payment-drawer-footer a, .apo-payment-drawer-footer button { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 6px; padding: 0 11px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #356b5a; font: inherit; font-size: 11px; text-decoration: none; cursor: pointer; }
+.apo-payment-drawer-footer button { margin-left: auto; border-color: #292721; background: #292721; color: #fff; }
+.is-spinning { animation: apo-payment-spin 1s linear infinite; }
+@keyframes apo-payment-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 700px) {
+  .apo-payments-header { align-items: flex-start; padding: 17px 0 13px; }
+  .apo-payments-header h1 { font-size: 26px; }
+  .apo-payments-subtitle { max-width: 34ch; font-size: 12px; line-height: 1.45; }
+  .apo-payments-refresh { min-height: 34px; padding: 0 8px; font-size: 11px; }
+  .apo-payments-directory { padding: 12px 10px 9px; }
+  .apo-payments-directory-heading { align-items: flex-start; }
+  .apo-payments-directory-heading > div { display: block; }
+  .apo-payments-directory-heading > div > span { display: block; margin-top: 3px; }
+  .apo-payments-directory-heading > span { text-align: right; }
+  .apo-payments-filters { grid-template-columns: 1fr; }
+  .apo-payments-filters label:not(.apo-payments-search) { grid-template-columns: 50px minmax(0, 1fr); }
+  .apo-payments-directory-footer { flex-direction: column; gap: 4px; }
+  .apo-payment-drawer-header { padding: 16px 14px 12px; }
+  .apo-payment-drawer-content { padding: 14px; }
+  .apo-payment-drawer-footer { padding: 10px 14px; }
+}

@@ -1,4 +1,4 @@
-import { RESULT_THRESHOLDS } from "../constants/screeningConfig";
+import { RESULT_THRESHOLDS } from "../constants/screeningConfig.js";
 
 /*
  * All result wording lives here so no component can say

@@ -1,0 +1,132 @@
+.apo-appointments-page { display: flex; min-width: 0; flex-direction: column; gap: 15px; padding-bottom: 8px; color: var(--apo-admin-ink, #26241f); }
+.apo-appointments-header { display: flex; align-items: end; justify-content: space-between; gap: 18px; padding: 22px 0 16px; border-bottom: 1px solid var(--apo-admin-line, #d6d1c6); }
+.apo-appointments-eyebrow { margin: 0 0 5px; color: var(--apo-admin-brand, #b3131b); font-size: 10px; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
+.apo-appointments-header h1 { margin: 0; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: clamp(27px, 2.7vw, 34px); font-weight: 400; letter-spacing: -.035em; line-height: 1.12; }
+.apo-appointments-subtitle { margin: 6px 0 0; color: #5C574F; font-size: 13px; }
+.apo-appointments-refresh { display: inline-flex; min-height: 37px; align-items: center; justify-content: center; gap: 7px; padding: 0 11px; border: 1px solid var(--apo-admin-line, #d6d1c6); border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 12px; cursor: pointer; }
+.apo-appointments-refresh:disabled { opacity: .6; cursor: wait; }
+.apo-appointments-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); overflow: hidden; border: 1px solid var(--apo-admin-line, #d6d1c6); border-radius: 5px; background: #fff; }
+.apo-appointments-metrics article { position: relative; min-width: 0; min-height: 86px; padding: 12px 15px 11px; }
+.apo-appointments-metrics article + article::before { position: absolute; top: 12px; bottom: 12px; left: 0; border-left: 1px solid var(--apo-admin-line, #d6d1c6); content: ""; }
+.apo-appointments-metrics article > span, .apo-appointments-metrics article small { display: block; color: #5C574F; font-size: 12px; }
+.apo-appointments-metrics article strong { display: block; margin: 4px 0 1px; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: 23px; font-weight: 600; line-height: 1.1; }
+.apo-appointments-metrics article small { color: #5C574F; font-size: 11px; }
+.apo-appointments-metrics article.is-attention strong { color: #966b21; }
+.apo-appointments-directory, .apo-appointments-availability { min-width: 0; padding: 14px 15px 11px; border: 1px solid var(--apo-admin-line, #d6d1c6); border-radius: 5px; background: #fff; }
+.apo-appointments-directory-heading, .apo-appointments-availability-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--apo-admin-line, #d6d1c6); }
+.apo-appointments-directory-heading > div { display: flex; align-items: baseline; gap: 9px; }
+.apo-appointments-directory-heading h2, .apo-appointments-availability-heading h2 { margin: 0; color: #1A1816; font-size: 14px; font-weight: 700; }
+.apo-appointments-directory-heading > div > span, .apo-appointments-sort, .apo-appointments-availability-heading > span { color: #5C574F; font-size: 11px; }
+.apo-appointments-filters { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(160px, .38fr) minmax(150px, .35fr); gap: 9px; padding: 11px 0; }
+.apo-appointments-filters label:not(.apo-appointments-search) { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 7px; color: #5C574F; font-size: 11px; }
+.apo-appointments-filters select, .apo-appointments-search input { width: 100%; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 12px; }
+.apo-appointments-search { display: flex; min-width: 0; align-items: center; gap: 7px; padding-left: 10px; border: 1px solid #d6d1c6; border-radius: 4px; color: #5C574F; }
+.apo-appointments-search input { height: 34px; padding-left: 0; border: 0; outline: 0; }
+.apo-appointments-search:focus-within, .apo-appointments-filters select:focus { border-color: #888277; outline: 2px solid rgb(179 19 27 / 9%); }
+.apo-appointments-table-wrap { overflow-x: auto; border-top: 1px solid #e7e4dd; border-bottom: 1px solid #e7e4dd; }
+.apo-appointments-table { width: 100%; min-width: 760px; border-collapse: collapse; text-align: left; }
+.apo-appointments-table th { padding: 9px 9px; background: #f2f0ec; color: #5C574F; font-size: 10px; font-weight: 700; letter-spacing: .055em; text-transform: uppercase; white-space: nowrap; }
+.apo-appointments-table td { padding: 10px 9px; border-bottom: 1px solid #e9e6df; color: #5C574F; font-size: 12px; vertical-align: middle; }
+.apo-appointments-table tbody tr:last-child td { border-bottom: 0; }
+.apo-appointments-table tbody tr:hover { background: #fbfaf7; }
+.apo-appointments-table td > strong, .apo-appointments-table td > span { display: block; }
+.apo-appointments-table td > strong { color: #1A1816; font-size: 12px; font-weight: 650; }
+.apo-appointments-table td > small { display: flex; align-items: center; gap: 4px; margin-top: 4px; color: #5C574F; font-size: 11px; }
+.apo-appointments-table .apo-appointments-patient { font-weight: 650; }
+.apo-appointments-table .apo-appointments-patient + small { color: #5C574F; }
+.apo-appointment-status { display: inline-flex !important; width: fit-content; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid #ddd9cf; border-radius: 12px; background: #f1efea; color: #5C574F; font-size: 10px !important; white-space: nowrap; }
+.apo-appointment-status i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.apo-appointment-status.is-pending { border-color: #ead9b5; background: #fbf4e6; color: #805e22; }
+.apo-appointment-status.is-confirmed { border-color: #c8dece; background: #eff7f0; color: #316746; }
+.apo-appointment-status.is-completed { border-color: #c8dece; background: #eff7f0; color: #316746; }
+.apo-appointment-status.is-cancelled, .apo-appointment-status.is-no_show { border-color: #e8cfcc; background: #fbf0ef; color: #9e3832; }
+.apo-appointments-view { display: inline-flex; align-items: center; gap: 5px; padding: 5px 0; border: 0; background: transparent; color: #356b5a; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+.apo-appointments-view:hover { color: var(--apo-admin-brand, #b3131b); text-decoration: underline; }
+.apo-appointments-table-message { height: 112px; color: #5C574F !important; text-align: center; }
+.apo-appointments-table-message svg { margin-right: 6px; vertical-align: middle; }
+.apo-appointments-table-message.is-error { color: #9e3832 !important; }
+.apo-appointments-directory-footer { display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; color: #5C574F; font-size: 11px; }
+.apo-appointments-availability-heading { align-items: start; }
+.apo-appointments-availability-heading p { margin: 4px 0 0; color: #5C574F; font-size: 11px; }
+.apo-appointments-availability-heading > span { padding: 4px 7px; border: 1px solid #c8dece; border-radius: 12px; background: #eff7f0; color: #316746; white-space: nowrap; }
+.apo-appointments-slot-days { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding-top: 11px; }
+.apo-appointments-slot-day { min-width: 0; padding: 10px; border: 1px solid #e2ded6; border-radius: 4px; background: #fbfaf8; }
+.apo-appointments-slot-day h3 { margin: 0 0 8px; color: #1A1816; font-size: 12px; font-weight: 650; }
+.apo-appointments-slot-day > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.apo-appointments-slot-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 7px; border: 1px solid #d9d5cc; border-radius: 3px; background: #fff; color: #1A1816; font-size: 11px; }
+.apo-appointments-slot-chip small { color: #5C574F; font-size: 10px; }
+.apo-appointments-availability-empty { display: flex; min-height: 76px; align-items: center; justify-content: center; gap: 7px; color: #5C574F; font-size: 12px; }
+.apo-appointments-schedule-note { display: flex; align-items: flex-start; gap: 6px; margin: 11px 0 0; padding-top: 9px; border-top: 1px solid #e7e4dd; color: #5C574F; font-size: 11px; line-height: 1.45; }
+.apo-appointments-schedule-note svg { flex: 0 0 auto; margin-top: 1px; }
+
+/* Main appointment panels stay distinct with a faint shadow, without outlines. */
+.apo-appointments-metrics,
+.apo-appointments-directory,
+.apo-appointments-availability {
+  border: 0;
+  box-shadow: 0 1px 5px rgb(26 24 22 / 4%);
+}
+
+.apo-appointments-slot-day { border: 0; background: #f6f4ef; }
+
+.apo-appointment-overlay { position: fixed; z-index: 80; inset: 0; display: flex; justify-content: flex-end; }
+.apo-appointment-backdrop { position: absolute; inset: 0; border: 0; background: rgb(25 24 21 / 40%); cursor: default; }
+.apo-appointment-drawer { position: relative; display: flex; width: min(520px, 94vw); height: 100%; flex-direction: column; border-left: 1px solid #d6d1c6; background: #fbfaf8; box-shadow: -12px 0 36px rgb(25 24 21 / 12%); }
+.apo-appointment-drawer-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 22px 23px 16px; border-bottom: 1px solid #d6d1c6; background: #f2f0ec; }
+.apo-appointment-drawer-header h2 { margin: 0; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: 23px; font-weight: 500; }
+.apo-appointment-drawer-header p:not(.apo-appointment-eyebrow) { margin: 4px 0 9px; color: #5C574F; font-size: 12px; }
+.apo-appointment-close { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #5C574F; cursor: pointer; }
+.apo-appointment-drawer-content { flex: 1; overflow-y: auto; padding: 18px 22px; }
+.apo-appointment-detail-section { padding: 0 0 17px; margin-bottom: 16px; border-bottom: 1px solid #e2ded6; }
+.apo-appointment-detail-heading { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; color: #5C574F; }
+.apo-appointment-detail-heading h3 { margin: 0; color: #1A1816; font-size: 13px; font-weight: 700; }
+.apo-appointment-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px 18px; margin: 0; }
+.apo-appointment-detail-grid > div { min-width: 0; }
+.apo-appointment-detail-grid dt { margin-bottom: 4px; color: #5C574F; font-size: 11px; }
+.apo-appointment-detail-grid dd { overflow-wrap: anywhere; margin: 0; color: #1A1816; font-size: 13px; font-weight: 550; }
+.apo-appointment-notes { margin: 0; padding: 10px 11px; border: 1px solid #e2ded6; border-radius: 4px; background: #fff; color: #5C574F; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
+.apo-appointment-clinical-note { display: flex; gap: 8px; padding: 11px; border: 1px solid #e2ded6; border-radius: 4px; background: #f2f0ec; color: #5C574F; }
+.apo-appointment-clinical-note svg { flex: 0 0 auto; }
+.apo-appointment-clinical-note p { margin: 0; font-size: 11px; line-height: 1.5; }
+.apo-appointment-drawer-footer { padding: 14px 22px 17px; border-top: 1px solid #d6d1c6; background: #fff; }
+.apo-appointment-drawer-footer > label { display: block; margin-bottom: 7px; color: #1A1816; font-size: 12px; font-weight: 650; }
+.apo-appointment-status-actions { display: flex; gap: 8px; }
+.apo-appointment-status-actions select { min-width: 0; min-height: 40px; flex: 1; padding: 0 10px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 12px; }
+.apo-appointment-status-actions button { display: inline-flex; min-height: 40px; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; border: 1px solid #292721; border-radius: 4px; background: #292721; color: #fff; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.apo-appointment-status-actions button:disabled { opacity: .55; cursor: not-allowed; }
+.apo-appointment-drawer-footer > small { display: block; margin-top: 7px; color: #5C574F; font-size: 10px; }
+.apo-appointment-closed-note { margin: 0; color: #5C574F; font-size: 12px; }
+.is-spinning { animation: apo-appointment-spin 1s linear infinite; }
+@keyframes apo-appointment-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 900px) {
+  .apo-appointments-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .apo-appointments-metrics article:nth-child(n+3) { border-top: 1px solid var(--apo-admin-line, #d6d1c6); }
+  .apo-appointments-metrics article:nth-child(3)::before { display: none; }
+  .apo-appointments-filters { grid-template-columns: minmax(180px, 1fr) minmax(140px, .75fr); }
+  .apo-appointments-search { grid-column: 1 / -1; }
+  .apo-appointments-slot-days { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .apo-appointments-header { align-items: flex-start; padding: 17px 0 13px; }
+  .apo-appointments-header h1 { font-size: 27px; }
+  .apo-appointments-subtitle { max-width: 35ch; font-size: 12px; line-height: 1.45; }
+  .apo-appointments-refresh { min-height: 34px; padding: 0 8px; font-size: 11px; }
+  .apo-appointments-metrics article { min-height: 77px; padding: 10px; }
+  .apo-appointments-metrics article > span { font-size: 11px; }
+  .apo-appointments-metrics article small { font-size: 10px; }
+  .apo-appointments-directory, .apo-appointments-availability { padding: 12px 10px 9px; }
+  .apo-appointments-directory-heading { align-items: flex-start; }
+  .apo-appointments-directory-heading > div { display: block; }
+  .apo-appointments-directory-heading > div > span { display: block; margin-top: 3px; }
+  .apo-appointments-sort { text-align: right; }
+  .apo-appointments-filters { grid-template-columns: 1fr; }
+  .apo-appointments-search { grid-column: auto; }
+  .apo-appointments-filters label:not(.apo-appointments-search) { grid-template-columns: 48px minmax(0, 1fr); }
+  .apo-appointments-directory-footer { flex-direction: column; gap: 4px; }
+  .apo-appointments-slot-days { grid-template-columns: 1fr; }
+  .apo-appointment-drawer-header { padding: 17px 15px 13px; }
+  .apo-appointment-drawer-content { padding: 15px; }
+  .apo-appointment-drawer-footer { padding: 12px 15px 14px; }
+  .apo-appointment-detail-grid { gap: 11px; }
+}

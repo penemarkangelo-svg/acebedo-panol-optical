@@ -1,5 +1,6 @@
 import { useState } from "react";
 import screeningQuestions from "../data/screeningQuestions";
+import "./VisionTestUI/VisionTest.css";
 
 export default function Questionnaire({
   data = {},
@@ -11,16 +12,6 @@ export default function Questionnaire({
   const [hasAttemptedContinue, setHasAttemptedContinue] =
     useState(false);
 
-  /*
-   * ------------------------------------------------------------
-   * VISIBLE QUESTIONS
-   * ------------------------------------------------------------
-   *
-   * Some questions only appear depending on a previous answer.
-   *
-   * Eye condition details only appear when the user answered
-   * "Yes" to having an eye condition.
-   */
   const visibleQuestions = screeningQuestions.filter((item) => {
     if (item.id === "eyeConditionDetails") {
       return answers.eyeCondition === "Yes";
@@ -204,7 +195,7 @@ export default function Questionnaire({
     }
 
     if (isLastQuestion) {
-      onComplete();
+      onComplete(answers);
       return;
     }
 
@@ -334,16 +325,8 @@ export default function Questionnaire({
                 <label
                   key={option}
                   className={[
-                    "acebedo-choice-label",
-                    "w-full",
-                    "rounded-xl",
-                    "border",
-                    "p-4",
-                    "transition-colors",
-                    "duration-150",
-                    selected
-                      ? "border-[var(--acebedo-red)] bg-[var(--acebedo-red-soft)]"
-                      : "border-[var(--acebedo-border)] bg-[var(--acebedo-surface)] hover:bg-[var(--acebedo-surface-muted)]",
+                    "vision-test__question-choice",
+                    selected ? "is-selected" : "",
                   ].join(" ")}
                 >
                   <input
@@ -381,16 +364,8 @@ export default function Questionnaire({
                 <label
                   key={option}
                   className={[
-                    "acebedo-choice-label",
-                    "w-full",
-                    "rounded-xl",
-                    "border",
-                    "p-4",
-                    "transition-colors",
-                    "duration-150",
-                    checked
-                      ? "border-[var(--acebedo-red)] bg-[var(--acebedo-red-soft)]"
-                      : "border-[var(--acebedo-border)] bg-[var(--acebedo-surface)] hover:bg-[var(--acebedo-surface-muted)]",
+                    "vision-test__question-choice",
+                    checked ? "is-selected" : "",
                   ].join(" ")}
                 >
                   <input
@@ -423,29 +398,12 @@ export default function Questionnaire({
    */
 
   return (
-    <section className="acebedo-card overflow-hidden">
-      {/* ======================================================
-          QUESTION HEADER
-          ====================================================== */}
+    <section className={`vision-test__questionnaire${question.id === "age" ? " is-age-question" : ""}`}>
+      <header className="vision-test__questionnaire-header">
+        <p className="acebedo-eyebrow">{question.section}</p>
+      </header>
 
-      <div className="border-b border-[var(--acebedo-border)] px-6 py-5 sm:px-8">
-        <div>
-          <p className="acebedo-eyebrow">
-            {question.section}
-          </p>
-
-          <p className="mt-1 text-xs text-[var(--acebedo-text-subtle)]">
-            Question {safeQuestionIndex + 1} of{" "}
-            {visibleQuestions.length}
-          </p>
-        </div>
-      </div>
-
-      {/* ======================================================
-          QUESTION CONTENT
-          ====================================================== */}
-
-      <div className="w-full px-6 py-7 sm:px-8 sm:py-9">
+      <div className="vision-test__questionnaire-content">
         <h1
           id={`${question.id}-question`}
           className="acebedo-heading-sm"
@@ -453,7 +411,7 @@ export default function Questionnaire({
           {question.question}
         </h1>
 
-        <div className="mt-7 w-full">
+        <div className="vision-test__questionnaire-input">
           {renderQuestionInput()}
         </div>
 
@@ -464,12 +422,12 @@ export default function Questionnaire({
           ACTIONS
           ====================================================== */}
 
-      <div className="flex items-center justify-between gap-3 border-t border-[var(--acebedo-border)] px-6 py-5 sm:px-8">
+      <footer className="vision-test__questionnaire-actions">
         <button
           type="button"
           onClick={handleBack}
           disabled={isFirstQuestion}
-          className="acebedo-btn acebedo-btn-secondary"
+          className="vision-test__questionnaire-back"
         >
           Back
         </button>
@@ -480,10 +438,10 @@ export default function Questionnaire({
           className="acebedo-btn acebedo-btn-primary"
         >
           {isLastQuestion
-            ? "Continue to Setup"
-            : "Continue"}
+            ? "Continue to setup →"
+            : "Continue →"}
         </button>
-      </div>
+      </footer>
     </section>
   );
 }

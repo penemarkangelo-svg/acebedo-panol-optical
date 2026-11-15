@@ -1,258 +1,189 @@
-import { useState, useEffect } from "react";
-import toast from "react-hot-toast";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { BoxIcon, MagnifierIcon } from "@solar-icons/react/linear";
 import { supabase } from "../../lib/supabaseClient";
+import { PRODUCT_TYPES, getProductCategory, usesVariantStock } from "../../utils/productTypes";
+import "../../styles/AdminDashboard.css";
+import "../../styles/AdminProducts.css";
+
+const money = new Intl.NumberFormat("en-PH", {
+  style: "currency",
+  currency: "PHP",
+  maximumFractionDigits: 2,
+});
+
+function categoryLabel(product) {
+  return PRODUCT_TYPES.find(({ value }) => value === getProductCategory(product))?.label
+    || product?.type
+    || "Uncategorized";
+}
+
+function formatDate(value) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("en-PH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "Asia/Manila",
+  }).format(new Date(value));
+}
+
+function primaryImage(product) {
+  return product.product_images?.find((image) => image.is_primary)?.image_url
+    || product.product_images?.[0]?.image_url
+    || "";
+}
+
+function availableStock(product) {
+  if (usesVariantStock(product.type) && product.product_colors?.length) {
+    return product.product_colors.reduce((total, color) => total + Number(color.stock || 0), 0);
+  }
+  return Number(product.stock || 0);
+}
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
-  const [selectedBrand, setSelectedBrand] = useState("");
-  const [stockFilter, setStockFilter] = useState("all");
-  const [deleteModal, setDeleteModal] = useState({
-    isOpen: false,
-    productId: null,
-    productName: "",
-  });
-  const navigate = useNavigate();
+  const [category, setCategory] = useState("all");
+  const [brandId, setBrandId] = useState("all");
+  const [availability, setAvailability] = useState("all");
+  const [sortBy, setSortBy] = useState("newest");
 
   useEffect(() => {
-    fetchProducts();
-    fetchBrands();
+    let current = true;
+
+    async function loadCatalog() {
+      setLoading(true);
+      const [productsResult, brandsResult] = await Promise.all([
+        supabase
+          .from("products")
+          .select("*, brands(name), product_images(image_url, is_primary), product_colors(stock)")
+          .order("created_at", { ascending: false }),
+        supabase.from("brands").select("id, name").order("name"),
+      ]);
+
+      if (!current) return;
+      if (productsResult.error) {
+        setLoadError(true);
+        setProducts([]);
+      } else {
+        setLoadError(false);
+        setProducts(productsResult.data || []);
+      }
+      setBrands(brandsResult.data || []);
+      setLoading(false);
+    }
+
+    loadCatalog();
+    return () => { current = false; };
   }, []);
 
-  const fetchProducts = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("products")
-      .select(
-        `
-        *,
-        brands (name),
-        frame_shapes (name),
-        frame_materials (name),
-        product_images (image_url, is_primary)
-      `,
-      )
-      .order("created_at", { ascending: false });
-    if (error) {
-      toast.error("Failed to load products.");
-      console.error(error);
-    } else {
-      setProducts(data || []);
-    }
-    setLoading(false);
-  };
+  const filteredProducts = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    const rows = products.filter((product) => {
+      const matchesSearch = !normalizedSearch
+        || String(product.name || "").toLowerCase().includes(normalizedSearch)
+        || String(product.id).toLowerCase().includes(normalizedSearch);
+      const matchesCategory = category === "all" || getProductCategory(product) === category;
+      const matchesBrand = brandId === "all" || String(product.brand_id || "") === brandId;
+      const hasStock = Number(product.stock || 0) > 0;
+      const matchesAvailability = availability === "all"
+        || (availability === "available" && hasStock)
+        || (availability === "out" && !hasStock);
+      return matchesSearch && matchesCategory && matchesBrand && matchesAvailability;
+    });
 
-  const fetchBrands = async () => {
-    const { data, error } = await supabase
-      .from("brands")
-      .select("id, name")
-      .order("name");
-    if (!error) setBrands(data || []);
-  };
+    return rows.sort((a, b) => {
+      if (sortBy === "name") return String(a.name || "").localeCompare(String(b.name || ""));
+      if (sortBy === "price-low") return Number(a.price || 0) - Number(b.price || 0);
+      if (sortBy === "price-high") return Number(b.price || 0) - Number(a.price || 0);
+      if (sortBy === "oldest") return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
+  }, [products, search, category, brandId, availability, sortBy]);
 
-  const openDeleteModal = (id, name) => {
-    setDeleteModal({ isOpen: true, productId: id, productName: name });
-  };
-
-  const confirmDelete = async () => {
-    const { productId, productName } = deleteModal;
-    if (!productId) return;
-    const { error } = await supabase
-      .from("products")
-      .delete()
-      .eq("id", productId);
-    if (error) {
-      // Foreign key violation (product still referenced in cart_items)
-      if (error.code === "23503") {
-        toast.error(
-          `Cannot delete "${productName}" because it is still referenced in customer carts. Remove it from all carts first or contact support.`,
-        );
-      } else {
-        toast.error(error.message);
-      }
-    } else {
-      toast.success(`Product "${productName}" deleted successfully.`);
-      fetchProducts();
-    }
-    setDeleteModal({ isOpen: false, productId: null, productName: "" });
-  };
-
-  const closeDeleteModal = () => {
-    setDeleteModal({ isOpen: false, productId: null, productName: "" });
-  };
-
-  // Filter products
-  const filteredProducts = products.filter((product) => {
-    if (search && !product.name.toLowerCase().includes(search.toLowerCase()))
-      return false;
-    if (selectedBrand && product.brand_id !== parseInt(selectedBrand))
-      return false;
-    if (stockFilter === "inStock" && product.stock <= 0) return false;
-    if (stockFilter === "outOfStock" && product.stock > 0) return false;
-    return true;
-  });
-
-  const getPrimaryImage = (product) => {
-    const primary = product.product_images?.find((img) => img.is_primary);
-    return (
-      primary?.image_url ||
-      product.product_images?.[0]?.image_url ||
-      "https://placehold.co/60"
-    );
-  };
-
-  if (loading) {
-    return <div className="text-center py-10">Loading products...</div>;
-  }
+  const inStockCount = products.filter((product) => availableStock(product) > 0).length;
+  const outOfStockCount = products.length - inStockCount;
+  const brandCount = new Set(products.map((product) => product.brand_id).filter(Boolean)).size;
+  const productTypeCount = new Set(products.map(getProductCategory).filter(Boolean)).size;
+  const metrics = [
+    ["Total products", products.length, "In the product catalog"],
+    ["Available", inStockCount, "Products with stock on hand"],
+    ["Out of stock", outOfStockCount, "No stock on hand"],
+    ["Brands", brandCount, "Represented in the catalog"],
+    ["Product types", productTypeCount, "Current catalog types"],
+  ];
 
   return (
-    <>
-      <div>
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Products</h1>
-          <Link
-            to="/admin/products/new"
-            className="bg-[#D32F2F] text-white px-4 py-2 rounded-lg hover:bg-[#B71C1C]"
-          >
-            + Add Product
-          </Link>
+    <div className="apo-dashboard apo-products-page">
+      <header className="apo-dashboard-header apo-products-header">
+        <div className="apo-dashboard-topbar" aria-hidden="true" />
+        <div className="apo-dashboard-title-row">
+          <div>
+            <p className="apo-dashboard-eyebrow">Commerce</p>
+            <h1>Product Management</h1>
+            <p className="apo-products-subtitle">Manage product details, images, variants, and availability.</p>
+          </div>
+          <Link to="/admin/products/new" className="apo-dashboard-primary-action">+ Add new product</Link>
+        </div>
+      </header>
+
+      <section className="apo-products-metrics" aria-label="Catalog overview">
+        {metrics.map(([label, value, detail], index) => (
+          <article className={`apo-products-metric${index === 0 ? " is-highlighted" : ""}`} key={label}>
+            <span>{label}</span>
+            <strong>{loading || loadError ? "—" : value}</strong>
+            <small>{loadError ? "Catalog information unavailable" : detail}</small>
+          </article>
+        ))}
+      </section>
+
+      <section className="apo-dashboard-panel apo-products-catalog">
+        <div className="apo-panel-heading apo-products-heading">
+          <div><h2>Product catalog</h2><p>Search and review products in the catalog</p></div>
+          <span className="apo-panel-count">{loading || loadError ? "—" : `${filteredProducts.length} products`}</span>
         </div>
 
-        {/* Filters Bar */}
-        <div className="mb-6 flex flex-wrap gap-3 items-center bg-white p-3 rounded-lg shadow">
-          <div className="flex-1 min-w-[200px]">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#D32F2F]"
-            />
-          </div>
-          <select
-            value={selectedBrand}
-            onChange={(e) => setSelectedBrand(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#D32F2F]"
-          >
-            <option value="">All Brands</option>
-            {brands.map((brand) => (
-              <option key={brand.id} value={brand.id}>
-                {brand.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={stockFilter}
-            onChange={(e) => setStockFilter(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#D32F2F]"
-          >
-            <option value="all">All Stock</option>
-            <option value="inStock">In Stock (&gt;0)</option>
-            <option value="outOfStock">Out of Stock (0)</option>
-          </select>
+        <div className="apo-products-filters">
+          <label className="apo-products-search"><MagnifierIcon size={16} aria-hidden="true" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search product name or ID" aria-label="Search by product name or ID" /></label>
+          <label className="apo-products-select"><span className="apo-products-sr-only">Filter by category</span><select value={category} onChange={(event) => setCategory(event.target.value)}><option value="all">All categories</option>{PRODUCT_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
+          <label className="apo-products-select"><span className="apo-products-sr-only">Filter by brand</span><select value={brandId} onChange={(event) => setBrandId(event.target.value)}><option value="all">All brands</option>{brands.map((brand) => <option key={brand.id} value={String(brand.id)}>{brand.name}</option>)}</select></label>
+          <label className="apo-products-select"><span className="apo-products-sr-only">Filter by availability</span><select value={availability} onChange={(event) => setAvailability(event.target.value)}><option value="all">All availability</option><option value="available">Available</option><option value="out">Out of stock</option></select></label>
+          <label className="apo-products-select apo-products-sort"><span className="apo-products-sr-only">Sort products</span><select value={sortBy} onChange={(event) => setSortBy(event.target.value)}><option value="newest">Sort: newest</option><option value="oldest">Sort: oldest</option><option value="name">Sort: name</option><option value="price-low">Sort: price low to high</option><option value="price-high">Sort: price high to low</option></select></label>
         </div>
 
-        {filteredProducts.length === 0 ? (
-          <p className="text-gray-500 text-center py-12">
-            No products match the filters.
-          </p>
-        ) : (
-          <div className="bg-white rounded-xl shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Image
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Brand
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Price
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Stock
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredProducts.map((product) => (
-                  <tr key={product.id}>
-                    <td className="px-6 py-4">
-                      <img
-                        src={getPrimaryImage(product)}
-                        alt={product.name}
-                        className="w-12 h-12 object-cover rounded"
-                      />
-                    </td>
-                    <td className="px-6 py-4 font-medium">{product.name}</td>
-                    <td className="px-6 py-4">{product.brands?.name || "-"}</td>
-                    <td className="px-6 py-4">
-                      ₱{Number(product.price).toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4">{product.stock}</td>
-                    <td className="px-6 py-4 space-x-2">
-                      <Link
-                        to={`/admin/products/${product.id}/edit`}
-                        className="text-blue-600 hover:underline"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        onClick={() =>
-                          openDeleteModal(product.id, product.name)
-                        }
-                        className="text-red-600 hover:underline"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {deleteModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-[#212529] mb-2">
-              Confirm Delete
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete the product{" "}
-              <strong>{deleteModal.productName}</strong>? This action cannot be
-              undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={closeDeleteModal}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+        <div className="apo-products-table-wrap apo-admin-fit-table-wrap">
+          <table className="apo-products-table apo-admin-fit-table">
+            <thead><tr><th>Product</th><th>Product ID</th><th>Category</th><th>Brand</th><th>Price</th><th>Availability</th><th>Date added</th><th>Actions</th></tr></thead>
+            <tbody>
+              {loading ? <tr><td className="apo-products-table-message" colSpan="8">Loading product catalog…</td></tr>
+                : loadError ? <tr><td className="apo-products-table-message" colSpan="8">Product information could not be loaded.</td></tr>
+                  : filteredProducts.length === 0 ? <tr><td className="apo-products-table-message" colSpan="8">No products match these filters.</td></tr>
+                    : filteredProducts.map((product) => {
+                      const image = primaryImage(product);
+                      const available = availableStock(product) > 0;
+                      return <tr key={product.id}>
+                        <td><div className="apo-products-product-cell">{image ? <img src={image} alt="" loading="lazy" /> : <span className="apo-products-image-placeholder"><BoxIcon size={18} aria-hidden="true" /></span>}<strong>{product.name}</strong></div></td>
+                        <td className="apo-products-id">#{product.id}</td>
+                        <td>{categoryLabel(product)}</td>
+                        <td>{product.brands?.name || "—"}</td>
+                        <td className="apo-products-price">{money.format(Number(product.price || 0))}</td>
+                        <td><span className={`apo-products-availability${available ? " is-available" : " is-unavailable"}`}>{available ? "Available" : "Out of stock"}</span></td>
+                        <td>{formatDate(product.created_at)}</td>
+                        <td><div className="apo-products-actions"><Link to={`/product/${product.id}`} target="_blank" rel="noreferrer">View</Link><Link to={`/admin/products/${product.id}/edit`}>Edit</Link></div></td>
+                      </tr>;
+                    })}
+            </tbody>
+          </table>
         </div>
-      )}
-    </>
+        <footer className="apo-products-footer">
+          <span>{loadError ? "Check your connection and try again." : "Availability is based on current stock."}</span>
+          <span>{loading || loadError ? "" : `Showing ${filteredProducts.length} of ${products.length} products`}</span>
+        </footer>
+      </section>
+    </div>
   );
 }

@@ -1,0 +1,212 @@
+.order-history {
+  color: #1A1816;
+  font-family: inherit;
+}
+
+.order-history--standalone {
+  min-height: 70vh;
+  padding: 38px 24px 64px;
+  background: #F8F7F4;
+}
+
+.order-history__inner {
+  width: min(100%, 1020px);
+  margin: 0 auto;
+}
+
+.order-history__heading {
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #D6D3CE;
+}
+
+.order-history__eyebrow {
+  margin: 0 0 5px;
+  color: #5C574F;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .1em;
+}
+
+.order-history__heading h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 30px;
+  font-weight: 400;
+}
+
+.order-history__heading > p:last-child {
+  margin: 6px 0 0;
+  color: #5C574F;
+  font-size: 13px;
+}
+
+.order-history__filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #D6D3CE;
+}
+
+.order-history__filter {
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  color: #5C574F;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.order-history__filter:hover { background: #EFEBE4; color: #1A1816; }
+.order-history__filter.is-active { background: #F5E0DF; color: #9D2029; font-weight: 600; }
+
+.order-history__list {
+  display: grid;
+  max-height: min(62vh, 620px);
+  gap: 14px;
+  overflow-y: auto;
+  padding: 0 8px 8px 0;
+  overscroll-behavior: contain;
+  scrollbar-color: #C9C5BC transparent;
+  scrollbar-width: thin;
+}
+
+.order-history__list::-webkit-scrollbar { width: 5px; }
+.order-history__list::-webkit-scrollbar-track { background: transparent; }
+.order-history__list::-webkit-scrollbar-thumb { border-radius: 99px; background: #C9C5BC; }
+.order-history__list::-webkit-scrollbar-thumb:hover { background: #A9A397; }
+
+.order-history__card {
+  overflow: hidden;
+  border-radius: 6px;
+  background: #FFF;
+  box-shadow: 0 1px 5px rgb(26 24 22 / 4%);
+}
+
+.order-history__card-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px 11px;
+}
+
+.order-history__order-meta { display: grid; gap: 3px; min-width: 0; }
+.order-history__order-meta strong { font-size: 12px; font-weight: 600; }
+.order-history__order-meta span { color: #5C574F; font-size: 11px; }
+
+.order-history__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.order-history__status--success { background: #E7F0EA; color: #315E48; }
+.order-history__status--pending { background: #F5EBD4; color: #765514; }
+.order-history__status--progress { background: #E9EEF1; color: #435B68; }
+.order-history__status--cancelled { background: #F7E6E5; color: #9A3434; }
+.order-history__status--review { background: #F5EBD4; color: #765514; }
+.order-history__total { font-size: 14px; font-weight: 600; white-space: nowrap; }
+
+.order-history__items { padding: 0 10px; }
+
+.order-history__item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 6px;
+  border-top: 1px solid #EEECE7;
+}
+
+.order-history__thumb {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 4px;
+  background: #F4F1EB;
+}
+
+.order-history__thumb img { width: 100%; height: 100%; object-fit: cover; }
+.order-history__thumb-placeholder { padding: 4px; color: #777168; font-size: 8px; text-align: center; }
+.order-history__product { min-width: 0; }
+.order-history__product h2 { margin: 0; font-size: 12px; font-weight: 600; }
+.order-history__product p { margin: 3px 0 0; color: #5C574F; font-size: 10px; line-height: 1.45; }
+.order-history__rx { display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; color: #5C574F; font-size: 9px; }
+.order-history__rx svg { width: 10px; height: 10px; }
+.order-history__item-total { color: #5C574F; font-size: 11px; font-weight: 500; white-space: nowrap; }
+
+.order-history__card-footer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 38px;
+  padding: 7px 12px;
+  border-top: 1px solid #EEECE7;
+}
+
+.order-history__details-link {
+  color: #B8242F;
+  font-size: 10px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.order-history__details-link:hover { color: #8F1B24; text-decoration: underline; }
+.order-history__retry-button {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 4px;
+  background: #B8242F;
+  color: #FFF;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms ease, opacity 140ms ease;
+}
+.order-history__retry-button:hover { background: #9A1C26; }
+.order-history__retry-button:disabled { cursor: wait; opacity: .65; }
+.order-history__payment-note { color: #5C574F; font-size: 10px; }
+.order-history__fulfillment { margin-left: auto; color: #5C574F; font-size: 10px; }
+.order-history__item-count { color: #5C574F; font-size: 10px; white-space: nowrap; }
+
+.order-history__empty {
+  padding: 36px 20px;
+  border: 1px solid #E2DED7;
+  border-radius: 6px;
+  background: #FFF;
+  text-align: center;
+}
+
+.order-history__empty h2 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 21px; font-weight: 400; }
+.order-history__empty p { margin: 7px 0 14px; color: #5C574F; font-size: 12px; }
+.order-history__empty a { color: #B8242F; font-size: 12px; font-weight: 600; text-decoration: none; }
+.order-history__empty a:hover { text-decoration: underline; }
+
+.order-history__loading { display: flex; min-height: 220px; align-items: center; justify-content: center; color: #5C574F; font-size: 13px; }
+
+@media (max-width: 600px) {
+  .order-history--standalone { padding: 24px 14px 42px; }
+  .order-history__heading h1 { font-size: 26px; }
+  .order-history__card-header { grid-template-columns: minmax(0, 1fr) auto; gap: 7px 10px; }
+  .order-history__status { grid-column: 1; grid-row: 2; justify-self: start; }
+  .order-history__total { grid-column: 2; grid-row: 1 / span 2; }
+  .order-history__card-footer { flex-wrap: wrap; gap: 8px 12px; }
+  .order-history__payment-note { flex-basis: 100%; }
+  .order-history__fulfillment { margin-left: auto; }
+}

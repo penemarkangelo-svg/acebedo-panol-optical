@@ -1,0 +1,23 @@
+.apo-optometrist-shell .apo-admin-nav { gap: 1.25rem; }
+.apo-optometrist-shell .apo-admin-nav-group { display: grid; gap: 0.35rem; }
+.apo-optometrist-shell .apo-admin-nav-link.is-disabled { color: var(--apo-muted, #77736b); cursor: not-allowed; opacity: .72; }
+.apo-optometrist-shell .apo-admin-nav-link.is-disabled small { margin-left: auto; font-size: .7rem; }
+.apo-optometrist-main { min-width: 0; }
+.apo-optometrist-page { width: min(100%, 1120px); margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.5rem); color: #1A1816; }
+.apo-optometrist-header { padding-bottom: 1.5rem; border-bottom: 1px solid #dedbd3; }
+.apo-optometrist-eyebrow { margin: 0 0 .45rem; color: #B8242F; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.apo-optometrist-page h1 { margin: 0; font-family: Georgia, serif; font-size: clamp(2rem, 4vw, 2.7rem); font-weight: 400; }
+.apo-optometrist-lead { max-width: 68ch; margin: .6rem 0 0; color: #5C574F; font-size: 1rem; line-height: 1.6; }
+.apo-optometrist-task-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: 1.5rem; }
+.apo-optometrist-task { display: flex; min-height: 100px; align-items: center; gap: 1rem; padding: 1.1rem; border: 1px solid #dedbd3; border-radius: 10px; background: #fff; color: inherit; text-decoration: none; transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+.apo-optometrist-task:hover { border-color: #b9b3a9; background: #faf9f6; box-shadow: 0 5px 15px #26252112; transform: translateY(-1px); }
+.apo-optometrist-task:focus-visible { outline: 3px solid #b3131b; outline-offset: 3px; }
+.apo-optometrist-task-icon { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 9px; background: #f7ebeb; color: #B8242F; }
+.apo-optometrist-task-icon svg { width: 22px; height: 22px; }
+.apo-optometrist-task strong, .apo-optometrist-task small { display: block; }
+.apo-optometrist-task strong { font-size: 1rem; }
+.apo-optometrist-task small { margin-top: .3rem; color: #5C574F; font-size: .9rem; line-height: 1.45; }
+.apo-optometrist-task-arrow { margin-left: auto; color: #5C574F; font-size: 1.2rem; }
+.apo-optometrist-notice { margin-top: 1.25rem; padding: 1rem 1.1rem; border-left: 3px solid #b9b3a9; background: #f3f2ef; color: #1A1816; }
+.apo-optometrist-notice p { margin: .35rem 0 0; color: #5C574F; line-height: 1.55; }
+@media (max-width: 700px) { .apo-optometrist-task-list { grid-template-columns: 1fr; } }

@@ -1,17 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { GlassesIcon } from "@solar-icons/react/linear";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import TryOnModal from "../components/TryOnModal";
 import { supabase } from "../lib/supabaseClient";
+import { getProductCategory, usesVariantStock } from "../utils/productTypes";
 import "../styles/shop.css";
 
-const ITEMS_PER_PAGE = 6;
+const ITEMS_PER_PAGE = 9;
 const MAX_PRICE = 5000;
 
 export default function ShopPage() {
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
+  const [tryOnProduct, setTryOnProduct] = useState(null);
   const [brands, setBrands] = useState([]);
   const [shapes, setShapes] = useState([]);
   const [materials, setMaterials] = useState([]);
@@ -140,15 +144,13 @@ export default function ShopPage() {
     ? filteredBrands
     : filteredBrands.slice(0, 6);
 
-  const filteredProducts = products.filter((product) => {
-    if (productType === "all" && product.type !== "frame") {
-      return false;
-    }
+  const productTypeLabel = productType === "all"
+    ? "products"
+    : productType;
 
-    if (
-      productType === "accessories" &&
-      product.type !== "accessory"
-    ) {
+  const filteredProducts = products.filter((product) => {
+    const selectedCategory = productType === "accessories" ? "accessory" : productType;
+    if (productType !== "all" && getProductCategory(product) !== selectedCategory) {
       return false;
     }
 
@@ -166,10 +168,10 @@ export default function ShopPage() {
 
     const priceMatch = Number(product.price) <= maxPrice;
 
-    const stockMatch =
-      !inStockOnly && product.type === "frame"
-        ? true
-        : !inStockOnly || Number(product.stock) > 0;
+    const stockAvailable = usesVariantStock(product.type)
+      ? (product.product_colors || []).some((color) => Number(color.stock || 0) > 0)
+      : Number(product.stock || 0) > 0;
+    const stockMatch = !inStockOnly || stockAvailable;
 
     return (
       brandMatch &&
@@ -269,7 +271,7 @@ export default function ShopPage() {
                   resetPage();
                 }}
               >
-                All frames
+                All products
               </button>
 
               <button
@@ -316,11 +318,20 @@ export default function ShopPage() {
               >
                 Accessories
               </button>
+              <button
+                type="button"
+                className={`shop-tab ${productType === "eyedrops" ? "shop-tab--active" : ""}`}
+                onClick={() => {
+                  setProductType("eyedrops");
+                  resetPage();
+                }}
+              >
+                Eyedrops
+              </button>
             </div>
 
             <p className="shop-collection__statement">
-              {filteredProducts.length} thoughtfully selected{" "}
-              {productType === "accessories" ? "accessories" : "frames"}
+              {filteredProducts.length} thoughtfully selected {productTypeLabel}
             </p>
           </div>
 
@@ -339,8 +350,7 @@ export default function ShopPage() {
               </button>
 
               <span className="shop-toolbar__count">
-                {filteredProducts.length}{" "}
-                {productType === "accessories" ? "accessories" : "frames"}
+                {filteredProducts.length} {productTypeLabel}
               </span>
             </div>
 
@@ -547,11 +557,7 @@ export default function ShopPage() {
               {filteredProducts.length === 0 ? (
                 <div className="shop-empty">
                   <h2>
-                    No{" "}
-                    {productType === "accessories"
-                      ? "accessories"
-                      : "frames"}{" "}
-                    found
+                    No {productTypeLabel} found
                   </h2>
 
                   <p>
@@ -624,15 +630,15 @@ export default function ShopPage() {
 
                             <button
                               type="button"
-                              className="shop-product__quick-view"
-                              onClick={() =>
-                                navigate(
-                                  `/product/${product.id}`
-                                )
-                              }
+                              className="shop-product__try-on"
+                              onClick={() => usesVariantStock(product.type)
+                                ? setTryOnProduct(product)
+                                : navigate(`/product/${product.id}`)}
                             >
-                              <span aria-hidden="true">+</span>
-                              Quick view
+                              {usesVariantStock(product.type) ? <>
+                                <GlassesIcon size={15} aria-hidden="true" />
+                                Try-on
+                              </> : "View details"}
                             </button>
                           </div>
 
@@ -715,9 +721,7 @@ export default function ShopPage() {
                         ITEMS_PER_PAGE
                       )}{" "}
                       of {filteredProducts.length}{" "}
-                      {productType === "accessories"
-                        ? "accessories"
-                        : "frames"}
+                      {productTypeLabel}
                     </p>
 
                     <span
@@ -735,9 +739,7 @@ export default function ShopPage() {
                         }
                       >
                         Discover more{" "}
-                        {productType === "accessories"
-                          ? "accessories"
-                          : "frames"}
+                        {productTypeLabel}
                         <span aria-hidden="true">→</span>
                       </button>
                     ) : (
@@ -750,9 +752,7 @@ export default function ShopPage() {
                         }}
                       >
                         Discover more{" "}
-                        {productType === "accessories"
-                          ? "accessories"
-                          : "frames"}
+                        {productTypeLabel}
                         <span aria-hidden="true">→</span>
                       </button>
                     )}
@@ -765,6 +765,10 @@ export default function ShopPage() {
       </main>
 
       <Footer />
+      {tryOnProduct && <TryOnModal
+        product={tryOnProduct}
+        onClose={() => setTryOnProduct(null)}
+      />}
     </>
   );
 }

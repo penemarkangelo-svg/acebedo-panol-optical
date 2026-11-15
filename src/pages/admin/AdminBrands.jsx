@@ -114,7 +114,7 @@ export default function AdminBrands() {
     <>
       <div>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-[#212529]">Manage Brands</h1>
+          <h1 className="text-2xl font-bold text-[#1A1816]">Manage Brands</h1>
           <button
             onClick={() => setAdding(true)}
             className="bg-[#D32F2F] text-white px-4 py-2 rounded-lg hover:bg-[#B71C1C]"
@@ -242,7 +242,7 @@ export default function AdminBrands() {
       {deleteModal.isOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-[#212529] mb-2">
+            <h3 className="text-lg font-semibold text-[#1A1816] mb-2">
               Confirm Delete
             </h3>
             <p className="text-gray-600 mb-6">

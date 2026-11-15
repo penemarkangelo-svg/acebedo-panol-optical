@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import VisionTestLayout from "./VisionTestUI/VisionTestLayout";
-import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
+import { FaceLandmarker, FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
 import {
   MEDIAPIPE,
   POSITION_MONITOR,
@@ -11,6 +11,7 @@ import {
   getRelativeFaceMetrics,
   smoothMetrics,
 } from "../utils/facePosition";
+import { isEyeCoveredByHand, updateHandCoverConfidence } from "../utils/eyeCover.js";
 import {
   CheckCircleIcon,
   EyeIcon,
@@ -21,11 +22,16 @@ const EYES = ["right", "left"];
 const RESULT_KEY = SESSION_KEYS.clockDial;
 const HOURS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
-const { wasmUrl: MEDIAPIPE_WASM_URL, modelUrl: FACE_MODEL_URL } = MEDIAPIPE;
+const { wasmUrl: MEDIAPIPE_WASM_URL, modelUrl: FACE_MODEL_URL, handModelUrl: HAND_MODEL_URL } = MEDIAPIPE;
 
 const {
   checkIntervalMs: FACE_CHECK_INTERVAL,
   eyeCoveredThreshold: EYE_COVERED_THRESHOLD,
+  handEyeOverlapThreshold: HAND_EYE_OVERLAP_THRESHOLD,
+  handCoverConfirmScore: HAND_COVER_CONFIRM_SCORE,
+  handCoverMaxScore: HAND_COVER_MAX_SCORE,
+  handCoverMissDecay: HAND_COVER_MISS_DECAY,
+  handDetectionConfidence: HAND_DETECTION_CONFIDENCE,
   warningConfirmMs: MOVEMENT_WARNING_CONFIRMATION_MS,
   pauseConfirmMs: MOVEMENT_PAUSE_CONFIRMATION_MS,
   faceLostMs: FACE_LOST_CONFIRMATION_MS,
@@ -137,6 +143,7 @@ export default function ClockDial({ onContinue, onComplete }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const faceLandmarkerRef = useRef(null);
+  const handLandmarkerRef = useRef(null);
   const faceAnimationRef = useRef(null);
   const lastFaceDetectionRef = useRef(0);
 
@@ -151,6 +158,7 @@ export default function ClockDial({ onContinue, onComplete }) {
   const savedBaselineRef = useRef(null);
   const localBaselineRef = useRef(null);
   const eyeCoverWarningRef = useRef("");
+  const coveredEyeConfidenceRef = useRef({ left: 0, right: 0 });
   const currentEyeRef = useRef(EYES[0]);
 
   const [viewingPosition] = useState(() =>
@@ -236,6 +244,13 @@ export default function ClockDial({ onContinue, onComplete }) {
           // ignore cleanup errors
         }
       }
+      if (handLandmarkerRef.current) {
+        try {
+          handLandmarkerRef.current.close();
+        } catch {
+          // ignore cleanup errors
+        }
+      }
     };
   }, [viewingPosition]);
 
@@ -270,26 +285,41 @@ export default function ClockDial({ onContinue, onComplete }) {
         MEDIAPIPE_WASM_URL
       );
 
-      const landmarker = await FaceLandmarker.createFromOptions(vision, {
-        baseOptions: {
-          modelAssetPath: FACE_MODEL_URL,
-          delegate: "GPU",
-        },
-        runningMode: "VIDEO",
-        numFaces: 2,
-        minFaceDetectionConfidence: 0.6,
-        minFacePresenceConfidence: 0.6,
-        minTrackingConfidence: 0.6,
-        outputFaceBlendshapes: true,
-        outputFacialTransformationMatrixes: false,
-      });
+      const [landmarker, handLandmarker] = await Promise.all([
+        FaceLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: FACE_MODEL_URL,
+            delegate: "GPU",
+          },
+          runningMode: "VIDEO",
+          numFaces: 2,
+          minFaceDetectionConfidence: 0.6,
+          minFacePresenceConfidence: 0.6,
+          minTrackingConfidence: 0.6,
+          outputFaceBlendshapes: true,
+          outputFacialTransformationMatrixes: false,
+        }),
+        HandLandmarker.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: HAND_MODEL_URL,
+            delegate: "GPU",
+          },
+          runningMode: "VIDEO",
+          numHands: 2,
+          minHandDetectionConfidence: HAND_DETECTION_CONFIDENCE,
+          minHandPresenceConfidence: HAND_DETECTION_CONFIDENCE,
+          minTrackingConfidence: HAND_DETECTION_CONFIDENCE,
+        }),
+      ]);
 
       if (!mountedRef.current) {
         landmarker.close();
+        handLandmarker.close();
         return;
       }
 
       faceLandmarkerRef.current = landmarker;
+      handLandmarkerRef.current = handLandmarker;
       setFaceTrackingReady(true);
     } catch (error) {
       console.error("Clock dial camera/tracking error:", error);
@@ -357,6 +387,7 @@ export default function ClockDial({ onContinue, onComplete }) {
 
       try {
         const result = landmarker.detectForVideo(video, now);
+        const hands = handLandmarkerRef.current?.detectForVideo(video, now)?.landmarks || [];
         const faces = result?.faceLandmarks || [];
 
         if (faces.length === 0) {
@@ -414,7 +445,9 @@ export default function ClockDial({ onContinue, onComplete }) {
 
         const blendshapes = result.faceBlendshapes?.[0]?.categories;
 
-        if (blendshapes && localBaselineRef.current) {
+        if (localBaselineRef.current && !blendshapes) {
+          coverWarning = "We can't verify your eyes right now. Please face the camera.";
+        } else if (blendshapes && localBaselineRef.current) {
           const rawLeft =
             blendshapes.find(
               (category) => category.categoryName === "eyeBlinkLeft"
@@ -436,18 +469,27 @@ export default function ClockDial({ onContinue, onComplete }) {
           const left = smoothed.blink.left;
           const right = smoothed.blink.right;
 
-          if (currentEyeRef.current === "right") {
-            if (left < EYE_COVERED_THRESHOLD) {
-              coverWarning = "Please close your left eye to continue.";
-            } else if (right > EYE_COVERED_THRESHOLD) {
-              coverWarning = "Please keep your testing eye (right) open.";
-            }
-          } else {
-            if (right < EYE_COVERED_THRESHOLD) {
-              coverWarning = "Please close your right eye to continue.";
-            } else if (left > EYE_COVERED_THRESHOLD) {
-              coverWarning = "Please keep your testing eye (left) open.";
-            }
+          const coveredEye = currentEyeRef.current === "right" ? "left" : "right";
+          const overlapDetected = isEyeCoveredByHand(
+            faces[0],
+            hands,
+            coveredEye,
+            HAND_EYE_OVERLAP_THRESHOLD
+          );
+          coveredEyeConfidenceRef.current[coveredEye] = updateHandCoverConfidence(
+            coveredEyeConfidenceRef.current[coveredEye],
+            overlapDetected,
+            HAND_COVER_MAX_SCORE,
+            HAND_COVER_MISS_DECAY
+          );
+          const handCoverConfirmed =
+            coveredEyeConfidenceRef.current[coveredEye] >= HAND_COVER_CONFIRM_SCORE;
+          if (!handCoverConfirmed) {
+            coverWarning = `Please cover your ${coveredEye} eye with your hand.`;
+          } else if (currentEyeRef.current === "right" && right > EYE_COVERED_THRESHOLD) {
+            coverWarning = "Please keep your testing eye (right) open.";
+          } else if (currentEyeRef.current === "left" && left > EYE_COVERED_THRESHOLD) {
+            coverWarning = "Please keep your testing eye (left) open.";
           }
         }
 

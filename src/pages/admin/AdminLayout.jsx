@@ -1,87 +1,71 @@
-import { useEffect, useState } from "react";
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { supabase } from "../../lib/supabaseClient";
 import {
-  HiOutlineCube,
-  HiOutlineShoppingBag,
-  HiOutlineTruck,
-  HiOutlineCalendar,
-  HiOutlineEye,
-  HiOutlineUsers,
-  HiOutlineCurrencyDollar,
-} from "react-icons/hi";
+  BagIcon,
+  BoxIcon,
+  CalendarIcon,
+  CardIcon,
+  ChartIcon,
+  DocumentTextIcon,
+  DollarIcon,
+  EyeIcon,
+  GalleryIcon,
+  ShopIcon,
+  SettingsIcon,
+  UsersGroupRoundedIcon,
+  WidgetIcon,
+} from "@solar-icons/react/linear";
 
 const navItems = [
-  { name: "Products", path: "/admin/products", icon: HiOutlineCube },
-  { name: "Brands", path: "/admin/brands", icon: HiOutlineShoppingBag },
-  { name: "Lens Pricing",path: "/admin/lens-pricing",icon: HiOutlineCurrencyDollar,},
-  { name: "Orders", path: "/admin/orders", icon: HiOutlineTruck },
-  { name: "Appointments", path: "/admin/appointments", icon: HiOutlineCalendar,},
-  { name: "Vision Results", path: "/admin/vision-results", icon: HiOutlineEye },
-  { name: "Staff Roles", path: "/admin/roles", icon: HiOutlineUsers },
+  { name: "Dashboard", path: "/admin/dashboard", icon: WidgetIcon, group: "Workspace" },
+  { name: "Team Management", path: "/admin/staff", icon: UsersGroupRoundedIcon, group: "Workspace" },
+  { name: "Product Management", path: "/admin/products", icon: BoxIcon, group: "Commerce" },
+  { name: "Product Images & AR Assets", icon: GalleryIcon, group: "Commerce" },
+  { name: "Inventory Management", path: "/admin/inventory", icon: BoxIcon, group: "Commerce" },
+  { name: "Order Management", path: "/admin/orders", icon: BagIcon, group: "Commerce" },
+  { name: "Payment Management", path: "/admin/payments", icon: CardIcon, group: "Commerce" },
+  { name: "Lens Pricing", path: "/admin/lens-pricing", icon: DollarIcon, group: "Commerce" },
+  { name: "Brands", path: "/admin/brands", icon: ShopIcon, group: "Commerce" },
+  { name: "Appointment Management", path: "/admin/appointments", icon: CalendarIcon, group: "Eye care" },
+  { name: "Prescription Documents", path: "/admin/prescriptions", icon: DocumentTextIcon, group: "Eye care" },
+  { name: "Vision Screening Records", path: "/admin/screenings", icon: EyeIcon, group: "Eye care" },
+  { name: "Reports & Analytics", icon: ChartIcon, group: "Business" },
+  { name: "Settings", icon: SettingsIcon, group: "Business" },
 ];
 
 export default function AdminLayout() {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const location = useLocation();
-  const [isAdmin, setIsAdmin] = useState(null);
 
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (loading) {
-        return;
-      }
-
-      if (!user) {
-        navigate("/");
-        return;
-      }
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (error || !data || data.role !== "admin") {
-        navigate("/");
-      } else {
-        setIsAdmin(true);
-      }
-    };
-    checkAdmin();
-  }, [user, loading, navigate]);
-
-  if (loading || isAdmin === null) {
-    return <div className="text-center py-10">Checking permissions...</div>;
-  }
-
-  // Render admin panel only for admins
+  // AdminRoute is the single authorization gate for this nested section.
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <aside className="w-64 bg-white shadow-md flex flex-col">
-        <div className="p-4 border-b">
-          <h1 className="text-xl font-bold text-[#D32F2F]">Admin Panel</h1>
-          <p className="text-xs text-gray-500">{user?.email}</p>
-        </div>
-        <nav className="flex-1 p-2 space-y-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition ${
-                location.pathname === item.path
-                  ? "bg-[#D32F2F] text-white"
-                  : "text-gray-700 hover:bg-gray-100"
-              }`}
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.name}</span>
-            </Link>
+    <div className="apo-admin-shell apo-admin-workspace-shell">
+      <aside className="apo-admin-sidebar">
+        <Link to="/admin/dashboard" className="apo-admin-brand" aria-label="Acebedo Panol Optical admin dashboard">
+          <span className="apo-admin-brand-wordmark">
+            <strong>ACEBEDO</strong>
+            <small className="apo-admin-brand-subline">PANOL OPTICAL</small>
+          </span>
+          <span className="apo-admin-brand-compact" aria-hidden="true">A</span>
+        </Link>
+        <nav className="apo-admin-nav" aria-label="Admin navigation">
+          {["Workspace", "Commerce", "Eye care", "Business"].map((group) => (
+            <div className="apo-admin-nav-group" key={group}>
+              <p className="apo-admin-nav-label">{group}</p>
+              {navItems.filter((item) => item.group === group).map((item) => {
+                const active = item.path && (location.pathname === item.path || (item.path !== "/admin/dashboard" && location.pathname.startsWith(`${item.path}/`)));
+                const className = `apo-admin-nav-link${active ? " is-active" : ""}${item.path ? "" : " is-disabled"}`;
+                const contents = <><item.icon aria-hidden="true" /><span>{item.name}</span>{!item.path && <small>Later</small>}</>;
+                return item.path ? <Link key={item.name} to={item.path} className={className}>{contents}</Link> : <button key={item.name} type="button" className={className} disabled title={`${item.name} screen is not available yet`}>{contents}</button>;
+              })}
+            </div>
           ))}
         </nav>
+        <div className="apo-admin-sidebar-footer">
+          <div className="apo-admin-profile"><span className="apo-admin-avatar">{user?.email?.slice(0, 1).toUpperCase() || "A"}</span><span><strong>{user?.email || "Administrator"}</strong><small>Administrator</small></span></div>
+        </div>
       </aside>
-      <main className="flex-1 p-6">
+      <main className="apo-admin-main">
         <Outlet />
       </main>
     </div>

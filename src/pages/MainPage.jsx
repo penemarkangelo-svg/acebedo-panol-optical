@@ -8,7 +8,7 @@ export default function MainPage() {
     <>
       <Header />
       <main className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center px-6">
-        <h1 className="text-3xl font-bold text-[#212529] mb-4">
+        <h1 className="text-3xl font-bold text-[#1A1816] mb-4">
           Welcome!
         </h1>
         <p className="text-gray-600">

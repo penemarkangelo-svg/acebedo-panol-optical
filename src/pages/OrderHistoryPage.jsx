@@ -5,16 +5,23 @@ import { supabase } from "../lib/supabaseClient";
 import { FaEye } from "react-icons/fa";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import "../styles/OrderHistoryPage.css";
 
-export default function OrderHistoryPage() {
+export default function OrderHistoryPage({ embedded = false }) {
   const { user } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
+  const [paymentRetryByOrder, setPaymentRetryByOrder] = useState({});
+  const [retryingOrderId, setRetryingOrderId] = useState(null);
 
   useEffect(() => {
+    let active = true;
     const fetchOrders = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const { data, error } = await supabase
         .from("orders")
@@ -45,29 +52,65 @@ export default function OrderHistoryPage() {
               null,
           })),
         }));
-        setOrders(enriched);
+        if (active) {
+          setOrders(enriched);
+          const pendingOrders = enriched.filter((order) => order.order_status?.toLowerCase() === "pending");
+          setPaymentRetryByOrder(Object.fromEntries(pendingOrders.map((order) => [order.id, { status: "checking" }])));
+
+          const retryChecks = await Promise.all(pendingOrders.map(async (order) => {
+            const { data: paymentData, error: paymentError } = await supabase.functions.invoke("create-paymongo-checkout", {
+              body: { orderId: Number(order.id) },
+            });
+            if (paymentData?.paymentWindowExpired || paymentData?.orderNotPayable) {
+              return [order.id, { status: "expired" }];
+            }
+            if (paymentData?.alreadyPaid || paymentData?.paymentConfirmationPending) {
+              return [order.id, { status: "confirming" }];
+            }
+            if (paymentError || !paymentData?.checkoutUrl?.startsWith("https://checkout.paymongo.com/")) {
+              return [order.id, { status: "unavailable" }];
+            }
+            return [order.id, { status: "available" }];
+          }));
+          if (active) setPaymentRetryByOrder(Object.fromEntries(retryChecks));
+        }
+      } else if (error) {
+        console.error(error);
       }
-      setLoading(false);
+      if (active) setLoading(false);
     };
     fetchOrders();
+    return () => { active = false; };
   }, [user]);
+
+  const handleRetryPayment = async (orderId) => {
+    setRetryingOrderId(orderId);
+    const { data, error } = await supabase.functions.invoke("create-paymongo-checkout", {
+      body: { orderId: Number(orderId) },
+    });
+    if (data?.paymentWindowExpired || data?.orderNotPayable) {
+      setPaymentRetryByOrder((current) => ({ ...current, [orderId]: { status: "expired" } }));
+    } else if (data?.alreadyPaid || data?.paymentConfirmationPending) {
+      setPaymentRetryByOrder((current) => ({ ...current, [orderId]: { status: "confirming" } }));
+    } else if (error || !data?.checkoutUrl?.startsWith("https://checkout.paymongo.com/")) {
+      setPaymentRetryByOrder((current) => ({ ...current, [orderId]: { status: "unavailable" } }));
+    } else {
+      window.location.assign(data.checkoutUrl);
+      return;
+    }
+    setRetryingOrderId(null);
+  };
 
   const counts = {
     All: orders.length,
-    Pending: orders.filter((o) => o.order_status?.toLowerCase() === "pending")
-      .length,
-    Processing: orders.filter(
-      (o) => o.order_status?.toLowerCase() === "processing",
-    ).length,
-    Completed: orders.filter(
-      (o) => o.order_status?.toLowerCase() === "completed",
-    ).length,
+    Pending: orders.filter((order) => order.order_status?.toLowerCase() === "pending").length,
+    Processing: orders.filter((order) => order.order_status?.toLowerCase() === "processing").length,
+    Completed: orders.filter((order) => order.order_status?.toLowerCase() === "completed").length,
   };
 
-  const filteredOrders = orders.filter((order) => {
-    if (activeTab === "All") return true;
-    return order.order_status?.toLowerCase() === activeTab.toLowerCase();
-  });
+  const filteredOrders = orders.filter((order) => (
+    activeTab === "All" || order.order_status?.toLowerCase() === activeTab.toLowerCase()
+  ));
 
   const formatPrice = (price) => `₱${Number(price || 0).toFixed(2)}`;
 
@@ -80,84 +123,79 @@ export default function OrderHistoryPage() {
     return `#APO-${year}${month}${day}-${paddedId}`;
   };
 
-  const getStatusColor = (status) => {
+  const getStatusLabel = (status) => {
+    switch (status?.toLowerCase()) {
+      case "pending": return "Payment pending";
+      case "processing": return "Processing";
+      case "confirmed": return "Confirmed";
+      case "ready_for_pickup": return "Ready for pickup";
+      case "ready_for_delivery": return "Ready for delivery";
+      case "completed": return "Completed";
+      case "cancelled": return "Cancelled";
+      case "manual_review": return "On hold · review needed";
+      default: return status || "Pending";
+    }
+  };
+
+  const getStatusClass = (status) => {
     switch (status?.toLowerCase()) {
       case "completed":
-        return "bg-green-100 text-green-800";
-      case "cancelled":
-        return "bg-red-100 text-red-800";
-      case "processing":
-        return "bg-blue-100 text-blue-800";
-      default:
-        return "bg-amber-100 text-amber-800";
+      case "confirmed":
+      case "ready_for_pickup":
+      case "ready_for_delivery": return "order-history__status--success";
+      case "cancelled": return "order-history__status--cancelled";
+      case "manual_review": return "order-history__status--review";
+      case "pending": return "order-history__status--pending";
+      default: return "order-history__status--progress";
     }
   };
 
   if (loading) {
     return (
       <>
-        <Header />
-        <main className="bg-[#FAFAFA] min-h-screen flex items-center justify-center">
+        {!embedded && <Header />}
+        <main className="order-history__loading">
           <p className="text-gray-400">Loading your orders...</p>
         </main>
-        <Footer />
+        {!embedded && <Footer />}
       </>
     );
   }
 
   return (
     <>
-      <Header />
-      <main className="bg-gray-50 min-h-screen py-10 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              Order history
-            </h1>
-            <p className="text-gray-500 mt-1">
-              Track and manage all your eyewear orders
-            </p>
-          </div>
+      {!embedded && <Header />}
+      <main className={`order-history ${embedded ? "order-history--embedded" : "order-history--standalone"}`}>
+        <div className="order-history__inner">
+          <header className="order-history__heading">
+            <p className="order-history__eyebrow">YOUR ACCOUNT</p>
+            <h1>Order history</h1>
+            <p>Track and manage all your eyewear orders</p>
+          </header>
 
-          {/* Tabs */}
-          <div className="flex flex-wrap gap-1 mb-6 border-b border-gray-100 pb-2">
-            {["All", "Pending", "Processing", "Completed"].map((tab) => {
-              const isActive = activeTab === tab;
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-1.5 text-sm font-medium rounded-full transition-all duration-150 ${
-                    isActive
-                      ? "text-[#D32F2F] bg-red-50"
-                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                  }`}
-                >
-                  {tab} ({counts[tab]})
-                </button>
-              );
-            })}
+          <div className="order-history__filters" role="tablist" aria-label="Filter orders by status">
+            {["All", "Pending", "Processing", "Completed"].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+                className={activeTab === tab ? "order-history__filter is-active" : "order-history__filter"}
+              >
+                {tab} <span>({counts[tab]})</span>
+              </button>
+            ))}
           </div>
 
           {filteredOrders.length === 0 ? (
-            <div className="text-center bg-white rounded-2xl shadow-sm border border-gray-100 py-16 px-6">
-              <div className="text-5xl mb-3">👓</div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                No orders found
-              </h3>
-              <p className="text-gray-500 mt-1">
-                No orders match the "{activeTab}" filter.
-              </p>
-              <Link
-                to="/shop"
-                className="inline-block mt-5 text-[#D32F2F] font-medium hover:underline"
-              >
-                Browse frames →
-              </Link>
+            <div className="order-history__empty">
+              <h2>{orders.length === 0 ? "No orders yet" : "No orders found"}</h2>
+              <p>{orders.length === 0 ? "Your orders will appear here after checkout." : `No orders match the “${activeTab}” filter.`}</p>
+              <Link to="/shop">Browse frames <span aria-hidden="true">→</span></Link>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="order-history__list">
               {filteredOrders.map((order) => {
                 const isPickup = order.fulfillment_method === "pickup";
                 const orderItems = order.order_items || [];
@@ -175,124 +213,81 @@ export default function OrderHistoryPage() {
                 );
 
                 return (
-                  <div
-                    key={order.id}
-                    className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden transition hover:shadow-lg"
-                  >
-                    {/* Header */}
-                    <div className="px-6 py-4 bg-gray-50/80 border-b border-gray-100 flex flex-wrap justify-between items-center gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <span className="text-sm font-mono font-semibold text-gray-700">
-                            {formatOrderNumber(order)}
-                          </span>
-                          <span
-                            className={`text-xs font-medium px-3 py-1 rounded-full ${getStatusColor(
-                              order.order_status,
-                            )}`}
-                          >
-                            {order.order_status || "Pending"}
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {orderDate} ·{" "}
-                          {isPickup
-                            ? "Store pickup · Rosario Branch"
-                            : "Delivery"}
-                        </div>
+                  <article key={order.id} className="order-history__card">
+                    <header className="order-history__card-header">
+                      <div className="order-history__order-meta">
+                        <strong>{formatOrderNumber(order)}</strong>
+                        <span>{orderDate}</span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xl font-bold text-gray-900">
-                          {formatPrice(order.total)}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {totalQuantity}{" "}
-                          {totalQuantity === 1 ? "item" : "items"}
-                        </p>
-                      </div>
-                    </div>
+                      <span className={`order-history__status ${getStatusClass(order.order_status)}`}>
+                        {order.order_status?.toLowerCase() === "pending" && paymentRetryByOrder[order.id]?.status === "expired"
+                          ? "Payment window expired"
+                          : order.order_status?.toLowerCase() === "pending" && ["checking", "confirming"].includes(paymentRetryByOrder[order.id]?.status)
+                            ? "Checking payment"
+                          : order.order_status?.toLowerCase() === "pending"
+                            ? "Payment incomplete"
+                            : getStatusLabel(order.order_status)}
+                      </span>
+                      <strong className="order-history__total">{formatPrice(order.total)}</strong>
+                    </header>
 
-                    {/* Items list */}
-                    <div className="divide-y divide-gray-100">
+                    <div className="order-history__items">
                       {orderItems.map((item) => {
-                        const hasPrescription = !!item.prescription_data;
                         return (
-                          <div
-                            key={item.id}
-                            className="px-6 py-4 flex gap-4 items-center"
-                          >
-                            {/* Thumbnail */}
-                            <div className="w-14 h-14 bg-gray-100 rounded-lg border border-gray-200 flex-shrink-0 overflow-hidden">
+                          <div key={item.id} className="order-history__item">
+                            <div className="order-history__thumb">
                               {item.image_url ? (
                                 <img
                                   src={item.image_url}
                                   alt={item.product_name}
-                                  className="w-full h-full object-cover"
+                                  loading="lazy"
                                 />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                                  No img
+                                <div className="order-history__thumb-placeholder">
+                                  Product image unavailable
                                 </div>
                               )}
                             </div>
-                            <div className="flex-1">
-                              <h4 className="text-base font-semibold text-gray-900">
-                                {item.product_name}
-                              </h4>
-                              <div className="text-sm text-gray-500 mt-0.5 space-y-0.5">
-                                <p>
-                                  {item.selected_color && (
-                                    <span>Color: {item.selected_color} · </span>
-                                  )}
-                                  Qty: {item.quantity}
-                                  {item.lens_package_name && (
-                                    <span>
-                                      {" "}
-                                      · Lens: {item.lens_package_name}
-                                    </span>
-                                  )}
-                                </p>
-                                {hasPrescription && (
-                                  <div className="flex items-center gap-1 text-xs text-gray-500">
-                                    <FaEye className="w-3 h-3" />
-                                    <span>Prescription attached</span>
-                                  </div>
-                                )}
-                              </div>
+                            <div className="order-history__product">
+                              <h2>{item.product_name}</h2>
+                              <p>{[item.selected_color, `Qty: ${item.quantity}`, item.lens_package_name && `Lens: ${item.lens_package_name}`].filter(Boolean).join(" · ")}</p>
+                              {item.prescription_data && <span className="order-history__rx"><FaEye aria-hidden="true" /> Prescription uploaded</span>}
                             </div>
-                            <div className="text-right text-sm font-medium text-gray-700">
-                              {formatPrice(item.subtotal)}
-                            </div>
+                            <strong className="order-history__item-total">{formatPrice(item.subtotal)}</strong>
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* Footer actions */}
-                    <div className="px-6 py-3 bg-gray-50/40 border-t border-gray-100 flex justify-end gap-3">
-                      <Link
-                        to={`/order-status/${order.id}`}
-                        className="text-sm font-medium text-gray-600 hover:text-[#D32F2F] px-3 py-1.5 rounded-lg transition"
-                      >
-                        View details 
-                      </Link>
-                      {!isPickup && order.order_status === "processing" && (
-                        <Link
-                          to={`/order-status/${order.id}`}
-                          className="text-sm font-medium bg-[#D32F2F] text-white px-4 py-1.5 rounded-lg hover:bg-[#B71C1C] transition shadow-sm"
+                    <footer className="order-history__card-footer">
+                      <Link to={`/order-status/${order.id}`} className="order-history__details-link">View details <span aria-hidden="true">→</span></Link>
+                      {order.order_status?.toLowerCase() === "pending" && paymentRetryByOrder[order.id]?.status === "available" && (
+                        <button
+                          type="button"
+                          className="order-history__retry-button"
+                          onClick={() => handleRetryPayment(order.id)}
+                          disabled={retryingOrderId === order.id}
                         >
-                          Track order
-                        </Link>
+                          {retryingOrderId === order.id ? "Opening QR Ph…" : "Try QR Ph again"}
+                        </button>
                       )}
-                    </div>
-                  </div>
+                      {order.order_status?.toLowerCase() === "pending" && ["checking", "confirming"].includes(paymentRetryByOrder[order.id]?.status) && (
+                        <span className="order-history__payment-note">{paymentRetryByOrder[order.id]?.status === "checking" ? "Checking payment window…" : "Checking payment status…"}</span>
+                      )}
+                      {order.order_status?.toLowerCase() === "pending" && paymentRetryByOrder[order.id]?.status === "expired" && (
+                        <span className="order-history__payment-note">This order can’t be paid now. Start a new order from your cart.</span>
+                      )}
+                      <span className="order-history__fulfillment">{isPickup ? "Store pickup · Rosario Branch" : "Delivery"}</span>
+                      <span className="order-history__item-count">{totalQuantity} {totalQuantity === 1 ? "item" : "items"}</span>
+                    </footer>
+                  </article>
                 );
               })}
             </div>
           )}
         </div>
       </main>
-      <Footer />
+      {!embedded && <Footer />}
     </>
   );
 }

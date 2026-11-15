@@ -6,7 +6,7 @@
 .cart-page {
   min-height: 60vh;
   background:  #f8f7f4;
-  color: #1f1e1b;
+  color: #1A1816;
   padding: 56px 32px 96px;
 }
 
@@ -37,7 +37,7 @@
   line-height: 1.4;
   font-weight: 600;
   letter-spacing: 0.12em;
-  color: #6b6861;
+  color: #5C574F;
 }
 
 .cart-page-title {
@@ -47,14 +47,14 @@
   line-height: 1.08;
   font-weight: 400;
   letter-spacing: -0.02em;
-  color: #1f1e1b;
+  color: #1A1816;
 }
 
 .cart-item-count {
   margin: 0;
   font-family: Inter, system-ui, sans-serif;
   font-size: 14px;
-  color: #6b6861;
+  color: #5C574F;
 }
 
 /* =========================================================
@@ -76,7 +76,7 @@
   line-height: 1.4;
   font-weight: 600;
   letter-spacing: 0.1em;
-  color: #706c64;
+  color: #5C574F;
 }
 
 .cart-table-header__price,
@@ -142,7 +142,7 @@
   font-size: 16px;
   line-height: 1.4;
   font-weight: 600;
-  color: #1f1e1b;
+  color: #1A1816;
 }
 
 .cart-product__meta {
@@ -154,7 +154,7 @@
   font-family: Inter, system-ui, sans-serif;
   font-size: 13px;
   line-height: 1.5;
-  color: #67645d;
+  color: #5C574F;
 }
 
 .cart-product__options {
@@ -164,7 +164,7 @@
   font-family: Inter, system-ui, sans-serif;
   font-size: 12px;
   line-height: 1.65;
-  color: #5f5b54;
+  color: #5C574F;
 }
 
 /* =========================================================
@@ -182,14 +182,14 @@
   font-size: 14px;
   line-height: 1.4;
   font-weight: 600;
-  color: #1f1e1b;
+  color: #1A1816;
 }
 
 .cart-price-unit {
   margin-top: 2px;
   font-family: Inter, system-ui, sans-serif;
   font-size: 12px;
-  color: #747169;
+  color: #5C574F;
 }
 
 .cart-price-breakdown {
@@ -197,13 +197,13 @@
   font-family: Inter, system-ui, sans-serif;
   font-size: 11px;
   line-height: 1.65;
-  color: #747169;
+  color: #5C574F;
 }
 
 .cart-price-breakdown strong {
   display: block;
   margin-top: 3px;
-  color: #1f1e1b;
+  color: #1A1816;
   font-weight: 600;
 }
 
@@ -231,7 +231,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #1f1e1b;
+  color: #1A1816;
   font-family: Inter, system-ui, sans-serif;
   font-size: 18px;
   line-height: 1;
@@ -257,7 +257,7 @@
   font-family: Inter, system-ui, sans-serif;
   font-size: 14px;
   font-weight: 500;
-  color: #1f1e1b;
+  color: #1A1816;
 }
 
 /* =========================================================
@@ -272,7 +272,7 @@
   font-family: Inter, system-ui, sans-serif;
   font-size: 15px;
   font-weight: 600;
-  color: #1f1e1b;
+  color: #1A1816;
 }
 
 /* =========================================================
@@ -293,7 +293,7 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #77736b;
+  color: #5C574F;
   cursor: pointer;
   transition:
     color 160ms ease,
@@ -301,7 +301,7 @@
 }
 
 .cart-remove-button:hover:not(:disabled) {
-  color: #b3131b;
+  color: #B8242F;
   background: #f8f4f1;
 }
 
@@ -347,7 +347,7 @@
   font-size: 25px;
   line-height: 1.25;
   font-weight: 400;
-  color: #1f1e1b;
+  color: #1A1816;
 }
 
 /* =========================================================
@@ -421,14 +421,14 @@
   font-size: 14px;
   line-height: 1.4;
   font-weight: 600;
-  color: #1f1e1b;
+  color: #1A1816;
 }
 
 .cart-shipping-option__description {
   font-family: Inter, system-ui, sans-serif;
   font-size: 13px;
   line-height: 1.5;
-  color: #6d6961;
+  color: #5C574F;
 }
 
 .cart-shipping-option__price {
@@ -436,7 +436,7 @@
   font-size: 13px;
   line-height: 1.4;
   font-weight: 600;
-  color: #1f1e1b;
+  color: #1A1816;
 }
 
 .cart-shipping-option__price--free {
@@ -464,11 +464,11 @@
   font-family: Inter, system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
-  color: #4f4c46;
+  color: #5C574F;
 }
 
 .cart-summary-row span:last-child {
-  color: #1f1e1b;
+  color: #1A1816;
   font-weight: 500;
 }
 
@@ -482,7 +482,7 @@
   font-family: Inter, system-ui, sans-serif;
   font-size: 16px;
   line-height: 1.5;
-  color: #1f1e1b;
+  color: #1A1816;
 }
 
 .cart-summary-total strong {
@@ -546,12 +546,12 @@
   font-size: 13px;
   line-height: 1.5;
   font-weight: 500;
-  color: #4e4b45;
+  color: #5C574F;
   text-decoration: none;
 }
 
 .cart-continue-shopping:hover {
-  color: #b3131b;
+  color: #B8242F;
 }
 
 /* =========================================================
@@ -575,7 +575,7 @@
   font-size: clamp(34px, 5vw, 48px);
   line-height: 1.1;
   font-weight: 400;
-  color: #1f1e1b;
+  color: #1A1816;
 }
 
 .cart-empty__text {
@@ -584,7 +584,7 @@
   font-family: Inter, system-ui, sans-serif;
   font-size: 15px;
   line-height: 1.7;
-  color: #68645d;
+  color: #5C574F;
 }
 
 .cart-empty .cart-button {
@@ -731,7 +731,7 @@
     line-height: 1.4;
     font-weight: 600;
     letter-spacing: 0.1em;
-    color: #77736b;
+    color: #5C574F;
   }
 
   .cart-price-main,

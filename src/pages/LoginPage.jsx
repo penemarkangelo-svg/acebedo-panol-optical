@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState({});
+  const [resetSending, setResetSending] = useState(false);
   const navigate = useNavigate();
 
   const handleBlur = (field) => {
@@ -46,6 +47,12 @@ export default function LoginPage() {
     if (roleData?.role === "admin") {
       toast.success("Welcome back, Admin!");
       navigate("/admin");
+    } else if (roleData?.role === "clinic_staff") {
+      toast.success("Welcome to the clinic staff workspace.");
+      navigate("/staff");
+    } else if (roleData?.role === "optometrist") {
+      toast.success("Welcome to the optometrist workspace.");
+      navigate("/optometrist");
     } else {
       toast.success("Logged in successfully!");
       navigate("/shop");
@@ -56,11 +63,31 @@ export default function LoginPage() {
     navigate("/shop");
   };
 
+  const handlePasswordReset = async () => {
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      toast.error("Enter your email address first.");
+      return;
+    }
+
+    setResetSending(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: `${window.location.origin}/accept-invite?flow=recovery`,
+    });
+    setResetSending(false);
+
+    if (error) {
+      toast.error("The reset email could not be sent. Try again shortly.");
+      return;
+    }
+    toast.success("If an account uses that email, a password reset link is on its way.");
+  };
+
   return (
     <>
       <Header />
-      <main className="bg-white min-h-[calc(100vh-200px)] flex items-center justify-center px-6 md:px-12 lg:px-20 py-12">
-        <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-center shadow-xl rounded-2xl overflow-hidden bg-[#F8F9FA] border border-gray-200">
+      <main className="bg-[#F8F7F4] min-h-[calc(100vh-200px)] flex items-center justify-center px-6 md:px-12 lg:px-20 py-12">
+        <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-center shadow-sm rounded-xl overflow-hidden bg-[#FEFDFB]">
           <div className="hidden md:block h-full">
             <img
               src={loginImage}
@@ -71,10 +98,10 @@ export default function LoginPage() {
 
           <div className="px-8 py-12 md:px-12">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-[#212529]">
+              <h2 className="text-3xl font-bold text-[#1A1816]">
                 Welcome Back
               </h2>
-              <p className="text-[#212529]/70 mt-2">
+              <p className="text-[#5C574F] mt-2">
                 Sign in to your account to continue
               </p>
             </div>
@@ -82,7 +109,7 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-[#212529] mb-1">
+                <label className="block text-sm font-medium text-[#1A1816] mb-1">
                   Email address
                 </label>
                 <input
@@ -91,10 +118,10 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   onBlur={() => handleBlur("email")}
                   required
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#D32F2F] outline-none transition ${
+                  className={`w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition ${
                     touched.email && !email.trim()
                       ? "border-red-500"
-                      : "border-gray-300"
+                      : "border-[#D2C9BA]"
                   }`}
                   placeholder="you@example.com"
                 />
@@ -108,15 +135,17 @@ export default function LoginPage() {
               {/* Password with show/hide toggle */}
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-[#212529]">
+                  <label className="block text-sm font-medium text-[#1A1816]">
                     Password
                   </label>
-                  <a
-                    href="#"
-                    className="text-sm text-[#D32F2F] hover:text-[#B71C1C] hover:underline"
+                  <button
+                    type="button"
+                    onClick={handlePasswordReset}
+                    disabled={resetSending}
+                    className="text-sm text-[#B8242F] hover:text-[#9A1C26] hover:underline disabled:opacity-60"
                   >
-                    Forgot password?
-                  </a>
+                    {resetSending ? "Sending reset link…" : "Forgot password?"}
+                  </button>
                 </div>
                 <div className="relative">
                   <input
@@ -125,10 +154,10 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     onBlur={() => handleBlur("password")}
                     required
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#D32F2F] outline-none transition pr-10 ${
+                    className={`w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition pr-10 ${
                       touched.password && !password.trim()
                         ? "border-red-500"
-                        : "border-gray-300"
+                        : "border-[#D2C9BA]"
                     }`}
                     placeholder="••••••••"
                   />
@@ -153,7 +182,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                className="w-full bg-[#D32F2F] text-white py-2 rounded-lg font-semibold hover:bg-[#B71C1C] transition shadow-md"
+                className="w-full bg-[#B8242F] text-white py-2 rounded-lg font-semibold hover:bg-[#9A1C26] transition"
               >
                 Log In
               </button>
@@ -161,26 +190,26 @@ export default function LoginPage() {
 
             <div className="flex items-center my-6">
               <div className="flex-1 border-t border-gray-300"></div>
-              <span className="px-3 text-[#212529]/50 text-sm">or</span>
+              <span className="px-3 text-[#5C574F] text-sm">or</span>
               <div className="flex-1 border-t border-gray-300"></div>
             </div>
 
             <button
               onClick={handleGuestLogin}
-              className="w-full border border-gray-300 text-[#212529] py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
+              className="w-full border border-gray-300 text-[#1A1816] py-2 rounded-lg font-semibold hover:bg-gray-100 transition"
             >
               Continue as Guest
             </button>
-            <p className="text-xs text-[#212529]/50 text-center mt-2">
+            <p className="text-xs text-[#5C574F] text-center mt-2">
               Guest accounts can browse & AR try‑on, but not take the vision
               test.
             </p>
 
-            <p className="text-center text-sm text-[#212529]/70 mt-6">
+            <p className="text-center text-sm text-[#5C574F] mt-6">
               Don't have an account?{" "}
               <Link
                 to="/register"
-                className="text-[#D32F2F] font-semibold hover:text-[#B71C1C] hover:underline"
+                className="text-[#B8242F] font-semibold hover:text-[#9A1C26] hover:underline"
               >
                 Sign Up
               </Link>

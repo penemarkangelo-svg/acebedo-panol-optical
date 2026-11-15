@@ -1,0 +1,18 @@
+.apo-invite-accept-page { display: grid; min-height: 100vh; place-items: center; padding: 24px; background: #f2f0ec; color: #1A1816; }
+.apo-invite-accept-card { width: min(100%, 470px); padding: 30px; border: 1px solid #d9d5cc; border-radius: 6px; background: #fbfaf8; box-shadow: 0 12px 36px rgb(38 37 34 / 8%); }
+.apo-invite-accept-brand { display: grid; gap: 2px; width: max-content; padding-bottom: 18px; border-bottom: 1px solid #ddd9d0; }
+.apo-invite-accept-brand strong { color: #B8242F; font-family: Georgia, serif; font-size: 22px; letter-spacing: .035em; }
+.apo-invite-accept-brand span { color: #5C574F; font-size: 10px; letter-spacing: .18em; }
+.apo-invite-accept-eyebrow { margin: 24px 0 6px; color: #B8242F; font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+.apo-invite-accept-card h1 { margin: 0; font-family: Georgia, serif; font-size: 27px; font-weight: 500; }
+.apo-invite-accept-copy { color: #5C574F; font-size: 14px; line-height: 1.6; }
+.apo-invite-accept-copy strong { color: #1A1816; font-weight: 600; }
+.apo-invite-accept-card form { display: grid; gap: 14px; margin-top: 23px; }
+.apo-invite-accept-card label { display: grid; gap: 6px; color: #1A1816; font-size: 12px; font-weight: 600; }
+.apo-invite-accept-card input { min-height: 43px; padding: 0 11px; border: 1px solid #d6d1c6; border-radius: 4px; background: white; color: #1A1816; font: inherit; }
+.apo-invite-accept-card input:focus { border-color: #8e887d; outline: 2px solid rgb(179 19 27 / 10%); }
+.apo-invite-accept-card button { min-height: 43px; margin-top: 3px; border: 1px solid #26241f; border-radius: 4px; background: #26241f; color: white; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.apo-invite-accept-card button:disabled { opacity: .65; cursor: wait; }
+.apo-invite-accept-error { margin: 0; color: #B8242F; font-size: 12px; line-height: 1.5; }
+.apo-invite-accept-card > a { display: inline-block; margin-top: 12px; color: #1A1816; font-size: 13px; text-underline-offset: 3px; }
+@media (max-width: 520px) { .apo-invite-accept-card { padding: 23px 19px; } }

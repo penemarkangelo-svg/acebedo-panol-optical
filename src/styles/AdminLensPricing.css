@@ -1,0 +1,64 @@
+.apo-lens-pricing-page { display: flex; min-height: 100%; flex-direction: column; gap: 16px; padding: 20px clamp(10px, 1.2vw, 16px) 26px; color: #1A1816; background: #fbfaf8; }
+.apo-lens-pricing-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 3px 0 17px; border-bottom: 1px solid #d8d4ca; }
+.apo-lens-pricing-eyebrow { margin: 0 0 5px; color: #B8242F; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.apo-lens-pricing-header h1 { margin: 0; color: #1A1816; font-family: Georgia, "Times New Roman", serif; font-size: clamp(27px, 2.7vw, 34px); font-weight: 600; line-height: 1.12; }
+.apo-lens-pricing-subtitle { margin: 6px 0 0; color: #5C574F; font-size: 13px; line-height: 1.5; }
+.apo-lens-pricing-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 13px; }
+.apo-lens-pricing-change-indicator { display: inline-flex; align-items: center; gap: 6px; color: #315b49; font-size: 11px; white-space: nowrap; }
+.apo-lens-pricing-change-indicator.has-changes { color: #775720; }
+.apo-lens-pricing-change-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.apo-lens-pricing-save { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; padding: 0 13px; border: 1px solid #292721; border-radius: 4px; background: #292721; color: #fff; font: inherit; font-size: 12px; font-weight: 650; cursor: pointer; }
+.apo-lens-pricing-save:hover:not(:disabled) { background: #403e38; }
+.apo-lens-pricing-save:disabled { opacity: .48; cursor: not-allowed; }
+.apo-lens-pricing-matrix { overflow: hidden; border: 1px solid #d8d4ca; border-radius: 5px; background: #fff; }
+.apo-lens-pricing-matrix-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 16px 18px 13px; }
+.apo-lens-pricing-matrix-heading h2 { margin: 0; color: #1A1816; font-size: 15px; font-weight: 700; }
+.apo-lens-pricing-matrix-heading p { margin: 4px 0 0; color: #5C574F; font-size: 12px; line-height: 1.45; }
+.apo-lens-pricing-matrix-heading > span { color: #5C574F; font-size: 11px; white-space: nowrap; }
+.apo-lens-pricing-table-wrap { width: 100%; overflow-x: hidden; border-top: 1px solid #d8d4ca; }
+.apo-lens-pricing-table { width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; text-align: left; }
+.apo-lens-pricing-table thead th { padding: 11px clamp(6px, 1vw, 14px); border-bottom: 1px solid #d8d4ca; background: #f2f0ec; color: #5C574F; font-size: 11px; font-weight: 700; letter-spacing: .035em; line-height: 1.35; overflow-wrap: anywhere; vertical-align: bottom; }
+.apo-lens-pricing-table thead th:first-child { width: 19%; }
+.apo-lens-pricing-table tbody tr { border-bottom: 1px solid #e9e6df; }
+.apo-lens-pricing-table tbody tr:last-child { border-bottom: 0; }
+.apo-lens-pricing-table tbody tr:hover { background: #fbfaf8; }
+.apo-lens-pricing-table tbody th { width: 19%; min-width: 0; padding: 13px clamp(6px, 1vw, 14px); color: #1A1816; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.apo-lens-pricing-table tbody th strong, .apo-lens-pricing-table tbody th small { display: block; }
+.apo-lens-pricing-table tbody th small { margin-top: 4px; color: #5C574F; font-size: 10px; font-weight: 400; }
+.apo-lens-pricing-table td { min-width: 0; padding: 10px clamp(5px, .8vw, 11px); }
+.apo-lens-price-field { display: flex; width: 100%; min-width: 0; min-height: 38px; align-items: center; gap: 6px; padding: 0 7px; border: 1px solid #cbc7bd; border-radius: 4px; background: #fff; color: #5C574F; font-size: 12px; }
+.apo-lens-price-field:focus-within { border-color: #77736d; outline: 2px solid rgb(179 19 27 / 9%); }
+.apo-lens-price-field.is-changed { border-color: #b99a58; background: #fffdf8; }
+.apo-lens-price-field > span { color: #5C574F; font-size: 12px; }
+.apo-lens-price-field input { width: 100%; min-width: 0; height: 35px; padding: 0; border: 0; outline: 0; background: transparent; color: #1A1816; font: inherit; font-size: 13px; font-variant-numeric: tabular-nums; }
+.apo-lens-price-field input::-webkit-inner-spin-button, .apo-lens-price-field input::-webkit-outer-spin-button { margin: 0; appearance: none; }
+.apo-lens-price-field input[type="number"] { appearance: textfield; }
+.apo-lens-price-field input::placeholder { color: #5C574F; font-size: 11px; }
+.apo-lens-pricing-footer-note { display: flex; align-items: flex-start; gap: 8px; padding: 12px 16px; border-top: 1px solid #e9e6df; background: #fbfaf8; color: #5C574F; font-size: 11px; line-height: 1.5; }
+.apo-lens-pricing-footer-note svg { flex: 0 0 auto; margin-top: 1px; color: #5C574F; }
+.apo-lens-pricing-message { display: flex; min-height: 170px; align-items: center; justify-content: center; gap: 9px; padding: 24px; color: #5C574F; font-size: 13px; }
+.apo-lens-pricing-message.is-error { flex-wrap: wrap; color: #9d2d27; }
+.apo-lens-pricing-message button { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; padding: 6px 9px; border: 1px solid #d8d4ca; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 11px; cursor: pointer; }
+.is-spinning { animation: apo-lens-spin .9s linear infinite; }
+@keyframes apo-lens-spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 760px) {
+  .apo-lens-pricing-page { padding: 17px 12px 22px; }
+  .apo-lens-pricing-header { align-items: flex-start; flex-direction: column; }
+  .apo-lens-pricing-header-actions { width: 100%; justify-content: space-between; }
+  .apo-lens-pricing-matrix-heading { align-items: flex-start; flex-direction: column; gap: 8px; padding-inline: 14px; }
+  .apo-lens-pricing-table-wrap { overflow: visible; }
+  .apo-lens-pricing-table, .apo-lens-pricing-table tbody, .apo-lens-pricing-table tr, .apo-lens-pricing-table th, .apo-lens-pricing-table td { display: block; width: 100%; }
+  .apo-lens-pricing-table thead { display: none; }
+  .apo-lens-pricing-table tbody { display: grid; gap: 10px; padding: 10px; }
+  .apo-lens-pricing-table tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; border: 1px solid #e5e1d8; border-radius: 4px; background: #fff; }
+  .apo-lens-pricing-table tbody th { grid-column: 1 / -1; padding: 11px 12px; border-bottom: 1px solid #e9e6df; background: #fbfaf8; }
+  .apo-lens-pricing-table td { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; padding: 8px 10px; }
+  .apo-lens-pricing-table td::before { overflow-wrap: anywhere; color: #5C574F; content: attr(data-label); font-size: 10px; line-height: 1.35; }
+}
+@media (max-width: 480px) {
+  .apo-lens-pricing-page { gap: 12px; padding: 14px 11px 18px; }
+  .apo-lens-pricing-header-actions { flex-wrap: wrap; }
+  .apo-lens-pricing-save { min-height: 36px; }
+  .apo-lens-pricing-table tbody { grid-template-columns: 1fr; padding: 8px; }
+}

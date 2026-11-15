@@ -8,21 +8,34 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    let active = true;
+    let authEventReceived = false;
 
-    // Listen for auth changes
+    // Subscribe first so a sign-in or refresh event cannot be overwritten by
+    // a slower initial session read during a page refresh or hot reload.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      authEventReceived = true;
+      if (!active) return;
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!active || authEventReceived) return;
+      setUser(session?.user ?? null);
+      setLoading(false);
+    }).catch(() => {
+      if (!active || authEventReceived) return;
+      setUser(null);
+      setLoading(false);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
