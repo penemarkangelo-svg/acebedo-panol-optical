@@ -160,6 +160,13 @@ export default function CheckoutPage() {
       let errorMessage = err?.message;
       if (typeof err?.context?.clone === "function") {
         const responseBody = await err.context.clone().json().catch(() => null);
+        if (responseBody?.canResumeOrder && responseBody?.orderId) {
+          navigate(`/order-status/${responseBody.orderId}?payment=setup-failed`, {
+            replace: true,
+            state: { checkoutError: responseBody.error },
+          });
+          return;
+        }
         if (typeof responseBody?.error === "string") {
           errorMessage = responseBody.error;
         }
