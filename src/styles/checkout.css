@@ -279,6 +279,14 @@
   background: #F6F3EB;
 }
 
+.checkout-payment-option--disabled,
+.checkout-payment-option--disabled:hover {
+  background: #eeece6;
+  color: #5C574F;
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
 .checkout-payment-main {
   display: flex;
   align-items: center;
@@ -297,6 +305,17 @@
   height: auto;
   max-height: 28px;
   object-fit: contain;
+}
+
+.checkout-payment-logo--qrph img {
+  width: 96px;
+  max-height: 28px;
+}
+
+.checkout-payment-unavailable {
+  color: #5C574F;
+  font-size: 0.7rem;
+  font-weight: 500;
 }
 
 .checkout-radio {
