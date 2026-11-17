@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import "./ScreeningIntro.css";
 
 import {
   SunIcon,
@@ -31,10 +32,12 @@ const NEEDS = [
 ];
 
 export default function ScreeningIntro({ onStart, onClose }) {
+  const titleRef = useRef(null);
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
+    titleRef.current?.focus({ preventScroll: true });
 
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
@@ -67,6 +70,8 @@ export default function ScreeningIntro({ onStart, onClose }) {
 
             <h1
               id="vision-screening-title"
+              ref={titleRef}
+              tabIndex={-1}
               className="acebedo-heading-sm acebedo-intro-title"
             >
               Let’s Check Your Vision
@@ -141,7 +146,6 @@ export default function ScreeningIntro({ onStart, onClose }) {
               type="button"
               onClick={onStart}
               className="acebedo-btn acebedo-btn-primary acebedo-intro-start"
-              autoFocus
             >
               Begin screening
             </button>

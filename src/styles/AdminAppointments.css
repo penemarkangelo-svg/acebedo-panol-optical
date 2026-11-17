@@ -96,6 +96,31 @@
 .apo-appointment-status-actions button:disabled { opacity: .55; cursor: not-allowed; }
 .apo-appointment-drawer-footer > small { display: block; margin-top: 7px; color: #5C574F; font-size: 10px; }
 .apo-appointment-closed-note { margin: 0; color: #5C574F; font-size: 12px; }
+.apo-slot-toolbar, .apo-slot-toolbar label, .apo-slot-form-heading, .apo-slot-form-actions { display: flex; align-items: center; gap: 10px; }
+.apo-slot-toolbar { justify-content: space-between; flex-wrap: wrap; padding: 14px 0; }
+.apo-slot-toolbar label { color: #5c574f; font-size: 12px; }
+.apo-slot-toolbar input, .apo-slot-form input, .apo-slot-form select { min-width: 0; min-height: 38px; padding: 7px 9px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #1a1816; font: inherit; font-size: 12px; }
+.apo-slot-primary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 37px; padding: 8px 12px; border: 0; border-radius: 4px; background: var(--apo-admin-brand, #b3131b); color: #fff; font: inherit; font-size: 12px; cursor: pointer; }
+.apo-slot-primary:disabled, .apo-slot-form input:disabled, .apo-slot-row button:disabled { opacity: .55; cursor: not-allowed; }
+.apo-slot-form { margin-bottom: 16px; padding: 15px; border: 1px solid #d6d1c6; border-radius: 5px; background: #fbfaf8; }
+.apo-slot-form-heading { justify-content: space-between; margin-bottom: 12px; }
+.apo-slot-form h3, .apo-slot-date-heading { margin: 0; color: #1a1816; font-size: 13px; font-weight: 650; }
+.apo-slot-date-heading { margin-bottom: 10px; }
+.apo-slot-form fieldset { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; border: 0; }
+.apo-slot-form label { display: flex; flex-direction: column; gap: 5px; color: #5c574f; font-size: 12px; }
+.apo-slot-form-actions { justify-content: flex-end; margin-top: 14px; }
+.apo-slot-hint { color: #5c574f; font-size: 12px; line-height: 1.5; }
+.apo-slot-error { padding: 10px; border-radius: 4px; background: #fbf0ef; color: #9e3832; font-size: 12px; }
+.apo-slot-list { display: grid; gap: 8px; }
+.apo-slot-row { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 4px; background: #f6f4ef; }
+.apo-slot-row > div { flex: 1; min-width: 0; }
+.apo-slot-row strong, .apo-slot-row small { display: block; font-size: 12px; }
+.apo-slot-row small { margin-top: 4px; color: #5c574f; font-size: 11px; }
+@media (max-width: 600px) {
+  .apo-slot-form fieldset { grid-template-columns: 1fr; }
+  .apo-slot-row { flex-wrap: wrap; }
+  .apo-slot-row > div { flex-basis: 100%; }
+}
 .is-spinning { animation: apo-appointment-spin 1s linear infinite; }
 @keyframes apo-appointment-spin { to { transform: rotate(360deg); } }
 

@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import "../../styles/AdminProductForm.css";
 import { PRODUCT_LABEL_OPTIONS } from "../../utils/productLabels";
 import ProductImageGallery from "../../components/ProductImageGallery";
+import ARAssetEditor from "../../components/ARAssetEditor";
 import { saveProductGallery } from "../../lib/saveProductGallery";
 
 function parseOptionalThreshold(value) {
@@ -749,10 +750,7 @@ export default function AdminProductForm() {
           })}
         </section>}
 
-        {usesVariantStock(type) && <section className="border-t border-[#e2ded6] pt-5">
-          <div className="mb-3"><h3 className="text-sm font-semibold text-[#26241f]">AR try-on assets</h3><p className="mt-1 text-xs text-[#625f58]">Product-specific AR files are not connected to the current catalog data yet.</p></div>
-          <div className="rounded-md border border-dashed border-[#d8d4ca] bg-[#f7f5f1] p-4 text-sm text-[#625f58]">AR overlay upload is unavailable until the catalog has a saved product-to-asset link. Your product photos and color image assignments can be managed above.</div>
-        </section>}
+        {usesVariantStock(type) && <ARAssetEditor productId={savedProductId} name={name} colors={colors} disabled={saving} onSaved={(colorId, path) => setColors((previous) => previous.map((color) => color.id === colorId ? { ...color, ar_overlay_path: path } : color))} />}
 
         <div className="apo-product-editor-footer">
           <button

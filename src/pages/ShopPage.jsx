@@ -11,6 +11,12 @@ import { getProductLabels } from "../utils/productLabels";
 
 const ITEMS_PER_PAGE = 9;
 const MAX_PRICE = 5000;
+const ALL_PRODUCTS_PRIORITY = {
+  eyeglasses: 0,
+  sunglasses: 0,
+  accessory: 1,
+  eyedrops: 2,
+};
 
 export default function ShopPage() {
   const navigate = useNavigate();
@@ -182,6 +188,14 @@ export default function ShopPage() {
       stockMatch
     );
   });
+
+  // Keep the newest-first order within each group and sort before pagination.
+  if (productType === "all") {
+    filteredProducts.sort((a, b) =>
+      (ALL_PRODUCTS_PRIORITY[getProductCategory(a)] ?? 3) -
+      (ALL_PRODUCTS_PRIORITY[getProductCategory(b)] ?? 3)
+    );
+  }
 
   const totalPages = Math.ceil(
     filteredProducts.length / ITEMS_PER_PAGE

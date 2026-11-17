@@ -16,6 +16,7 @@ import {
 import { supabase } from "../../lib/supabaseClient";
 import { formatAppointmentDate, formatAppointmentTime, getAppointmentReference, toLocalDateKey } from "../../appointments/appointmentUtils";
 import "../../styles/AdminAppointments.css";
+import AppointmentAvailability from "../../components/AppointmentAvailability";
 
 const STATUS_OPTIONS = [
   ["pending", "Pending"],
@@ -294,6 +295,8 @@ export default function AdminAppointments() {
         <footer className="apo-appointments-directory-footer"><span>Showing {filteredAppointments.length} of {appointments.length} appointments</span><span>Clinical details stay in the approved optometrist workflow</span></footer>
       </section>
 
+      <AppointmentAvailability onSaved={loadData} />
+
       <section className="apo-appointments-availability">
         <div className="apo-appointments-availability-heading">
           <div><h2>Upcoming availability</h2><p>Open appointment slots and remaining capacity.</p></div>
@@ -308,7 +311,7 @@ export default function AdminAppointments() {
                   <div>{daySlots.map((slot) => <span className="apo-appointments-slot-chip" key={slot.id}><Clock3 size={12} />{formatAppointmentTime(slot.start_time)}<small>{slot.capacity - slot.booked_count} open</small></span>)}</div>
                 </article>
               ))}</div>}
-        <p className="apo-appointments-schedule-note"><AlertCircle size={14} /> Slot creation, schedule templates, and date closures are not connected yet. This panel shows the current saved availability.</p>
+        <p className="apo-appointments-schedule-note"><AlertCircle size={14} /> Showing the next 16 open slots. Use Manage availability to view or edit all slots for a date.</p>
       </section>
 
       {selectedAppointment && <AppointmentDetails appointment={selectedAppointment} onClose={() => setSelectedAppointment(null)} onStatusSaved={handleStatusSaved} />}

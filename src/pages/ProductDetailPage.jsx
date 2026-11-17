@@ -29,6 +29,7 @@ export default function ProductDetailPage() {
 
   const [visionMode, setVisionMode] = useState("plano");
   const [selectedPackageId, setSelectedPackageId] = useState(null);
+  const [lensPackageOpen, setLensPackageOpen] = useState(true);
   const [lensPackages, setLensPackages] = useState([]);
   const [packagesLoading, setPackagesLoading] = useState(true);
 
@@ -251,7 +252,8 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     setSelectedPackageId(null);
-  }, [visionMode]);
+    setLensPackageOpen(true);
+  }, [visionMode, id]);
 
   const availablePackages = useMemo(() => {
     if (!product || !requiresLensPackage(product.category || product.type)) return [];
@@ -454,6 +456,7 @@ export default function ProductDetailPage() {
   };
 
   const focusLensSelection = () => {
+    setLensPackageOpen(true);
     window.setTimeout(() => {
       document.getElementById("pdp-lens-selection")?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 0);
@@ -470,6 +473,15 @@ export default function ProductDetailPage() {
 
         <main className="pdp-page pdp-care-page">
           <div className="pdp-container">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="pdp-back"
+              aria-label="Go back"
+            >
+              <ArrowLeftIcon size={18} strokeWidth={1.8} aria-hidden="true" />
+            </button>
+
             <div className="pdp-care-layout">
               <section className="pdp-gallery pdp-care-gallery" aria-label={`${product.name} images`}>
                 <div className="pdp-gallery__main pdp-care-image">
@@ -753,18 +765,25 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <div className="pdp-section">
-                <div className="pdp-section__label-row">
-                  <label className="pdp-label">
+              <details
+                className="pdp-care-disclosure pdp-lens-disclosure"
+                open={lensPackageOpen}
+                onToggle={(event) => setLensPackageOpen(event.currentTarget.open)}
+              >
+                <summary>
+                  <span className="pdp-lens-disclosure__heading">
+                  <span>
                     {visionMode === "plano"
                       ? "Lens Package (Plano)"
                       : "Lens Package (Prescription)"}
-                  </label>
-
-                  <span className="pdp-section-note">
-                    Select one
                   </span>
-                </div>
+                  <span className="pdp-lens-disclosure__selection">
+                    {selectedPackage
+                      ? `${selectedPackage.displayName} · +₱${Number(selectedPackage.price).toFixed(2)}`
+                      : "Select one"}
+                  </span>
+                  </span>
+                </summary>
 
                 <div className="pdp-package-list">
                   {packagesLoading ? (
@@ -826,8 +845,19 @@ export default function ProductDetailPage() {
                       Please select a lens package.
                     </p>
                   )}
-              </div>
+              </details>
               </>}
+
+              <details className="pdp-care-disclosure" key={product.id}>
+                <summary>Product information</summary>
+                <p>{product.description || "Product details are not available."}</p>
+                {product.frame_shape?.name && (
+                  <p><strong>Frame shape:</strong> {product.frame_shape.name}</p>
+                )}
+                {product.frame_material?.name && (
+                  <p><strong>Frame material:</strong> {product.frame_material.name}</p>
+                )}
+              </details>
 
               <div className="pdp-checkout">
                 <div className="pdp-checkout__row">
@@ -894,11 +924,6 @@ export default function ProductDetailPage() {
 
             </section>
           </div>
-
-          <section className="pdp-information pdp-description-block">
-            <h2>Description</h2>
-            <p>{product.description || "Elegant frame designed for comfort and style."}</p>
-          </section>
 
           {(suggestionsLoading || suggestedProducts.length > 0) && <section className="pdp-related">
             <div className="pdp-related__heading">
