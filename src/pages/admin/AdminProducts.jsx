@@ -120,7 +120,6 @@ export default function AdminProducts() {
   return (
     <div className="apo-dashboard apo-products-page">
       <header className="apo-dashboard-header apo-products-header">
-        <div className="apo-dashboard-topbar" aria-hidden="true" />
         <div className="apo-dashboard-title-row">
           <div>
             <p className="apo-dashboard-eyebrow">Commerce</p>
@@ -173,7 +172,7 @@ export default function AdminProducts() {
                         <td className="apo-products-price">{money.format(Number(product.price || 0))}</td>
                         <td><span className={`apo-products-availability${available ? " is-available" : " is-unavailable"}`}>{available ? "Available" : "Out of stock"}</span></td>
                         <td>{formatDate(product.created_at)}</td>
-                        <td><div className="apo-products-actions"><Link to={`/product/${product.id}`} target="_blank" rel="noreferrer">View</Link><Link to={`/admin/products/${product.id}/edit`}>Edit</Link></div></td>
+                        <td><div className="apo-products-actions"><Link to={`/admin/products/${product.id}/edit`}>Edit</Link></div></td>
                       </tr>;
                     })}
             </tbody>

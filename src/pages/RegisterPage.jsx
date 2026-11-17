@@ -94,7 +94,7 @@ export default function RegisterPage() {
     <>
       <Header />
       <main className="bg-[#F8F7F4] min-h-[calc(100vh-200px)] flex items-center justify-center px-6 md:px-12 lg:px-20 py-12">
-        <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-stretch shadow-sm rounded-xl overflow-hidden bg-[#FEFDFB]">
+        <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-stretch shadow-sm rounded-xl overflow-hidden bg-white">
           {/* Left side: Image – stable, no resizing */}
           <div className="hidden md:block h-full">
             <img src={registerImage} alt="Acebedo Panol Optical" className="w-full h-full object-cover" />
@@ -115,7 +115,7 @@ export default function RegisterPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   onBlur={() => handleBlur("fullName")}
-                  className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition"
+                  className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-white focus:ring-2 focus:ring-[#B8242F] outline-none transition"
                   placeholder="Juan dela Cruz"
                   required
                 />
@@ -135,7 +135,7 @@ export default function RegisterPage() {
                     if (touched.email) setEmailError(validateEmailFormat(e.target.value));
                   }}
                   onBlur={() => handleBlur("email")}
-                  className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition"
+                  className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-white focus:ring-2 focus:ring-[#B8242F] outline-none transition"
                   placeholder="you@example.com"
                   required
                 />
@@ -155,7 +155,7 @@ export default function RegisterPage() {
                       setPasswordFocused(false);
                       handleBlur("password");
                     }}
-                    className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition pr-10"
+                    className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-white focus:ring-2 focus:ring-[#B8242F] outline-none transition pr-10"
                     placeholder="Create a strong password"
                     required
                   />
@@ -202,7 +202,7 @@ export default function RegisterPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     onBlur={() => handleBlur("confirmPassword")}
-                    className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition pr-10"
+                    className="w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-white focus:ring-2 focus:ring-[#B8242F] outline-none transition pr-10"
                     placeholder="Repeat your password"
                     required
                   />

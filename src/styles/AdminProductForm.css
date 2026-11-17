@@ -1,0 +1,65 @@
+.apo-product-editor { padding-top: 14px; color: #1A1816; }
+.apo-product-editor > header h1 { color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: clamp(28px, 3vw, 36px); font-weight: 400; }
+.apo-product-editor > header p:first-child { color: #B8242F; }
+.apo-product-editor .apo-product-editor-form { padding: 20px; display: flex; flex-direction: column; gap: 24px; background: #fff; border: 0; }
+.apo-product-editor-form > section > div:first-child h2 { color: #1A1816; font-size: 14px; }
+.apo-product-editor-form input:not([type="checkbox"]):not([type="color"]):not([type="file"]), .apo-product-editor-form select, .apo-product-editor-form textarea { color: #1A1816; font-size: 13px; }
+.apo-product-editor-form label, .apo-product-editor-form p { color: #5C574F; }
+.apo-product-editor-form input[type="checkbox"] { accent-color: #B8242F; }
+.apo-product-editor-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding-top: 16px; border-top: 1px solid var(--apo-admin-line); background: #fff; }
+.apo-product-editor-footer button, .apo-editor-secondary { min-height: 44px; padding: 10px 18px; border-radius: 4px; font: inherit; font-size: 13px; cursor: pointer; }
+.apo-editor-secondary { border: 1px solid var(--apo-admin-line); background: #fff; color: #1A1816; }
+.apo-editor-secondary:hover { background: #f7f5f1; }
+.apo-editor-footer-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-left: auto; }
+.apo-product-editor button:disabled { cursor: not-allowed; opacity: .5; }
+.apo-editor-label-select { width: min(100%, 360px); min-height: 44px; margin-top: 14px; padding: 8px 10px; border: 1px solid var(--apo-admin-line); border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 13px; }
+.apo-editor-color-table { width: 100%; table-layout: fixed; border-collapse: collapse; text-align: left; }
+.apo-editor-color-table th { padding: 10px 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #1A1816; border-bottom: 1px solid var(--apo-admin-line); }
+.apo-editor-color-table th:first-child { width: 30%; }
+.apo-editor-color-table th:nth-child(2) { width: 12%; }
+.apo-editor-color-table th:nth-child(3) { width: 20%; }
+.apo-editor-color-table th:nth-child(4) { width: 24%; }
+.apo-editor-color-table th:nth-child(5) { width: 14%; }
+.apo-editor-color-table td { padding: 12px 8px; border-bottom: 1px solid var(--apo-admin-line); color: #5C574F; font-size: 12px; overflow-wrap: anywhere; }
+.apo-editor-color-table .is-selected { background: #f8f7f4; }
+.apo-editor-color-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.apo-editor-color-table input:not([type="color"]) { min-width: 0; width: 100%; min-height: 44px; padding: 8px; border: 1px solid var(--apo-admin-line); border-radius: 4px; background: #fff; }
+.apo-editor-color-name input[type="color"] { width: 32px; height: 32px; flex: 0 0 32px; padding: 2px; border: 1px solid var(--apo-admin-line); border-radius: 50%; background: #fff; }
+.apo-editor-color-table small { display: block; margin-top: 5px; font-size: 11px; }
+.apo-editor-photo-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 44px)); gap: 4px; min-height: 44px; max-width: 100%; padding: 3px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #5C574F; font: inherit; font-size: 12px; cursor: pointer; }
+.apo-editor-photo-preview:hover, .apo-editor-photo-preview[aria-expanded="true"] { border-color: var(--apo-admin-line); background: #fff; }
+.apo-editor-photo-preview img { width: 44px; max-width: 100%; height: 32px; object-fit: contain; border: 1px solid var(--apo-admin-line); border-radius: 3px; background: #fff; }
+.apo-editor-photo-preview span { grid-column: 1 / -1; align-self: center; }
+.apo-editor-color-actions { display: flex; flex-wrap: wrap; gap: 0 12px; }
+.apo-editor-color-actions button { min-height: 44px; padding: 0; border: 0; background: transparent; color: #1A1816; font: inherit; font-size: 12px; cursor: pointer; }
+.apo-editor-color-actions .is-danger { color: #B8242F; }
+.apo-editor-color-actions button:hover { color: #9A1C26; text-decoration: underline; }
+.apo-editor-color-empty { text-align: center; padding: 24px 8px !important; }
+.apo-selected-color-gallery { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--apo-admin-line); }
+.apo-color-gallery-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+.apo-color-gallery-additional { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.apo-selected-color-gallery img { object-fit: contain; background: #fff; }
+.apo-editor-gallery-hint { margin-top: 12px; color: #5C574F; font-size: 12px; line-height: 1.5; }
+.apo-product-gallery .apo-panel-heading { flex-wrap: wrap; align-items: center; }
+.apo-product-gallery-upload { position: relative; display: inline-flex; align-items: center; min-height: 44px; cursor: pointer; }
+.apo-product-gallery-upload:focus-within { outline: 2px solid #5C574F; outline-offset: 2px; }
+.apo-product-gallery-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-top: 18px; }
+.apo-product-gallery-card { min-width: 0; overflow: hidden; border: 1px solid var(--apo-admin-line); border-radius: 4px; background: #fff; }
+.apo-product-gallery-card > img { width: 100%; height: 220px; object-fit: contain; background: #fff; }
+.apo-product-gallery-card-content { padding: 12px; border-top: 1px solid var(--apo-admin-line); }
+.apo-product-gallery-card-content strong { color: #1A1816; font-size: 13px; font-weight: 600; }
+.apo-product-gallery-card-actions { display: flex; flex-wrap: wrap; gap: 0 14px; }
+.apo-product-gallery-card-actions button, .apo-product-gallery-card-actions label { min-height: 44px; padding: 0; border: 0; background: transparent; color: #5C574F; font: inherit; font-size: 12px; cursor: pointer; }
+.apo-product-gallery-card-actions .is-danger { color: #B8242F; }
+.apo-product-gallery-card-actions button:hover, .apo-product-gallery-card-actions label:hover { color: #9A1C26; text-decoration: underline; }
+.apo-product-editor-form :is(input, select, textarea, button):focus-visible { outline: 2px solid #5C574F; outline-offset: 2px; }
+@media (max-width: 760px) {
+  .apo-product-editor .apo-product-editor-form { padding: 16px; }
+  .apo-editor-color-table thead { display: none; }
+  .apo-editor-color-table, .apo-editor-color-table tbody { display: block; }
+  .apo-editor-color-table tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px 0; border-bottom: 1px solid var(--apo-admin-line); }
+  .apo-editor-color-table td { display: block; border: 0; }
+  .apo-editor-color-table td::before { display: block; content: attr(data-label); margin-bottom: 6px; font-size: 11px; font-weight: 600; }
+  .apo-editor-color-table td:first-child, .apo-editor-color-table td:last-child { grid-column: 1 / -1; }
+  .apo-color-gallery-layout { grid-template-columns: 1fr; }
+}

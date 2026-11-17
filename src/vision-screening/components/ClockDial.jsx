@@ -1,3 +1,4 @@
+import { DEMO_MODE } from "../constants/screeningConfig";
 import { useEffect, useMemo, useRef, useState } from "react";
 import VisionTestLayout from "./VisionTestUI/VisionTestLayout";
 import { FaceLandmarker, FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
@@ -299,7 +300,7 @@ export default function ClockDial({ onContinue, onComplete }) {
           outputFaceBlendshapes: true,
           outputFacialTransformationMatrixes: false,
         }),
-        HandLandmarker.createFromOptions(vision, {
+        DEMO_MODE ? null : HandLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath: HAND_MODEL_URL,
             delegate: "GPU",
@@ -314,7 +315,7 @@ export default function ClockDial({ onContinue, onComplete }) {
 
       if (!mountedRef.current) {
         landmarker.close();
-        handLandmarker.close();
+        handLandmarker?.close();
         return;
       }
 
@@ -445,9 +446,9 @@ export default function ClockDial({ onContinue, onComplete }) {
 
         const blendshapes = result.faceBlendshapes?.[0]?.categories;
 
-        if (localBaselineRef.current && !blendshapes) {
+        if (!DEMO_MODE && localBaselineRef.current && !blendshapes) {
           coverWarning = "We can't verify your eyes right now. Please face the camera.";
-        } else if (blendshapes && localBaselineRef.current) {
+        } else if (!DEMO_MODE && blendshapes && localBaselineRef.current) {
           const rawLeft =
             blendshapes.find(
               (category) => category.categoryName === "eyeBlinkLeft"

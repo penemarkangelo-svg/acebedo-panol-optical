@@ -122,7 +122,6 @@ export default function AdminInventoryManagement() {
   return (
     <div className="apo-dashboard apo-inventory-page">
       <header className="apo-dashboard-header apo-inventory-header">
-        <div className="apo-dashboard-topbar" aria-hidden="true" />
         <div className="apo-dashboard-title-row">
           <div>
             <h1>Inventory Management</h1>

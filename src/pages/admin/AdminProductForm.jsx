@@ -1,8 +1,12 @@
-import { Fragment, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../../lib/supabaseClient";
 import { PRODUCT_TYPES, finalProductType, isEyewearType, preserveLegacyProductType, usesVariantStock } from "../../utils/productTypes";
 import toast from "react-hot-toast";
+import "../../styles/AdminProductForm.css";
+import { PRODUCT_LABEL_OPTIONS } from "../../utils/productLabels";
+import ProductImageGallery from "../../components/ProductImageGallery";
+import { saveProductGallery } from "../../lib/saveProductGallery";
 
 function parseOptionalThreshold(value) {
   const trimmed = String(value ?? "").trim();
@@ -37,11 +41,14 @@ export default function AdminProductForm() {
   const [stock, setStock] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState("");
   const [isNew, setIsNew] = useState(false);
+  const [productLabels, setProductLabels] = useState([]);
   const [rating, setRating] = useState("");
 
   const [colors, setColors] = useState([]);
   const [originalColorIds, setOriginalColorIds] = useState([]);
   const [images, setImages] = useState([]);
+  const [removedProductImageIds, setRemovedProductImageIds] = useState([]);
+  const [mediaDirty, setMediaDirty] = useState(false);
   const [expandedColorIndex, setExpandedColorIndex] = useState(null);
   const [removedGalleryImageIds, setRemovedGalleryImageIds] = useState([]);
 
@@ -70,10 +77,12 @@ export default function AdminProductForm() {
     stock,
     lowStockThreshold,
     isNew,
+    productLabels,
     rating,
     colors,
     images,
     removedGalleryImageIds,
+    removedProductImageIds,
   ]);
 
   useEffect(() => {
@@ -108,6 +117,9 @@ export default function AdminProductForm() {
         toast.error("Failed to load product.");
         navigate("/admin/products");
       } else {
+        savedStateUpdate.current = true;
+        setMediaDirty(false);
+        setRemovedProductImageIds([]);
         setSavedProductId(data.id);
         setStoredType(data.type || "frame");
         setType(finalProductType(data.type || "frame", data.id));
@@ -118,6 +130,7 @@ export default function AdminProductForm() {
         setStock(data.stock?.toString() || "");
         setLowStockThreshold(data.low_stock_threshold?.toString() || "");
         setIsNew(data.is_new || false);
+        setProductLabels(data.product_labels || []);
         setRating(data.rating?.toString() || "");
         const productImages = data.product_images || [];
         setColors((data.product_colors || []).map((color) => {
@@ -146,21 +159,26 @@ export default function AdminProductForm() {
   }, [id, navigate]);
 
   const addColor = () => {
+    setMediaDirty(true);
     setColors([...colors, { color_name: "", color_code: "#000000", stock: 0, low_stock_threshold: null, image_id: null, sort_order: colors.length, gallery_images: [], pending_gallery_files: [], removed_gallery_ids: [] }]);
     setExpandedColorIndex(colors.length);
   };
   const updateColor = (index, field, value) => {
+    setMediaDirty(true);
     const updated = [...colors];
     updated[index][field] = value;
     setColors(updated);
   };
   const removeColor = (index) => {
+    setMediaDirty(true);
     setColors(colors.filter((_, i) => i !== index));
+    setExpandedColorIndex((selected) => selected === index ? null : selected > index ? selected - 1 : selected);
   };
 
   const addColorPhotos = (colorIndex, fileList, makePrimary = false, targetSlot = null) => {
     const selectedFiles = Array.from(fileList || []);
     if (!selectedFiles.length) return;
+    setMediaDirty(true);
     setColors((previous) => previous.map((color, index) => {
       if (index !== colorIndex) return color;
       const allPhotos = [...(color.gallery_images || []), ...(color.pending_gallery_files || [])]
@@ -200,6 +218,7 @@ export default function AdminProductForm() {
   const replaceColorPhoto = (colorIndex, photo, fileList) => {
     const selectedFile = Array.from(fileList || [])[0];
     if (!selectedFile) return;
+    setMediaDirty(true);
     const replacedKey = photo.id ? String(photo.id) : photo.draft_key;
     setColors((previous) => previous.map((color, index) => {
       if (index !== colorIndex) return color;
@@ -229,6 +248,7 @@ export default function AdminProductForm() {
   };
 
   const setColorPhotoPrimary = (colorIndex, photoKey) => {
+    setMediaDirty(true);
     setColors((previous) => previous.map((color, index) => {
       if (index !== colorIndex) return color;
       const allPhotos = [...(color.gallery_images || []), ...(color.pending_gallery_files || [])]
@@ -250,6 +270,7 @@ export default function AdminProductForm() {
   };
 
   const removeColorPhoto = (colorIndex, photo) => {
+    setMediaDirty(true);
     setColors((previous) => previous.map((color, index) => {
       if (index !== colorIndex) return color;
       const allPhotos = [...(color.gallery_images || []), ...(color.pending_gallery_files || [])]
@@ -289,12 +310,13 @@ export default function AdminProductForm() {
 
   const handleSaveDetails = async (e) => {
     e.preventDefault();
+    if (saving) return;
 
     if (!name || !price) {
       toast.error("Name and price are required.");
       return;
     }
-    if (!brandId) {
+    if (isEyewearType(type) && !brandId) {
       toast.error("Choose a brand for this product.");
       return;
     }
@@ -303,8 +325,11 @@ export default function AdminProductForm() {
       return;
     }
     if (!usesVariantStock(type) && colors.some((color) => color.id)) {
-      toast.error("Remove the eyewear color variants in Step 2 before changing to a product-level stock category.");
-      setStep(2);
+      toast.error("This product still has saved colors. Remove them while its eyewear category is selected before changing category.");
+      return;
+    }
+    if (!usesVariantStock(type) && (!Number.isInteger(Number(stock || 0)) || Number(stock || 0) < 0)) {
+      toast.error("Stock must be a whole number of zero or more.");
       return;
     }
     const parsedThreshold = parseOptionalThreshold(lowStockThreshold);
@@ -319,14 +344,15 @@ export default function AdminProductForm() {
       price: parseFloat(price),
       old_price: oldPrice ? parseFloat(oldPrice) : null,
       is_new: isNew,
+      product_labels: productLabels,
       rating: rating ? parseFloat(rating) : 0,
       low_stock_threshold: parsedThreshold,
       type: preserveLegacyProductType(type, storedType, savedProductId),
       updated_at: new Date().toISOString(),
     };
 
-    productPayload.brand_id = parseInt(brandId);
-    if (!usesVariantStock(type)) productPayload.stock = stock ? parseInt(stock) : 0;
+    productPayload.brand_id = brandId ? parseInt(brandId, 10) : null;
+    if (!usesVariantStock(type)) productPayload.stock = Number(stock || 0);
     if (isEyewearType(type)) {
       productPayload.frame_shape_id = parseInt(frameShapeId);
       productPayload.frame_material_id = parseInt(frameMaterialId);
@@ -357,8 +383,8 @@ export default function AdminProductForm() {
 
       if (!id) navigate(`/admin/products/${productId}/edit`, { replace: true, state: { step: 2 } });
       setStoredType(productPayload.type);
-      setHasUnsavedChanges(false);
-      toast.success("Product details saved. Continue with colors and images.");
+      setHasUnsavedChanges(mediaDirty);
+      toast.success(usesVariantStock(type) ? "Product details saved. Continue with colors and images." : "Product details saved. Continue with images.");
       setStep(2);
     } catch (err) {
       console.error(err);
@@ -374,6 +400,7 @@ export default function AdminProductForm() {
 
   const handleSaveVariants = async (e) => {
     e.preventDefault();
+    if (saving) return;
     if (!savedProductId) {
       toast.error("Save product details before adding colors and images.");
       setStep(1);
@@ -516,6 +543,7 @@ export default function AdminProductForm() {
       setOriginalColorIds(savedColors.map((color) => color.id));
       setRemovedGalleryImageIds([]);
       setHasUnsavedChanges(false);
+      setMediaDirty(false);
       toast.success("Color images saved. Each color now has its own photo gallery.");
     } catch (err) {
       console.error(err);
@@ -525,37 +553,63 @@ export default function AdminProductForm() {
     }
   };
 
+  const handleSaveProductImages = async (event) => {
+    event.preventDefault();
+    if (saving || !savedProductId) return;
+    if (colors.some((color) => color.id)) {
+      toast.error("This product still has saved colors. Resolve those colors before saving a product gallery.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const savedImages = await saveProductGallery({ productId: savedProductId, images, removedIds: removedProductImageIds, onProgress: setImages });
+      savedStateUpdate.current = true;
+      setImages(savedImages);
+      setRemovedProductImageIds([]);
+      setMediaDirty(false);
+      setHasUnsavedChanges(false);
+      toast.success("Product images saved.");
+    } catch (error) {
+      setHasUnsavedChanges(true);
+      toast.error("Images could not be saved: " + error.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-10">Loading product data...</div>;
   }
 
+  const selectedLabelValues = [...(isNew ? ["new_arrival"] : []), ...productLabels];
+
   return (
-    <div className="w-full min-w-0">
+    <div className="apo-dashboard apo-product-editor">
       <header className="mb-5 flex items-start justify-between gap-4 border-b border-[#d8d4ca] pb-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a92727]">Product catalog</p>
-          <h1 className="mt-1 font-serif text-2xl text-[#26241f]">{step === 2 ? "Variants & media" : id ? "Edit product" : "Add new product"}</h1>
-          <p className="mt-1 text-sm text-[#625f58]">{step === 2 ? "Manage product colors, gallery photos, and their assignments." : "Add the product details, then set up its colors and images."}</p>
+          <h1 className="mt-1 font-serif text-2xl text-[#26241f]">{step === 2 ? usesVariantStock(type) ? "Colors & images" : "Product images" : id ? "Edit product" : "Add new product"}</h1>
+          <p className="mt-1 text-sm text-[#625f58]">{usesVariantStock(type) ? "Add product details, then manage colors and their photos." : "Add product details, then upload its photos."}</p>
         </div>
-        <button type="button" onClick={handleCancel} aria-label="Close product editor" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg text-[#625f58] hover:bg-white hover:text-[#26241f]">×</button>
+        <button type="button" disabled={saving} onClick={handleCancel} aria-label="Close product editor" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg text-[#625f58] hover:bg-white hover:text-[#26241f]">×</button>
       </header>
 
       <div className="mb-4 flex w-full items-center gap-2 text-xs text-[#625f58]">
         <span className={`rounded-full px-3 py-1 ${step === 1 ? "bg-[#26241f] text-white" : "bg-white"}`}>1&nbsp; Product details</span>
         <span className="h-px flex-1 bg-[#d8d4ca]" />
-        <button type="button" disabled={!savedProductId || (step === 1 && hasUnsavedChanges)} onClick={() => setStep(2)} title={hasUnsavedChanges ? "Save product details before opening colors and images" : undefined} className={`rounded-full px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50 ${step === 2 ? "bg-[#26241f] text-white" : "bg-white hover:bg-white/70"}`}>2&nbsp; Colors &amp; images</button>
+        <button type="button" disabled={saving || !savedProductId || (step === 1 && hasUnsavedChanges)} onClick={() => setStep(2)} title={hasUnsavedChanges ? "Save product details before continuing" : undefined} className={`rounded-full px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50 ${step === 2 ? "bg-[#26241f] text-white" : "bg-white hover:bg-white/70"}`}>2&nbsp; {usesVariantStock(type) ? "Colors & images" : "Images"}</button>
       </div>
 
       <form
-        onSubmit={step === 1 ? handleSaveDetails : handleSaveVariants}
-        className="w-full space-y-6 rounded-lg border border-[#e1ddd4] bg-[#fcfbf9] p-4 shadow-sm sm:p-6 lg:p-8"
+        onSubmit={step === 1 ? handleSaveDetails : usesVariantStock(type) ? handleSaveVariants : handleSaveProductImages}
+        className="apo-dashboard-panel apo-product-editor-form"
       >
         {step === 1 && <>
         <section className="space-y-4">
           <div className="border-b border-[#e2ded6] pb-2"><h2 className="text-base font-semibold text-[#26241f]">Basic details</h2><p className="mt-1 text-xs text-[#625f58]">Product identity and catalog placement.</p></div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <div className="sm:col-span-2 xl:col-span-1"><label className="mb-1 block text-xs font-medium text-[#625f58]">Product name *</label><input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-md border border-[#d8d4ca] bg-white px-3 py-2.5 text-sm text-[#26241f] outline-none focus:border-[#77736d]" required placeholder="Enter product name" /></div>
-            <div><label className="mb-1 block text-xs font-medium text-[#625f58]">Brand *</label><select value={brandId} onChange={(e) => setBrandId(e.target.value)} className="w-full rounded-md border border-[#d8d4ca] bg-white px-3 py-2.5 text-sm text-[#26241f]" required><option value="">Select brand</option>{brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select></div>
+            <div><label className="mb-1 block text-xs font-medium text-[#625f58]" htmlFor="apo-product-brand">{isEyewearType(type) ? "Brand *" : "Brand (optional)"}</label><select id="apo-product-brand" value={brandId} onChange={(e) => setBrandId(e.target.value)} className="w-full rounded-md border border-[#d8d4ca] bg-white px-3 py-2.5 text-sm text-[#26241f]" required={isEyewearType(type)}><option value="">{isEyewearType(type) ? "Select brand" : "No brand"}</option>{brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select></div>
             <div><label className="mb-1 block text-xs font-medium text-[#625f58]">Product type *</label><select value={type} onChange={(e) => { setType(e.target.value); if (!isEyewearType(e.target.value)) { setFrameShapeId(""); setFrameMaterialId(""); } }} className="w-full rounded-md border border-[#d8d4ca] bg-white px-3 py-2.5 text-sm text-[#26241f]" required>{PRODUCT_TYPES.map((productType) => <option key={productType.value} value={productType.value}>{productType.label}</option>)}</select></div>
             <div className="sm:col-span-2 xl:col-span-3"><label className="mb-1 block text-xs font-medium text-[#625f58]">Product description</label><textarea rows="3" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full resize-y rounded-md border border-[#d8d4ca] bg-white px-3 py-2.5 text-sm text-[#26241f] outline-none focus:border-[#77736d]" placeholder="Add product details for the catalog" /></div>
           </div>
@@ -603,72 +657,86 @@ export default function AdminProductForm() {
 
         <section className="space-y-4">
           <div className="border-b border-[#e2ded6] pb-2"><h2 className="text-base font-semibold text-[#26241f]">Product pricing</h2><p className="mt-1 text-xs text-[#625f58]">Set the selling price and, if needed, the original price.</p></div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div><label className="mb-1 block text-xs font-medium text-[#625f58]">Base product price (₱) *</label><input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full rounded-md border border-[#d8d4ca] bg-white px-3 py-2.5 text-sm text-[#26241f]" required placeholder="0.00" /></div>
             <div><label className="mb-1 block text-xs font-medium text-[#625f58]">Original price (₱)</label><input type="number" min="0" step="0.01" value={oldPrice} onChange={(e) => setOldPrice(e.target.value)} className="w-full rounded-md border border-[#d8d4ca] bg-white px-3 py-2.5 text-sm text-[#26241f]" placeholder="Optional" /></div>
             {!usesVariantStock(type) && <div><label className="mb-1 block text-xs font-medium text-[#625f58]">Stock on hand</label><input type="number" min="0" value={stock} onChange={(e) => setStock(e.target.value)} className="w-full rounded-md border border-[#d8d4ca] bg-white px-3 py-2.5 text-sm text-[#26241f]" /><p className="mt-1 text-xs text-[#625f58]">Availability follows the quantity entered here.</p></div>}
-            <div><label className="mb-1 block text-xs font-medium text-[#625f58]">Low-stock threshold (available units)</label><input type="number" min="0" step="1" value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} className="w-full rounded-md border border-[#d8d4ca] bg-white px-3 py-2.5 text-sm text-[#26241f]" placeholder="Leave unset" /><p className="mt-1 text-xs text-[#625f58]">Optional warning level; applies to variants unless overridden.</p></div>
-            <div className="flex items-center gap-2 rounded-md border border-[#e2ded6] bg-[#f7f5f1] px-3 py-2.5"><input id="product-new-arrival" type="checkbox" checked={isNew} onChange={(e) => setIsNew(e.target.checked)} className="h-4 w-4 accent-[#a92727]" /><label htmlFor="product-new-arrival" className="text-sm font-medium text-[#26241f]">Show New Arrival label</label></div>
+            {!usesVariantStock(type) && <div><label htmlFor="apo-product-low-stock" className="mb-1 block text-xs font-medium text-[#625f58]">Low stock</label><input id="apo-product-low-stock" type="number" min="0" step="1" value={lowStockThreshold} onChange={(event) => setLowStockThreshold(event.target.value)} placeholder="Unset" className="w-full rounded-md border border-[#d8d4ca] bg-white px-3 py-2.5 text-sm text-[#26241f]" /></div>}
           </div>
         </section>
 
-        <div className="sticky bottom-0 -mx-4 flex flex-wrap justify-between gap-3 border-t border-[#e2ded6] bg-[#fcfbf9]/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-          <button type="button" onClick={handleCancel} className="rounded-md border border-[#d8d4ca] bg-white px-4 py-2.5 text-sm text-[#26241f] hover:bg-[#f7f5f1]">Cancel</button>
+        <section className="apo-editor-labels">
+          <div className="apo-panel-heading"><h2 id="apo-product-label-title">Product label</h2></div>
+          <select className="apo-editor-label-select" aria-labelledby="apo-product-label-title" value={selectedLabelValues.join("|")} onChange={(event) => { const value = event.target.value; setIsNew(value === "new_arrival"); setProductLabels(value && value !== "new_arrival" ? [value] : []); }}>
+            <option value="">No label</option>
+            <option value="new_arrival">New Arrival</option>
+            {PRODUCT_LABEL_OPTIONS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+            {selectedLabelValues.length > 1 && <option value={selectedLabelValues.join("|")}>{selectedLabelValues.map((value) => value === "new_arrival" ? "New Arrival" : PRODUCT_LABEL_OPTIONS.find((option) => option.value === value)?.label || value).join(" + ")}</option>}
+          </select>
+        </section>
+
+        <div className="apo-product-editor-footer">
+          <button type="button" disabled={saving} onClick={handleCancel} className="apo-editor-secondary">Back</button>
           <button type="submit" disabled={saving} className="rounded-md bg-[#26241f] px-4 py-2.5 text-sm font-medium text-white hover:bg-black disabled:opacity-50">
-            {saving ? "Saving details…" : "Save and continue to colors & images"}
+            {saving ? "Saving…" : "Next"}
           </button>
         </div>
 
         </>}
 
         {step === 2 && <>
-        <div className="mb-1 border-b border-[#e2ded6] pb-3"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a92727]">Product content</p><h2 className="mt-1 text-base font-semibold text-[#26241f]">{name || "Product"}</h2><p className="mt-1 text-sm text-[#625f58]">ID #{savedProductId} · Manage color availability and product photos.</p></div>
+        <div className="mb-1 border-b border-[#e2ded6] pb-3"><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#a92727]">Product content</p><h2 className="mt-1 text-base font-semibold text-[#26241f]">{name || "Product"}</h2><p className="mt-1 text-sm text-[#625f58]">ID #{savedProductId} · {usesVariantStock(type) ? "Manage colors and their photos." : "Manage product photos."}</p></div>
+        {!usesVariantStock(type) && <ProductImageGallery images={images} disabled={saving} onChange={(nextImages) => { setImages(nextImages); setMediaDirty(true); }} onRemove={(image) => { if (image.id) setRemovedProductImageIds((current) => [...new Set([...current, image.id])]); if (image.preview) URL.revokeObjectURL(image.preview); }} />}
         {usesVariantStock(type) && <section>
           <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-            <div><h3 className="text-sm font-semibold text-[#26241f]">Product colors</h3><p className="mt-1 text-xs text-[#625f58]">Add a color, then open it to attach its primary photo and gallery images.</p></div>
+            <div><h3 className="text-sm font-semibold text-[#26241f]">Product colors</h3><p className="mt-1 text-xs text-[#625f58]">Select a photo preview to manage images below the table.</p></div>
             <button type="button" onClick={addColor} className="rounded-md bg-[#26241f] px-3 py-2 text-sm font-medium text-white hover:bg-black">+ Add color</button>
           </div>
-          <div className="overflow-x-auto rounded-md border border-[#e1ddd4] bg-white">
-            <table className="w-full min-w-[1000px] border-collapse text-left text-sm">
-              <thead className="bg-[#f2f0ec] text-[10px] font-semibold uppercase tracking-wide text-[#625f58]"><tr><th className="px-3 py-2.5">Color</th><th className="px-3 py-2.5">Photos</th><th className="px-3 py-2.5">Stock</th><th className="px-3 py-2.5">Low-stock threshold</th><th className="px-3 py-2.5">Availability</th><th className="px-3 py-2.5 text-right">Details</th></tr></thead>
-              <tbody className="divide-y divide-[#e8e4dc]">
+          <div className="apo-editor-color-table-wrap">
+            <table className="apo-editor-color-table">
+              <thead><tr><th scope="col">Color</th><th scope="col">Stock</th><th scope="col">Low stock</th><th scope="col">Photos</th><th scope="col">Actions</th></tr></thead>
+              <tbody>
                 {colors.map((color, idx) => {
-                  const inStock = Number(color.stock || 0) > 0;
-                  const photos = [...(color.gallery_images || []), ...(color.pending_gallery_files || [])]
-                    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-                  const primaryPhoto = photos.find((photo) => photo.is_primary) || photos[0];
-                  const additionalPhotos = photos.filter((photo) => photo !== primaryPhoto);
-                  const additionalLabels = ["Temple / Side View", "45° Angled View", "Other View"];
-                  const colorExpanded = expandedColorIndex === idx;
-                  return <Fragment key={color.id || `new-${idx}`}>
-                    <tr>
-                      <td className="px-3 py-3"><div className="flex min-w-52 items-center gap-2.5"><input type="color" aria-label={`Color ${idx + 1} swatch`} value={color.color_code || "#000000"} onChange={(e) => updateColor(idx, "color_code", e.target.value)} className="h-8 w-8 shrink-0 rounded-full border border-[#d8d4ca] bg-white p-0.5" /><input type="text" aria-label={`Color ${idx + 1} name`} placeholder="Color name" value={color.color_name} onChange={(e) => updateColor(idx, "color_name", e.target.value)} className="w-full rounded border border-[#d8d4ca] px-2.5 py-2 text-sm" /></div></td>
-                      <td className="px-3 py-3"><button type="button" onClick={() => setExpandedColorIndex(colorExpanded ? null : idx)} className="flex items-center gap-2 text-left text-xs text-[#26241f] hover:text-[#a92727]">{primaryPhoto ? <img src={primaryPhoto.preview || primaryPhoto.image_url} alt="" className="h-9 w-12 rounded border border-[#e1ddd4] object-cover" /> : <span className="grid h-9 w-12 place-items-center rounded border border-dashed border-[#c8c2b6] text-lg text-[#77736d]">+</span>}<span>{photos.length ? `${photos.length} ${photos.length === 1 ? "photo" : "photos"}` : "Add photos"}<span className="block text-[11px] text-[#625f58]">{primaryPhoto ? "Manage color images" : "No image yet"}</span></span></button></td>
-                      <td className="px-3 py-3"><input type="number" min="0" aria-label={`${color.color_name || `Color ${idx + 1}`} stock`} value={color.stock ?? 0} onChange={(e) => updateColor(idx, "stock", e.target.value)} className="w-20 rounded border border-[#d8d4ca] px-2.5 py-2 text-sm" /></td>
-                      <td className="px-3 py-3"><input type="number" min="0" step="1" aria-label={`${color.color_name || `Color ${idx + 1}`} low-stock threshold`} title="Leave blank to use the product threshold" value={color.low_stock_threshold ?? ""} onChange={(e) => updateColor(idx, "low_stock_threshold", e.target.value)} className="w-28 rounded border border-[#d8d4ca] px-2.5 py-2 text-sm" /><span className="mt-1 block text-[10px] text-[#625f58]">Blank uses product level</span></td>
-                      <td className="px-3 py-3"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs ${inStock ? "bg-[#e8efe9] text-[#426550]" : "bg-[#f0eee9] text-[#625f58]"}`}>{inStock ? "Available" : "Unavailable"}</span></td>
-                      <td className="px-3 py-3 text-right"><button type="button" onClick={() => removeColor(idx)} className="text-xs text-[#9f2929] hover:underline">Remove</button></td>
-                    </tr>
-                    {colorExpanded && <tr><td colSpan="6" className="bg-[#fbfaf8] px-4 py-4 sm:px-6">
-                      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  const previewPhotos = [...(color.gallery_images || []), ...(color.pending_gallery_files || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)).slice(0, 4);
+                  const selected = expandedColorIndex === idx;
+                  return <tr key={color.id || `new-${idx}`} className={selected ? "is-selected" : ""}>
+                    <td data-label="Color"><div className="apo-editor-color-name"><input type="color" aria-label={`Color ${idx + 1} swatch`} value={color.color_code || "#000000"} onChange={(event) => updateColor(idx, "color_code", event.target.value)} /><input type="text" aria-label={`Color ${idx + 1} name`} placeholder="Color name" value={color.color_name} onChange={(event) => updateColor(idx, "color_name", event.target.value)} /></div></td>
+                    <td data-label="Stock"><input type="number" min="0" step="1" aria-label={`${color.color_name || `Color ${idx + 1}`} stock`} value={color.stock ?? 0} onChange={(event) => updateColor(idx, "stock", event.target.value)} /></td>
+                    <td data-label="Low stock"><input type="number" min="0" step="1" aria-label={`${color.color_name || `Color ${idx + 1}`} low-stock threshold`} placeholder="Unset" value={color.low_stock_threshold ?? ""} onChange={(event) => updateColor(idx, "low_stock_threshold", event.target.value)} /><small>{lowStockThreshold !== "" ? `Blank inherits ${lowStockThreshold} units` : "Optional warning level"}</small></td>
+                    <td data-label="Photos"><button type="button" className="apo-editor-photo-preview" aria-label={`${selected ? "Hide" : "Manage"} photos for ${color.color_name || `Color ${idx + 1}`}`} aria-expanded={selected} aria-controls={selected ? "apo-selected-color-gallery" : undefined} onClick={() => setExpandedColorIndex(selected ? null : idx)}>{previewPhotos.length ? previewPhotos.map((photo) => <img key={photo.id || photo.draft_key} src={photo.preview || photo.image_url} alt="" />) : <span>Add images</span>}</button></td>
+                    <td data-label="Actions"><div className="apo-editor-color-actions"><button type="button" className="is-danger" onClick={() => removeColor(idx)}>Remove</button></div></td>
+                  </tr>;
+                })}
+                {colors.length === 0 && <tr><td colSpan="5" className="apo-editor-color-empty">No colors yet. Add a color to set stock and upload photos.</td></tr>}
+              </tbody>
+            </table>
+          </div>
+          {colors.map((color, idx) => {
+            if (idx !== expandedColorIndex) return null;
+            const photos = [...(color.gallery_images || []), ...(color.pending_gallery_files || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+            const primaryPhoto = photos.find((photo) => photo.is_primary) || photos[0];
+            const additionalPhotos = photos.filter((photo) => photo !== primaryPhoto);
+            const additionalLabels = ["Temple / Side View", "45° Angled View", "Other View"];
+            return <section id="apo-selected-color-gallery" className="apo-selected-color-gallery" key={color.id || `gallery-${idx}`} aria-label={`${color.color_name || `Color ${idx + 1}`} photos`}>
+<div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                         <div><h4 className="text-sm font-semibold text-[#26241f]">{color.color_name || `Color ${idx + 1}`} images</h4><p className="mt-1 text-xs text-[#625f58]">Add the front view, then up to three matching views for this color.</p></div>
                       </div>
-                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(240px,1.15fr)_minmax(0,2fr)]">
+                      <div className="apo-color-gallery-layout">
                         <div>
                           {primaryPhoto ? <article className="overflow-hidden rounded-md border border-[#d8d4ca] bg-white">
-                            <img src={primaryPhoto.preview || primaryPhoto.image_url} alt={`${color.color_name || "Color"} primary preview`} className="aspect-[4/3] w-full bg-[#f2f0ec] object-cover" />
+                            <img src={primaryPhoto.preview || primaryPhoto.image_url} alt={`${color.color_name || "Color"} primary preview`} className="aspect-[4/3] w-full bg-[#f2f0ec] object-contain" />
                             <p className="px-3 pt-2 text-sm font-medium text-[#26241f]">Front View (Primary)</p>
                             <div className="flex flex-wrap items-center justify-between gap-2 p-3"><span className="text-xs text-[#625f58]">Main photo for this color</span><div className="flex gap-3"><label className="cursor-pointer text-xs font-medium text-[#625f58] hover:text-[#26241f]">Replace<input type="file" accept="image/*" onChange={(event) => { replaceColorPhoto(idx, primaryPhoto, event.target.files); event.target.value = ""; }} className="sr-only" /></label><button type="button" onClick={() => removeColorPhoto(idx, primaryPhoto)} className="text-xs text-[#9f2929] hover:underline">Remove</button></div></div>
                           </article> : <label className="grid aspect-[4/3] cursor-pointer place-items-center rounded-md border border-dashed border-[#bdb7aa] bg-white text-center hover:bg-[#f7f5f1]"><span className="flex flex-col items-center text-[#625f58]"><span className="mb-2 grid h-10 w-10 place-items-center rounded-full border border-[#d8d4ca] text-2xl leading-none">+</span><strong className="text-sm font-medium text-[#26241f]">Add primary image</strong><span className="mt-1 text-xs">Choose the main photo for this color</span></span><input type="file" accept="image/*" onChange={(event) => { addColorPhotos(idx, event.target.files, true); event.target.value = ""; }} className="sr-only" /></label>}
                         </div>
                         <div>
                           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#625f58]">Additional Views</p>
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <div className="apo-color-gallery-additional">
                             {additionalLabels.map((labelText, slotIndex) => {
                               const photo = additionalPhotos.find((image) => Number(image.sort_order) === slotIndex + 1);
                               return <div key={labelText} className="min-w-0">
                                 {photo ? <article className="overflow-hidden rounded-md border border-[#e1ddd4] bg-white">
-                                  <img src={photo.preview || photo.image_url} alt={`${color.color_name || "Color"} — ${labelText}`} className="aspect-square w-full bg-[#f2f0ec] object-cover" />
+                                  <img src={photo.preview || photo.image_url} alt={`${color.color_name || "Color"} — ${labelText}`} className="aspect-square w-full bg-[#f2f0ec] object-contain" />
                                   <p className="px-2 pt-2 text-xs font-medium text-[#26241f]">{labelText}</p>
                                   <div className="flex flex-wrap items-center justify-between gap-2 p-2"><button type="button" onClick={() => setColorPhotoPrimary(idx, photo.id ? String(photo.id) : photo.draft_key)} className="text-[11px] font-medium text-[#426550] hover:underline">Set primary</button><label className="cursor-pointer text-[11px] text-[#625f58] hover:text-[#26241f]">Replace<input type="file" accept="image/*" onChange={(event) => { replaceColorPhoto(idx, photo, event.target.files); event.target.value = ""; }} className="sr-only" /></label><button type="button" onClick={() => removeColorPhoto(idx, photo)} className="text-[11px] text-[#9f2929] hover:underline">Remove</button></div>
                                 </article> : primaryPhoto ? <label className="grid aspect-square cursor-pointer place-items-center rounded-md border border-dashed border-[#c8c2b6] bg-white text-center text-xs text-[#625f58] hover:bg-[#f7f5f1]"><span><span className="mb-2 block text-2xl leading-none">+</span><strong className="block font-medium text-[#26241f]">Add image</strong><span className="mt-1 block">{labelText}</span></span><input type="file" accept="image/*" onChange={(event) => { addColorPhotos(idx, event.target.files, false, slotIndex); event.target.value = ""; }} className="sr-only" /></label> : <div className="grid aspect-square place-items-center rounded-md border border-dashed border-[#d8d4ca] bg-[#f7f5f1] px-3 text-center text-xs text-[#77736d]"><span>{labelText}<span className="mt-1 block">Add the front view first</span></span></div>}
@@ -677,36 +745,32 @@ export default function AdminProductForm() {
                           </div>
                         </div>
                       </div>
-                    </td></tr>}
-                  </Fragment>;
-                })}
-                {colors.length === 0 && <tr><td colSpan="6" className="px-4 py-8 text-center text-sm text-[#625f58]">No product colors yet. Add a color to start setting variant stock.</td></tr>}
-              </tbody>
-            </table>
-          </div>
+            </section>;
+          })}
         </section>}
 
-        <section className="border-t border-[#e2ded6] pt-5">
+        {usesVariantStock(type) && <section className="border-t border-[#e2ded6] pt-5">
           <div className="mb-3"><h3 className="text-sm font-semibold text-[#26241f]">AR try-on assets</h3><p className="mt-1 text-xs text-[#625f58]">Product-specific AR files are not connected to the current catalog data yet.</p></div>
           <div className="rounded-md border border-dashed border-[#d8d4ca] bg-[#f7f5f1] p-4 text-sm text-[#625f58]">AR overlay upload is unavailable until the catalog has a saved product-to-asset link. Your product photos and color image assignments can be managed above.</div>
-        </section>
+        </section>}
 
-        <div className="sticky bottom-0 -mx-4 flex flex-wrap justify-between gap-3 border-t border-[#e2ded6] bg-[#fcfbf9]/95 px-4 py-4 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div className="apo-product-editor-footer">
           <button
             type="button"
             onClick={() => setStep(1)}
+            disabled={saving}
             className="rounded-md border border-[#d8d4ca] bg-white px-4 py-2.5 text-sm text-[#26241f] hover:bg-[#f7f5f1]"
           >
-            Back to product details
+            Back
           </button>
-          <button
+          <div className="apo-editor-footer-actions"><button type="button" disabled={saving} onClick={handleCancel} className="apo-editor-secondary">Close</button><button
             type="submit"
             disabled={saving}
             className="rounded-md bg-[#26241f] px-4 py-2.5 text-sm font-medium text-white hover:bg-black disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save colors & images"}
-          </button>
-          <button type="button" onClick={handleCancel} className="rounded-lg border px-4 py-2 hover:bg-gray-50">Done</button>
+            {saving ? "Saving…" : "Save"}
+          </button></div>
+
         </div>
         </>}
       </form>

@@ -1,4 +1,5 @@
 .apo-lens-pricing-page { display: flex; min-height: 100%; flex-direction: column; gap: 16px; padding: 20px clamp(10px, 1.2vw, 16px) 26px; color: #1A1816; background: #fbfaf8; }
+.apo-admin-workspace-shell .apo-lens-pricing-page { padding: 14px 0 0; background: transparent; }
 .apo-lens-pricing-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 3px 0 17px; border-bottom: 1px solid #d8d4ca; }
 .apo-lens-pricing-eyebrow { margin: 0 0 5px; color: #B8242F; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .apo-lens-pricing-header h1 { margin: 0; color: #1A1816; font-family: Georgia, "Times New Roman", serif; font-size: clamp(27px, 2.7vw, 34px); font-weight: 600; line-height: 1.12; }
@@ -11,6 +12,12 @@
 .apo-lens-pricing-save:hover:not(:disabled) { background: #403e38; }
 .apo-lens-pricing-save:disabled { opacity: .48; cursor: not-allowed; }
 .apo-lens-pricing-matrix { overflow: hidden; border: 1px solid #d8d4ca; border-radius: 5px; background: #fff; }
+.apo-admin-workspace-shell .apo-lens-pricing-matrix { min-width: 0; padding: 15px 16px 11px; border: 0; border-radius: 5px; background: #fff; box-shadow: 0 1px 3px rgb(35 31 24 / 5%); }
+.apo-admin-workspace-shell .apo-lens-pricing-matrix-heading { padding: 0 0 10px; border-bottom: 1px solid var(--apo-admin-line); }
+.apo-admin-workspace-shell .apo-lens-pricing-matrix-heading h2 { font-size: 14px; }
+.apo-admin-workspace-shell .apo-lens-pricing-matrix-heading p { font-size: 11px; }
+.apo-admin-workspace-shell .apo-lens-pricing-table-wrap { border-top: 0; }
+.apo-admin-workspace-shell .apo-lens-pricing-footer-note { padding: 10px 0 0; }
 .apo-lens-pricing-matrix-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 16px 18px 13px; }
 .apo-lens-pricing-matrix-heading h2 { margin: 0; color: #1A1816; font-size: 15px; font-weight: 700; }
 .apo-lens-pricing-matrix-heading p { margin: 4px 0 0; color: #5C574F; font-size: 12px; line-height: 1.45; }

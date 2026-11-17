@@ -144,7 +144,7 @@ export default function AdminOrders({ staffMode = false }) {
         </section>
       )}
 
-      <section className="apo-orders-directory">
+      <section className={staffMode ? "apo-orders-directory" : "apo-orders-directory apo-dashboard-panel"}>
         <div className="apo-orders-directory-heading">
           <div><h2>Orders</h2><span>{filteredOrders.length} {filteredOrders.length === 1 ? "order" : "orders"}</span></div>
           <span className="apo-orders-sort-note">Newest first</span>

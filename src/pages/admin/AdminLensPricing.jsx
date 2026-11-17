@@ -148,7 +148,7 @@ export default function AdminLensPricing() {
         </div>
       </header>
 
-      <section className="apo-lens-pricing-matrix">
+      <section className="apo-lens-pricing-matrix apo-dashboard-panel">
         <div className="apo-lens-pricing-matrix-heading">
           <div><h2>Price matrix</h2><p>Each cell sets the lens add-on price used during eyeglasses checkout.</p></div>
           {!loading && !loadError && <span>{lensTypes.length} lens packages · {coatings.length} coatings · {combinationCount} combinations</span>}

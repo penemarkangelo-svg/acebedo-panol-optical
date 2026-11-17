@@ -12,6 +12,7 @@ import "../../styles/AdminDashboard.css";
 import "../../styles/AdminStaffManagement.css";
 
 const emptyStaff = [];
+const roleLabels = { admin: "Administrator", clinic_staff: "Clinic Staff", optometrist: "Optometrist" };
 
 function formatDate(value) {
   if (!value) return "—";
@@ -82,7 +83,13 @@ export default function AdminStaffManagement() {
         setLoadError(true);
         setStaff(emptyStaff);
       } else {
-        setStaff(profilesResult.data || []);
+        const profiles = profilesResult.data || [];
+        const rolesResult = profiles.length
+          ? await supabase.from("user_roles").select("user_id, role").in("user_id", profiles.map((profile) => profile.user_id))
+          : { data: [], error: null };
+        if (!current) return;
+        const rolesByUser = new Map((rolesResult.error ? [] : rolesResult.data || []).map(({ user_id, role }) => [user_id, role]));
+        setStaff(profiles.map((profile) => ({ ...profile, role: rolesByUser.get(profile.user_id) || null })));
         setLoadError(false);
       }
       setLoading(false);
@@ -132,10 +139,11 @@ export default function AdminStaffManagement() {
       });
   }, [staff, tab, search, sortNewest]);
 
+  const rolesAvailable = staff.every((person) => Object.hasOwn(roleLabels, person.role));
   const metrics = [
     ["Team members", staff.length, "Clinic team accounts"],
-    ["Clinic staff", "—", "Role data unavailable to this account"],
-    ["Optometrists", "—", "Role data unavailable to this account"],
+    ["Clinic staff", rolesAvailable ? staff.filter((person) => person.role === "clinic_staff").length : "—", rolesAvailable ? "Assigned Clinic Staff accounts" : "Some team roles could not be loaded"],
+    ["Optometrists", rolesAvailable ? staff.filter((person) => person.role === "optometrist").length : "—", rolesAvailable ? "Assigned Optometrist accounts" : "Some team roles could not be loaded"],
   ];
 
   function openInvite(event) {
@@ -212,7 +220,6 @@ export default function AdminStaffManagement() {
   return (
     <div className="apo-dashboard apo-staff-page">
       <header className="apo-dashboard-header apo-staff-header">
-        <div className="apo-dashboard-topbar" aria-hidden="true" />
         <div className="apo-dashboard-title-row">
           <div>
             <p className="apo-dashboard-eyebrow">Administration</p>
@@ -249,7 +256,6 @@ export default function AdminStaffManagement() {
             </label>
             {search && <button type="button" className="apo-staff-clear-search" aria-label="Clear team search" onClick={() => setSearch("")}>Clear</button>}
           </div>
-          <div className="apo-staff-role-unavailable" role="note"><strong>Role filter unavailable</strong><span>Role data is unavailable to this account.</span></div>
           <label className="apo-staff-select apo-staff-date-sort"><CalendarIcon size={15} aria-hidden="true" />
             <select value={sortNewest ? "newest" : "oldest"} onChange={(event) => setSortNewest(event.target.value === "newest")} aria-label="Sort by date added">
               <option value="newest">Newest added</option><option value="oldest">Oldest added</option>
@@ -285,7 +291,7 @@ export default function AdminStaffManagement() {
                   : visibleStaff.length === 0 ? <tr><td className="apo-staff-table-message" colSpan="6">No team members match these filters.</td></tr>
                       : visibleStaff.map((person) => <tr key={person.user_id}>
                         <td><strong>{displayName(person)}</strong><small>{person.position || person.phone_number || "Staff profile"}</small></td>
-                        <td><span className="apo-staff-role" title="Role data is unavailable to this account">Unavailable</span></td>
+                        <td><span className="apo-staff-role">{roleLabels[person.role] || "Unavailable"}</span></td>
                         <td><span className={`apo-staff-status${person.employment_status === "active" ? " is-active" : " is-inactive"}`}>{person.employment_status || "Unknown"}</span></td>
                         <td><span className="apo-staff-account">Account linked</span></td>
                         <td>{formatDate(person.created_at)}</td>
@@ -330,7 +336,7 @@ export default function AdminStaffManagement() {
 
               <section className="apo-staff-detail-section"><h3>Personal information</h3><div className="apo-staff-detail-card apo-staff-detail-pair"><div><small>First name</small><strong>{selectedMember.first_name || "—"}</strong></div><div><small>Last name</small><strong>{selectedMember.last_name || "—"}</strong></div></div></section>
               <section className="apo-staff-detail-section"><h3>Contact information</h3><div className="apo-staff-detail-card apo-staff-detail-pair"><div><small>Email address</small><strong className="is-muted">Unavailable</strong></div><div><small>Phone number</small><strong>{selectedMember.phone_number || "—"}</strong></div></div></section>
-              <section className="apo-staff-detail-section"><h3>Employment information</h3><div className="apo-staff-detail-card apo-staff-detail-pair"><div><small>Assigned role</small><strong className="is-muted">Role data is unavailable to this account</strong></div><div><small>Employment status</small><strong className="is-capitalized">{selectedMember.employment_status || "Unknown"}</strong></div><div><small>Position</small><strong>{selectedMember.position || "—"}</strong></div><div><small>Date added</small><strong>{formatDate(selectedMember.created_at)}</strong></div></div></section>
+              <section className="apo-staff-detail-section"><h3>Employment information</h3><div className="apo-staff-detail-card apo-staff-detail-pair"><div><small>Assigned role</small><strong>{roleLabels[selectedMember.role] || "Role unavailable"}</strong></div><div><small>Employment status</small><strong className="is-capitalized">{selectedMember.employment_status || "Unknown"}</strong></div><div><small>Position</small><strong>{selectedMember.position || "—"}</strong></div><div><small>Date added</small><strong>{formatDate(selectedMember.created_at)}</strong></div></div></section>
               <section className="apo-staff-detail-section"><h3>Account &amp; invitation</h3><div className="apo-staff-detail-card apo-staff-detail-pair"><div><small>Account status</small><strong>Account linked</strong></div><div><small>Invitation status</small><strong className="is-muted">Unavailable</strong></div></div></section>
               <section className="apo-staff-detail-section apo-staff-employment-actions"><h3>Employment status management</h3><p>Status changes require role-aware admin controls.</p><button type="button" disabled title="Employment status actions are not connected to this screen">{selectedMember.employment_status === "active" ? "Deactivate team member" : "Activate team member"}</button></section>
             </div>

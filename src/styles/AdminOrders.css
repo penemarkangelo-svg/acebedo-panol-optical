@@ -1,4 +1,5 @@
 .apo-orders-page { display: flex; min-height: 100%; flex-direction: column; gap: 15px; padding: 20px 24px 24px; color: #1A1816; background: #fbfaf8; }
+.apo-admin-workspace-shell .apo-orders-page { padding: 14px 0 0; background: transparent; }
 .apo-orders-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; padding: 3px 0 17px; border-bottom: 1px solid #d8d4ca; }
 .apo-orders-eyebrow { margin: 0 0 5px; color: #B8242F; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .apo-orders-header h1 { margin: 0; color: #1A1816; font-family: Georgia, "Times New Roman", serif; font-size: clamp(27px, 2.5vw, 34px); font-weight: 600; line-height: 1.12; }
@@ -50,6 +51,16 @@
 .apo-orders-empty { height: 135px; color: #5C574F !important; text-align: center; }
 .apo-orders-empty svg { margin-right: 7px; vertical-align: middle; }
 .apo-orders-table-footer { display: flex; justify-content: space-between; gap: 12px; padding: 10px 16px; border-top: 1px solid #e9e6df; color: #5C574F; font-size: 11px; }
+
+/* Match the inset directory cards used by Team and Product Management. */
+.apo-admin-workspace-shell .apo-orders-directory { min-width: 0; padding: 15px 16px 11px; border: 0; border-radius: 5px; background: #fff; box-shadow: 0 1px 3px rgb(35 31 24 / 5%); }
+.apo-admin-workspace-shell .apo-orders-directory-heading { padding: 0 0 10px; border-bottom: 1px solid var(--apo-admin-line); }
+.apo-admin-workspace-shell .apo-orders-directory-heading h2 { font-size: 14px; }
+.apo-admin-workspace-shell .apo-orders-filters { padding: 13px 0 11px; }
+.apo-admin-workspace-shell .apo-orders-table-wrap { border-top: 0; }
+.apo-admin-workspace-shell .apo-orders-table th,
+.apo-admin-workspace-shell .apo-orders-table td { padding: 10px 9px; }
+.apo-admin-workspace-shell .apo-orders-table-footer { padding: 10px 0 0; }
 
 @media (max-width: 900px) {
   .apo-orders-page { padding: 17px 16px 20px; }

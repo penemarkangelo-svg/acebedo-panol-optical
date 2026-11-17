@@ -1,4 +1,4 @@
-import { SESSION_KEYS } from "../constants/screeningConfig";
+import { DEMO_MODE, SESSION_KEYS } from "../constants/screeningConfig";
 import { buildSummary, DISCLAIMER } from "../utils/interpretResults";
 import { CalendarIcon, DocumentTextIcon, EyeIcon, InfoCircleIcon } from "@solar-icons/react/linear";
 
@@ -90,6 +90,11 @@ export default function ScreeningResults({
           <p className="vision-results__intro">
             A preliminary look at your vision, and what to do next.
           </p>
+          {DEMO_MODE && (
+            <p className="vision-results__intro">
+              For demo only. This shortened screening is preliminary and is not a diagnosis.
+            </p>
+          )}
         </header>
 
         <div className="vision-results__layout">

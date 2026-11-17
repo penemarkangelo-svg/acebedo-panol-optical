@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import qrPhLogo from "../assets/qr-ph-logo.svg";
 import gcashLogo from "../assets/gcash-logo.svg";
@@ -10,33 +10,61 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import "../styles/checkout.css";
 
+const PAYMENT_RETURN_KEY = "apo-payment-return";
+
+function readPaymentReturn(userId) {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(PAYMENT_RETURN_KEY) || "null");
+    return saved?.userId === userId && Array.isArray(saved.items) ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function CheckoutPage() {
   const { user } = useAuth();
   const { cartItems, clearCart, cartId, isSyncing } = useCart();
   const location = useLocation();
   const navigate = useNavigate();
 
+  const savedPayment = user?.id && cartItems.length === 0 ? readPaymentReturn(user.id) : null;
   const { shippingMethod = "pickup", shippingCost = 0 } =
-    location.state || {};
+    savedPayment || location.state || {};
 
   const isPickup = shippingMethod === "pickup";
 
   const [contactName, setContactName] = useState(
-    user?.user_metadata?.full_name || "",
+    savedPayment?.contactName || user?.user_metadata?.full_name || "",
   );
-  const [contactEmail, setContactEmail] = useState(user?.email || "");
-  const [phone, setPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState(savedPayment?.contactEmail || user?.email || "");
+  const [phone, setPhone] = useState(savedPayment?.phone || "");
 
-  const [address, setAddress] = useState("");
-  const [barangay, setBarangay] = useState("");
-  const [city, setCity] = useState("");
-  const [province, setProvince] = useState("");
-  const [zip, setZip] = useState("");
+  const [address, setAddress] = useState(savedPayment?.address || "");
+  const [barangay, setBarangay] = useState(savedPayment?.barangay || "");
+  const [city, setCity] = useState(savedPayment?.city || "");
+  const [province, setProvince] = useState(savedPayment?.province || "");
+  const [zip, setZip] = useState(savedPayment?.zip || "");
 
-  const [confirmCorrect, setConfirmCorrect] = useState(false);
+  const [confirmCorrect, setConfirmCorrect] = useState(Boolean(savedPayment));
   const [saving, setSaving] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(savedPayment ? "qrph" : "");
   const [touched, setTouched] = useState({});
+  const restoredOrder = useRef(null);
+
+  useEffect(() => {
+    if (!savedPayment || restoredOrder.current === savedPayment.orderId) return;
+    restoredOrder.current = savedPayment.orderId;
+    setContactName(savedPayment.contactName || "");
+    setContactEmail(savedPayment.contactEmail || "");
+    setPhone(savedPayment.phone || "");
+    setAddress(savedPayment.address || "");
+    setBarangay(savedPayment.barangay || "");
+    setCity(savedPayment.city || "");
+    setProvince(savedPayment.province || "");
+    setZip(savedPayment.zip || "");
+    setConfirmCorrect(true);
+    setSelectedPaymentMethod("qrph");
+  }, [savedPayment]);
 
   useEffect(() => {
     if (!contactEmail && user?.email) setContactEmail(user.email);
@@ -67,7 +95,7 @@ export default function CheckoutPage() {
     return true;
   };
 
-  const selectedItems = cartItems;
+  const selectedItems = savedPayment?.items || cartItems;
 
   const totalItems = selectedItems.reduce(
     (sum, item) => sum + item.quantity,
@@ -85,6 +113,10 @@ export default function CheckoutPage() {
     `₱${Number(price || 0).toFixed(2)}`;
 
   const handlePlaceOrder = async () => {
+    if (savedPayment) {
+      toast.error("You already have a payment for this order. Check your order status or wait before trying again.");
+      return;
+    }
     if (!isFormValid()) {
       toast.error(
         "Please fill in all required fields, choose QR Ph, and confirm the details.",
@@ -150,6 +182,11 @@ export default function CheckoutPage() {
         throw new Error(data?.error || "PayMongo did not return a valid QR Ph payment link.");
       }
 
+      sessionStorage.setItem(PAYMENT_RETURN_KEY, JSON.stringify({
+        userId: user.id, orderId: data.orderId, items: selectedItems,
+        shippingMethod, shippingCost, contactName, contactEmail, phone,
+        address, barangay, city, province, zip,
+      }));
       sessionStorage.removeItem(idempotencyStorageKey);
       await clearCart().catch((cartError) => {
         console.error("The order was created, but the local cart could not be cleared.", cartError);
@@ -840,7 +877,7 @@ export default function CheckoutPage() {
                 type="button"
                 onClick={handlePlaceOrder}
                 disabled={
-                  saving || isSyncing || !isFormValid()
+                  saving || (!savedPayment && (isSyncing || !isFormValid()))
                 }
                 className="checkout-place-order"
               >
@@ -849,7 +886,8 @@ export default function CheckoutPage() {
                   : "Continue to QR Ph"}
               </button>
 
-              {!isFormValid() && !saving && (
+              {savedPayment && <p className="checkout-order-hint">A payment already exists for this order. <Link to={`/order-status/${savedPayment.orderId}`}>View order status</Link></p>}
+              {!savedPayment && !isFormValid() && !saving && (
                 <p className="checkout-order-hint">
                   Complete the required contact and fulfillment details, select QR Ph, then confirm above to continue.
                 </p>
@@ -858,6 +896,7 @@ export default function CheckoutPage() {
               <Link
                 to="/cart"
                 className="checkout-back"
+                onClick={() => sessionStorage.removeItem(PAYMENT_RETURN_KEY)}
               >
                 Back to Cart
               </Link>

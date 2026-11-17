@@ -1,5 +1,9 @@
-import { Outlet, Link, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
+import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
+import "../../styles/AdminDashboard.css";
 import {
   BagIcon,
   BoxIcon,
@@ -34,8 +38,22 @@ const navItems = [
 ];
 
 export default function AdminLayout() {
-  const { user } = useAuth();
+  const { signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      const { error } = await signOut();
+      if (error) throw error;
+      navigate("/login", { replace: true });
+    } catch {
+      toast.error("Could not sign out. Please try again.");
+      setSigningOut(false);
+    }
+  };
 
   // AdminRoute is the single authorization gate for this nested section.
   return (
@@ -62,7 +80,9 @@ export default function AdminLayout() {
           ))}
         </nav>
         <div className="apo-admin-sidebar-footer">
-          <div className="apo-admin-profile"><span className="apo-admin-avatar">{user?.email?.slice(0, 1).toUpperCase() || "A"}</span><span><strong>{user?.email || "Administrator"}</strong><small>Administrator</small></span></div>
+          <button type="button" className="apo-admin-signout" onClick={handleSignOut} disabled={signingOut} aria-label={signingOut ? "Signing out" : "Sign out"} title="Sign out">
+            <LogOut size={18} aria-hidden="true" /><span>{signingOut ? "Signing out…" : "Sign out"}</span>
+          </button>
         </div>
       </aside>
       <main className="apo-admin-main">

@@ -9,6 +9,7 @@ import Footer from "../components/Footer";
 import TryOnModal from "../components/TryOnModal";
 import { getProductCategory, isEyewearType, requiresLensPackage } from "../utils/productTypes";
 import "../styles/ProductDetail.css";
+import { getProductLabels } from "../utils/productLabels";
 
 export default function ProductDetailPage() {
   const { addToCart } = useCart();
@@ -265,6 +266,13 @@ export default function ProductDetailPage() {
   }, [product, visionMode, lensPackages]);
 
   const galleryImages = useMemo(() => {
+    if (product && !isEyewearType(product.category || product.type)) {
+      const productPhotos = [...(product.product_images || [])]
+        .sort((a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)) || (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        .map((image) => image.image_url?.trim())
+        .filter(Boolean);
+      if (productPhotos.length) return productPhotos;
+    }
     const colorImages = (selectedColor?.gallery_images || [])
       .map((image) => image?.image_url?.trim())
       .filter(Boolean);
@@ -272,7 +280,7 @@ export default function ProductDetailPage() {
       || mainImage
       || "https://placehold.co/900x675?text=No+Image";
     return colorImages.length ? colorImages : [fallbackImage];
-  }, [selectedColor, mainImage]);
+  }, [selectedColor, mainImage, product]);
 
   const handlePreviousImage = () => {
     setActiveImageIndex((current) =>
@@ -629,21 +637,21 @@ export default function ProductDetailPage() {
             <section className="pdp-details">
               <div className="pdp-product-heading">
                 <div>
-                  {product.is_new && (
-                    <p className="pdp-kicker pdp-kicker--new">NEW ARRIVAL</p>
+                  {getProductLabels(product).length > 0 && (
+                    <p className="pdp-kicker pdp-kicker--new">{getProductLabels(product).join(" · ").toUpperCase()}</p>
                   )}
 
                   <p className="pdp-kicker">
-                    {product.brands?.name || "MODEL"}
+                    {product.brands?.name || "Unbranded"}
                   </p>
 
                   <h1 className="pdp-title">{product.name}</h1>
 
-                  <p className="pdp-subtitle">
+                  {isEyewearType(product.category || product.type) && <p className="pdp-subtitle">
                     {product.frame_shape?.name || "Shape not specified"} ·{" "}
                     {product.frame_material?.name ||
                       "Material not specified"}
-                  </p>
+                  </p>}
                 </div>
 
                 <span

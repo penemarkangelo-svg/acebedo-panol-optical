@@ -7,6 +7,7 @@ import TryOnModal from "../components/TryOnModal";
 import { supabase } from "../lib/supabaseClient";
 import { getProductCategory, usesVariantStock } from "../utils/productTypes";
 import "../styles/shop.css";
+import { getProductLabels } from "../utils/productLabels";
 
 const ITEMS_PER_PAGE = 9;
 const MAX_PRICE = 5000;
@@ -583,26 +584,9 @@ export default function ShopPage() {
                           className="shop-product"
                         >
                           <div className="shop-product__image-wrap">
-                            {product.is_new && (
-                              <span className="shop-product__badge">
-                                NEW ARRIVAL
-                              </span>
-                            )}
-
-                            {!product.is_new &&
-                              product.name === "Triomphe" && (
-                                <span className="shop-product__badge">
-                                  A MODERN CLASSIC
-                                </span>
-                              )}
-
-                            {!product.is_new &&
-                              product.name === "Model" && (
-                                <span className="shop-product__badge">
-                                  THE EVERYDAY EDIT
-                                </span>
-                              )}
-
+                            <div className="shop-product__badges">
+                              {(getProductLabels(product).length ? getProductLabels(product) : product.name === "Triomphe" ? ["A Modern Classic"] : product.name === "Model" ? ["The Everyday Edit"] : []).map((label) => <span className="shop-product__badge" key={label}>{label}</span>)}
+                            </div>
                             <button
                               type="button"
                               className="shop-product__heart"
