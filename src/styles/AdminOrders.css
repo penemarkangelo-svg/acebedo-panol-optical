@@ -77,3 +77,21 @@
   .apo-orders-attention button { margin-left: 28px; padding-left: 0; }
   .apo-orders-table-footer { padding-inline: 11px; font-size: 10px; }
 }
+.apo-orders-table-footer { align-items: center; min-height: 48px; }
+.apo-orders-pagination { display: flex; align-items: center; gap: 4px; }
+.apo-orders-pagination button { display: grid; min-width: 29px; height: 29px; place-items: center; padding: 0 7px; border: 1px solid #d8d4ca; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 11px; cursor: pointer; transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease; }
+.apo-orders-pagination button:hover:not(:disabled):not(.is-current) { border-color: #B8242F; color: #B8242F; }
+.apo-orders-pagination button.is-current { border-color: #d8d4ca; background: #fff; color: #1A1816; }
+.apo-orders-pagination button:disabled { color: #a5a198; cursor: default; }
+.apo-orders-pagination button:focus-visible { outline: 2px solid #B8242F; outline-offset: 2px; }
+.apo-orders-pagination-ellipsis { min-width: 15px; color: #5C574F; font-size: 12px; text-align: center; }
+.apo-orders-page-jump { margin-left: 10px; }
+.apo-orders-page-jump label { display: flex; align-items: center; gap: 7px; color: #1A1816; font-size: 10px; white-space: nowrap; }
+.apo-orders-page-jump input { box-sizing: border-box; width: 58px; height: 29px; padding: 0 6px; border: 1px solid #d8d4ca; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 10px; }
+.apo-orders-page-jump input:focus-visible { outline: 2px solid #B8242F; outline-offset: 2px; }
+.apo-orders-sr-only { position: absolute; overflow: hidden; width: 1px; height: 1px; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .apo-orders-table-footer { align-items: flex-start; }
+  .apo-orders-pagination { align-self: flex-end; flex-wrap: wrap; }
+}

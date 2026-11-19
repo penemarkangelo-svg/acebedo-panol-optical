@@ -177,7 +177,10 @@
 .apo-dashboard-eyebrow { margin: 0 0 3px; color: var(--apo-admin-brand); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
 .apo-dashboard-title-row h1 { margin: 0; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: clamp(28px, 3vw, 36px); font-weight: 400; letter-spacing: -0.035em; line-height: 1.1; }
 .apo-dashboard-date { margin: 5px 0 0; color: var(--apo-admin-muted); font-size: 12px; }
-.apo-dashboard-header-actions { display: flex; align-items: center; gap: 8px; }
+.apo-dashboard-header-actions { display: flex; width: min(420px, 48vw); flex-direction: column; align-items: stretch; gap: 6px; }
+.apo-dashboard-header-actions .apo-dashboard-search { width: 100%; }
+.apo-dashboard-header-actions .apo-dashboard-search-status { width: 100%; }
+.apo-dashboard-header-actions .apo-dashboard-primary-action { align-self: flex-end; }
 .apo-dashboard-primary-action { display: inline-flex; min-height: 38px; align-items: center; gap: 7px; padding: 0 12px; border: 1px solid var(--apo-admin-line); border-radius: 4px; color: #5C574F; font-size: 12px; text-decoration: none; }
 .apo-dashboard-primary-action { color: #fff; border-color: #292721; background: #292721; font-weight: 600; }
 .apo-dashboard-primary-action:hover { background: var(--apo-admin-brand); border-color: var(--apo-admin-brand); }
@@ -323,8 +326,9 @@
   .apo-admin-main { padding: 0 12px 18px; }
   .apo-dashboard-topbar { min-height: 54px; }
   .apo-dashboard-search { width: 100%; min-height: 44px; }
-  .apo-dashboard-title-row { align-items: start; }
-  .apo-dashboard-header-actions { flex-direction: column; align-items: end; }
+  .apo-dashboard-title-row { align-items: start; flex-wrap: wrap; }
+  .apo-dashboard-header-actions { width: 100%; }
+  .apo-dashboard-header-actions .apo-dashboard-primary-action { align-self: flex-end; }
   .apo-dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .apo-metric-card:nth-child(3)::before { display: none; }
   .apo-metric-card:nth-child(n + 3) { border-top: 1px solid var(--apo-admin-line); }

@@ -65,3 +65,24 @@
   .apo-products-catalog { padding-right: 11px; padding-left: 11px; }
   .apo-products-footer { flex-direction: column; }
 }
+
+.apo-products-footer { align-items: center; min-height: 46px; }
+.apo-products-pagination-summary { color: var(--apo-admin-muted); font-size: 11px; }
+.apo-products-pagination { display: flex; align-items: center; gap: 5px; }
+.apo-products-pagination button { display: grid; min-width: 29px; height: 29px; place-items: center; padding: 0 7px; border: 1px solid var(--apo-admin-line); border-radius: 4px; background: #fff; color: var(--apo-admin-ink); font: inherit; font-size: 11px; cursor: pointer; transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease; }
+.apo-products-pagination button:hover:not(:disabled):not(.is-current) { border-color: var(--apo-admin-brand); color: var(--apo-admin-brand); }
+.apo-products-pagination button.is-current { border-color: var(--apo-admin-brand); background: var(--apo-admin-brand); color: #fff; }
+.apo-products-pagination button:disabled { color: #a5a198; cursor: default; }
+.apo-products-pagination button:focus-visible { outline: 2px solid var(--apo-admin-brand); outline-offset: 2px; }
+
+@media (max-width: 650px) {
+  .apo-products-footer { align-items: flex-start; }
+  .apo-products-pagination { align-self: flex-end; flex-wrap: wrap; }
+}
+.apo-products-pagination { gap: 4px; }
+.apo-products-pagination button.is-current { border-color: var(--apo-admin-line); background: #fff; color: var(--apo-admin-ink); }
+.apo-products-pagination-ellipsis { min-width: 15px; color: var(--apo-admin-muted); font-size: 12px; text-align: center; }
+.apo-products-page-jump { margin-left: 10px; }
+.apo-products-page-jump label { display: flex; align-items: center; gap: 7px; color: var(--apo-admin-ink); font-size: 10px; white-space: nowrap; }
+.apo-products-page-jump input { box-sizing: border-box; width: 58px; height: 29px; padding: 0 6px; border: 1px solid var(--apo-admin-line); border-radius: 4px; background: #fff; color: var(--apo-admin-ink); font: inherit; font-size: 10px; }
+.apo-products-page-jump input:focus-visible { outline: 2px solid var(--apo-admin-brand); outline-offset: 2px; }

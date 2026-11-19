@@ -147,3 +147,7 @@
 }
 
 .account-order-filters{border-bottom:1px solid #c9c5bc}.account-orders-scroll{max-height:min(62vh,620px);overflow-y:auto;padding:0 9px 8px 0;scrollbar-width:thin;scrollbar-color:#bdb8ae transparent}.account-orders-scroll::-webkit-scrollbar{width:7px}.account-orders-scroll::-webkit-scrollbar-track{background:transparent}.account-orders-scroll::-webkit-scrollbar-thumb{border-radius:8px;background:#bdb8ae}.account-orders-scroll::-webkit-scrollbar-thumb:hover{background:#8d887f}
+.account-signout { transition: color 140ms ease, background-color 140ms ease, transform 100ms ease; }
+.account-signout:hover { background-color: #f5e0df; }
+.account-signout:active { background-color: #efd2d1; transform: translateY(1px); }
+.account-signout:focus-visible { outline: 2px solid #B8242F; outline-offset: 2px; }

@@ -21,6 +21,7 @@ const PRESCRIPTION_LABELS = {
   rejected: "Resubmission needed",
 };
 
+const ORDERS_PER_PAGE = 5;
 const money = (value) => `₱${Number(value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const orderNumber = (order) => `#APO-${order.id}`;
 const humanize = (value = "pending") => value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
@@ -35,6 +36,8 @@ export default function AdminOrders({ staffMode = false }) {
   const [statusFilter, setStatusFilter] = useState("all");
   const [fulfillmentFilter, setFulfillmentFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageJump, setPageJump] = useState("");
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -99,6 +102,33 @@ export default function AdminOrders({ staffMode = false }) {
     return matchesSearch && matchesStatus && matchesFulfillment;
   }), [orders, searchQuery, statusFilter, fulfillmentFilter]);
 
+  const pageCount = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
+  const page = Math.min(currentPage, pageCount);
+  const pageStart = filteredOrders.length ? (page - 1) * ORDERS_PER_PAGE + 1 : 0;
+  const pageEnd = Math.min(page * ORDERS_PER_PAGE, filteredOrders.length);
+  const paginatedOrders = filteredOrders.slice(pageStart - 1, pageEnd);
+  const pageItems = pageCount <= 5
+    ? Array.from({ length: pageCount }, (_, index) => index + 1)
+    : page <= 3
+      ? [1, 2, 3, "ellipsis", pageCount]
+      : page >= pageCount - 2
+        ? [1, "ellipsis", pageCount - 2, pageCount - 1, pageCount]
+        : [1, "ellipsis-start", page - 1, page, page + 1, "ellipsis-end", pageCount];
+
+  const updateFilter = (setter, value) => {
+    setter(value);
+    setCurrentPage(1);
+    setPageJump("");
+  };
+
+  const submitPageJump = (event) => {
+    event.preventDefault();
+    const requestedPage = Number.parseInt(pageJump, 10);
+    if (!Number.isFinite(requestedPage)) return;
+    setCurrentPage(Math.min(Math.max(requestedPage, 1), pageCount));
+    setPageJump("");
+  };
+
   const manualReviewCount = orders.filter((order) => order.order_status === "manual_review").length;
   const needsPrescriptionReview = orders.filter((order) => (prescriptionStatuses[order.id] || []).includes("pending_review")).length;
 
@@ -140,7 +170,7 @@ export default function AdminOrders({ staffMode = false }) {
               {needsPrescriptionReview > 0 && <span>{needsPrescriptionReview} prescription {needsPrescriptionReview === 1 ? "awaits" : "await"} Optometrist review</span>}
             </p>
           </div>
-          {manualReviewCount > 0 && <button type="button" onClick={() => setStatusFilter("manual_review")}>View held orders <ArrowRight size={14} /></button>}
+          {manualReviewCount > 0 && <button type="button" onClick={() => updateFilter(setStatusFilter, "manual_review")}>View held orders <ArrowRight size={14} /></button>}
         </section>
       )}
 
@@ -153,18 +183,18 @@ export default function AdminOrders({ staffMode = false }) {
         <div className="apo-orders-filters">
           <label className="apo-orders-search">
             <Search size={16} aria-hidden="true" />
-            <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search order number, customer, or email" aria-label="Search orders" />
+            <input value={searchQuery} onChange={(event) => updateFilter(setSearchQuery, event.target.value)} placeholder="Search order number, customer, or email" aria-label="Search orders" />
           </label>
           <label>
             <span>Order status</span>
-            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <select value={statusFilter} onChange={(event) => updateFilter(setStatusFilter, event.target.value)}>
               <option value="all">All statuses</option>
               {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
           <label>
             <span>Fulfillment</span>
-            <select value={fulfillmentFilter} onChange={(event) => setFulfillmentFilter(event.target.value)}>
+            <select value={fulfillmentFilter} onChange={(event) => updateFilter(setFulfillmentFilter, event.target.value)}>
               <option value="all">Pickup &amp; delivery</option>
               <option value="pickup">Pickup</option>
               <option value="delivery">Delivery</option>
@@ -184,7 +214,7 @@ export default function AdminOrders({ staffMode = false }) {
                 <tr><td colSpan="8" className="apo-orders-empty"><ClipboardList size={18} /> Orders could not be loaded. Refresh to try again.</td></tr>
               ) : filteredOrders.length === 0 ? (
                 <tr><td colSpan="8" className="apo-orders-empty"><ClipboardList size={18} /> No orders match these filters.</td></tr>
-              ) : filteredOrders.map((order) => {
+              ) : paginatedOrders.map((order) => {
                 const prescription = getPrescriptionDisplay(order.id);
                 return <tr key={order.id}>
                   <td><strong className="apo-orders-id">{orderNumber(order)}</strong></td>
@@ -200,7 +230,31 @@ export default function AdminOrders({ staffMode = false }) {
             </tbody>
           </table>
         </div>
-        <div className="apo-orders-table-footer"><span>Showing {filteredOrders.length} of {orders.length} orders</span><span>Amounts shown in PHP</span></div>
+        <footer className="apo-orders-table-footer">
+          <span>{loading
+            ? "Loading orders…"
+            : loadError
+              ? "Orders could not be loaded."
+              : `Showing ${pageStart} to ${pageEnd} of ${filteredOrders.length} orders · Amounts shown in PHP`}</span>
+          {!loading && !loadError && filteredOrders.length > 0 && pageCount > 1 && <nav className="apo-orders-pagination" aria-label="Order pages">
+            <button type="button" onClick={() => setCurrentPage(page - 1)} disabled={page === 1} aria-label="Previous page">‹</button>
+            {pageItems.map((item, index) => typeof item === "number" ? <button
+              type="button"
+              key={item}
+              className={item === page ? "is-current" : ""}
+              onClick={() => setCurrentPage(item)}
+              aria-label={`Page ${item}`}
+              aria-current={item === page ? "page" : undefined}
+            >{item}</button> : <span className="apo-orders-pagination-ellipsis" key={`${item}-${index}`} aria-hidden="true">…</span>)}
+            <button type="button" onClick={() => setCurrentPage(page + 1)} disabled={page === pageCount} aria-label="Next page">›</button>
+            <form className="apo-orders-page-jump" onSubmit={submitPageJump}>
+              <label>Go to
+                <input type="number" min="1" max={pageCount} value={pageJump} onChange={(event) => setPageJump(event.target.value)} placeholder={`e.g. ${pageCount}`} aria-label="Go to page" />
+              </label>
+              <button type="submit" className="apo-orders-sr-only">Go to page</button>
+            </form>
+          </nav>}
+        </footer>
       </section>
 
       {selectedOrder && <AdminOrderDetails order={selectedOrder} isOpen onClose={() => setSelectedOrder(null)} onStatusUpdate={handleStatusUpdate} staffMode={staffMode} />}

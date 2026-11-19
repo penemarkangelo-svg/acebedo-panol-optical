@@ -148,17 +148,19 @@ export default function AdminDashboard() {
     <div className="apo-dashboard">
       <header className="apo-dashboard-header">
         <div className="apo-dashboard-topbar">
-          <div className="apo-dashboard-admin-badge"><span className="apo-admin-avatar" aria-hidden="true">A</span><strong>Administrator</strong></div>
-          <form className="apo-dashboard-search" role="search" onSubmit={(event) => event.preventDefault()}>
-            <MagnifierIcon size={17} aria-hidden="true" />
-            <input type="search" aria-label="Filter the recent orders, out-of-stock products, and today's appointments shown on this dashboard" placeholder="Filter dashboard lists…" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
-            {searchQuery && <button type="button" className="apo-dashboard-search-clear" aria-label="Clear dashboard search" onClick={() => setSearchQuery("")}>Clear</button>}
-          </form>
-          {normalizedSearch && <span className="apo-dashboard-search-status" role="status">{loading ? "Updating dashboard lists..." : failures.orders || failures.products || failures.appointments ? "Some lists are unavailable; matches may be incomplete." : `${displayedSearchMatches} matching ${displayedSearchMatches === 1 ? "item" : "items"} shown`}</span>}
+          <div className="apo-dashboard-admin-badge"><span className="apo-admin-avatar" aria-hidden="true">A</span><strong>Welcome Administrator</strong></div>
         </div>
         <div className="apo-dashboard-title-row">
           <div><p className="apo-dashboard-eyebrow">Administration</p><h1>Dashboard</h1><p className="apo-dashboard-date">{dateLabel}</p></div>
-          <div className="apo-dashboard-header-actions"><Link className="apo-dashboard-primary-action" to="/admin/orders"><BagIcon size={15} />View orders</Link></div>
+          <div className="apo-dashboard-header-actions">
+            <form className="apo-dashboard-search" role="search" onSubmit={(event) => event.preventDefault()}>
+              <MagnifierIcon size={17} aria-hidden="true" />
+              <input type="search" aria-label="Filter the recent orders, out-of-stock products, and today's appointments shown on this dashboard" placeholder="Filter dashboard lists…" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+              {searchQuery && <button type="button" className="apo-dashboard-search-clear" aria-label="Clear dashboard search" onClick={() => setSearchQuery("")}>Clear</button>}
+            </form>
+            {normalizedSearch && <span className="apo-dashboard-search-status" role="status">{loading ? "Updating dashboard lists..." : failures.orders || failures.products || failures.appointments ? "Some lists are unavailable; matches may be incomplete." : `${displayedSearchMatches} matching ${displayedSearchMatches === 1 ? "item" : "items"} shown`}</span>}
+            <Link className="apo-dashboard-primary-action" to="/admin/orders"><BagIcon size={15} />View orders</Link>
+          </div>
         </div>
       </header>
 

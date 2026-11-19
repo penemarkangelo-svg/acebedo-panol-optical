@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import LandingPage from "../pages/LandingPage";
 
-export default function HomeRoute({ children }) {
+export default function HomeRoute({ children, loadingFallback }) {
   const { user, loading } = useAuth();
   const [result, setResult] = useState(null);
   const [retry, setRetry] = useState(0);
@@ -24,7 +24,7 @@ export default function HomeRoute({ children }) {
   }, [userId, loading, retry]);
 
   if (loading || (userId && result?.userId !== userId)) {
-    return <div className="text-center py-10">Loading...</div>;
+    return loadingFallback || <div className="text-center py-10">Loading...</div>;
   }
   if (!userId) return <LandingPage />;
   if (result.error) {

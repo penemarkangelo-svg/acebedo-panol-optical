@@ -438,8 +438,8 @@ export default function Questionnaire({
           className="acebedo-btn acebedo-btn-primary"
         >
           {isLastQuestion
-            ? "Continue to setup →"
-            : "Continue →"}
+            ? "Continue to setup"
+            : "Continue"}
         </button>
       </footer>
     </section>

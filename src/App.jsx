@@ -6,6 +6,7 @@ import AdminRoute from "./components/AdminRoute";
 import StaffRoute from "./components/StaffRoute";
 import OptometristRoute from "./components/OptometristRoute";
 import HomeRoute from "./components/HomeRoute";
+import AccountLoading from "./components/AccountLoading";
 import LoginPage from "./pages/LoginPage";
 import AcceptTeamInvitationPage from "./pages/AcceptTeamInvitationPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -81,7 +82,7 @@ function App() {
           }
         />
         <Route path="/account" element={<Navigate to="/account/profile" replace />} />
-        <Route path="/account/:section" element={<ProtectedRoute><HomeRoute><AccountPage /></HomeRoute></ProtectedRoute>} />
+        <Route path="/account/:section" element={<ProtectedRoute loadingFallback={<AccountLoading />}><HomeRoute loadingFallback={<AccountLoading />}><AccountPage /></HomeRoute></ProtectedRoute>} />
         <Route
           path="/vision-screening"
           element={
