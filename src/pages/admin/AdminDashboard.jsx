@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import {
   ArrowRightIcon,
   BagIcon,
@@ -64,6 +65,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [failures, setFailures] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
   const today = manilaDate();
   const dateLabel = new Intl.DateTimeFormat("en-PH", {
     dateStyle: "full",
@@ -108,7 +110,7 @@ export default function AdminDashboard() {
     }
     loadDashboard();
     return () => { current = false; };
-  }, [today, weekStartDate]);
+  }, [today, weekStartDate, refreshKey]);
 
   const paidPayments = data.payments.filter((payment) => payment.status === "paid" && payment.paid_at);
   const salesTotal = paidPayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
@@ -133,21 +135,32 @@ export default function AdminDashboard() {
   const visibleAppointments = data.appointments.filter((appointment) => matchesSearch(appointment.customer_name, appointment.status, appointment.appointment_time));
   const latestActivity = visibleOrders.slice(0, 4);
   const displayedSearchMatches = visibleOrders.length + Math.min(visibleProducts.length, 5) + Math.min(visibleAppointments.length, 5);
+  const hasPendingActions = (!failures.pendingPayments && data.pendingPayments.length > 0)
+    || (!failures.appointments && pendingAppointments.length > 0)
+    || (!failures.products && data.productCount > 0);
+  const hasActionFailures = failures.pendingPayments || failures.appointments || failures.products;
+  const retryDashboard = () => {
+    setLoading(true);
+    setRefreshKey((key) => key + 1);
+  };
 
   return (
     <div className="apo-dashboard">
       <header className="apo-dashboard-header">
         <div className="apo-dashboard-topbar">
-          <form className="apo-dashboard-search" role="search" onSubmit={(event) => event.preventDefault()}>
-            <MagnifierIcon size={17} aria-hidden="true" />
-            <input type="search" aria-label="Filter the recent orders, out-of-stock products, and today's appointments shown on this dashboard" placeholder="Filter dashboard lists…" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
-            {searchQuery && <button type="button" className="apo-dashboard-search-clear" aria-label="Clear dashboard search" onClick={() => setSearchQuery("")}>Clear</button>}
-          </form>
-          {normalizedSearch && <span className="apo-dashboard-search-status" role="status">{loading ? "Updating dashboard lists..." : failures.orders || failures.products || failures.appointments ? "Some lists are unavailable; matches may be incomplete." : `${displayedSearchMatches} matching ${displayedSearchMatches === 1 ? "item" : "items"} shown`}</span>}
+          <div className="apo-dashboard-admin-badge"><span className="apo-admin-avatar" aria-hidden="true">A</span><strong>Welcome Administrator</strong></div>
         </div>
         <div className="apo-dashboard-title-row">
           <div><p className="apo-dashboard-eyebrow">Administration</p><h1>Dashboard</h1><p className="apo-dashboard-date">{dateLabel}</p></div>
-          <div className="apo-dashboard-header-actions"><Link className="apo-dashboard-primary-action" to="/admin/orders"><BagIcon size={15} />View orders</Link></div>
+          <div className="apo-dashboard-header-actions">
+            <form className="apo-dashboard-search" role="search" onSubmit={(event) => event.preventDefault()}>
+              <MagnifierIcon size={17} aria-hidden="true" />
+              <input type="search" aria-label="Filter the recent orders, out-of-stock products, and today's appointments shown on this dashboard" placeholder="Filter dashboard lists…" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} />
+              {searchQuery && <button type="button" className="apo-dashboard-search-clear" aria-label="Clear dashboard search" onClick={() => setSearchQuery("")}>Clear</button>}
+            </form>
+            {normalizedSearch && <span className="apo-dashboard-search-status" role="status">{loading ? "Updating dashboard lists..." : failures.orders || failures.products || failures.appointments ? "Some lists are unavailable; matches may be incomplete." : `${displayedSearchMatches} matching ${displayedSearchMatches === 1 ? "item" : "items"} shown`}</span>}
+            <Link className="apo-dashboard-primary-action" to="/admin/orders"><BagIcon size={15} />View orders</Link>
+          </div>
         </div>
       </header>
 
@@ -161,10 +174,12 @@ export default function AdminDashboard() {
       <div className="apo-dashboard-columns">
         <div className="apo-dashboard-primary-column">
           <section className="apo-dashboard-panel apo-sales-panel">
-            <div className="apo-panel-heading"><div><h2>Sales overview</h2><p>Verified payments for the last seven days</p></div><span className="apo-panel-period">{formatDay(weekStartDate)} – Today</span></div>
+            <div className="apo-panel-heading"><div><h2>Sales overview</h2><p>Verified payments for the last seven days</p></div><button type="button" className="apo-sales-refresh" onClick={retryDashboard} disabled={loading} aria-label={loading ? "Refreshing dashboard data" : "Refresh dashboard data"} title={loading ? "Refreshing…" : "Refresh dashboard data"}><RefreshCw size={16} aria-hidden="true" /></button></div>
             <div className="apo-sales-summary"><strong>{loading || failures.payments ? "—" : paidPayments.length}</strong><span><GraphUpIcon size={14} /> Verified transactions</span></div>
-            <div className="apo-sales-chart" role="img" aria-label="Daily verified payments for the last seven days">
-              {failures.payments && !loading ? <p className="apo-chart-unavailable">Sales data is unavailable right now.</p> : dailySales.map((day) => <div className="apo-chart-day" key={day.date}><span className="apo-chart-value">{day.amount ? money.format(day.amount) : ""}</span><div className="apo-chart-track"><div className={`apo-chart-bar${day.date === today ? " is-today" : ""}`} style={{ height: `${Math.max(day.amount ? (day.amount / maxSales) * 100 : 0, 2)}%` }} /></div><span className="apo-chart-label">{day.date === today ? "Today" : day.label}</span></div>)}
+            <div className="apo-sales-chart" role={loading || failures.payments ? "group" : "img"} aria-label="Daily verified payments for the last seven days">
+              {loading ? <p className="apo-chart-unavailable" role="status">Loading sales overview…</p>
+                : failures.payments ? <p className="apo-chart-unavailable" role="status">Sales data is unavailable right now.</p>
+                  : dailySales.map((day) => <div className="apo-chart-day" key={day.date}><span className="apo-chart-value">{day.amount ? money.format(day.amount) : ""}</span><div className="apo-chart-track"><div className={`apo-chart-bar${day.date === today ? " is-today" : ""}`} style={{ height: `${Math.max(day.amount ? (day.amount / maxSales) * 100 : 0, 2)}%` }} /></div><span className="apo-chart-label">{day.date === today ? "Today" : day.label}</span></div>)}
             </div>
             {!loading && !failures.payments && paidPayments.length === 0 && <p className="apo-dashboard-empty-note">No verified payments recorded in this period.</p>}
           </section>
@@ -192,9 +207,13 @@ export default function AdminDashboard() {
 
         <aside className="apo-dashboard-side-column" aria-label="Today and activity">
           <section className="apo-side-section apo-actions-section"><div className="apo-side-heading"><h2>Today</h2><span>{new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", timeZone: "Asia/Manila" }).format(new Date())}</span></div><div className="apo-side-subheading">Action required</div>
-            <Link to="/admin/orders" className="apo-action-row"><span className="apo-action-icon"><CardIcon size={16} /></span><span><strong>{loading || failures.pendingPayments ? "Payment status unavailable" : `${data.pendingPayments.length} payments pending`}</strong><small>Check order status</small></span><ArrowRightIcon size={15} /></Link>
-            <Link to="/admin/appointments" className="apo-action-row"><span className="apo-action-icon"><CalendarIcon size={16} /></span><span><strong>{loading || failures.appointments ? "Appointment status unavailable" : `${pendingAppointments.length} appointments to confirm`}</strong><small>Pending appointments today</small></span><ArrowRightIcon size={15} /></Link>
-            <Link to="/admin/inventory" className="apo-action-row"><span className="apo-action-icon"><DangerIcon size={16} /></span><span><strong>{loading || failures.products ? "Stock status unavailable" : `${data.productCount} products out of stock`}</strong><small>Review stock availability</small></span><ArrowRightIcon size={15} /></Link>
+            {loading ? <p className="apo-side-empty" role="status">Checking tasks…</p> : <>
+              {!failures.pendingPayments && data.pendingPayments.length > 0 && <Link to="/admin/orders" className="apo-action-row"><span className="apo-action-icon"><CardIcon size={16} /></span><span><strong>Review {data.pendingPayments.length} pending {data.pendingPayments.length === 1 ? "payment" : "payments"}</strong><small>Check the linked orders</small></span><ArrowRightIcon size={15} /></Link>}
+              {!failures.appointments && pendingAppointments.length > 0 && <Link to="/admin/appointments" className="apo-action-row"><span className="apo-action-icon"><CalendarIcon size={16} /></span><span><strong>Review {pendingAppointments.length} pending {pendingAppointments.length === 1 ? "appointment" : "appointments"}</strong><small>Pending appointments today</small></span><ArrowRightIcon size={15} /></Link>}
+              {!failures.products && data.productCount > 0 && <Link to="/admin/inventory" className="apo-action-row"><span className="apo-action-icon"><DangerIcon size={16} /></span><span><strong>Review {data.productCount} out-of-stock {data.productCount === 1 ? "product" : "products"}</strong><small>Check inventory availability</small></span><ArrowRightIcon size={15} /></Link>}
+              {!hasPendingActions && !hasActionFailures && <p className="apo-side-empty">No tasks need attention right now.</p>}
+              {hasActionFailures && <div className="apo-action-unavailable" role="status"><p>{[failures.pendingPayments && "Payment status", failures.appointments && "Appointment status", failures.products && "Stock status"].filter(Boolean).join(" · ")} unavailable. Some tasks may not be shown.</p><button type="button" className="apo-dashboard-retry" onClick={retryDashboard}>Retry</button></div>}
+            </>}
           </section>
 
           <section className="apo-side-section apo-appointments-section"><div className="apo-side-heading"><h2>Today’s appointments</h2><span>{loading || failures.appointments ? "—" : `${data.appointmentCount} scheduled`}</span></div>

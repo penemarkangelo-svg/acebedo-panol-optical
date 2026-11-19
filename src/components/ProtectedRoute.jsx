@@ -1,10 +1,11 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export default function ProtectedRoute({ children }) {
+export default function ProtectedRoute({ children, loadingFallback }) {
   const { user, loading } = useAuth();
 
   if (loading) {
+    if (loadingFallback) return loadingFallback;
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

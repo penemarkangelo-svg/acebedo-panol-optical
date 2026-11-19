@@ -105,7 +105,7 @@
 .appointment-reference-row > span:first-child { color: var(--acebedo-text-muted, #6e6b63); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
 .appointment-reference-row > strong { font-size: 9px; font-weight: 600; }
 .appointment-status-badge { margin-left: auto; padding: 5px 9px; border-radius: 999px; background: var(--acebedo-neutral-bg, #f3f2ef); color: var(--acebedo-text, #1f1e1b); font-size: 8px; }
-.appointment-status-confirmed { background: var(--acebedo-red-soft, #f7ebeb); color: var(--acebedo-text-brand, #B8242F); }
+.appointment-status-confirmed { background: #eff7f0; color: #316746; }
 .appointment-status-pending { background: var(--acebedo-warning-bg, #fff5df); color: var(--acebedo-warning, #805400); }
 .appointment-status-cancelled, .appointment-status-no_show { background: var(--acebedo-neutral-bg, #f3f2ef); color: var(--acebedo-text-muted, #6e6b63); }
 .appointment-confirmation-details { display: grid; grid-template-columns: 174px 1fr; min-height: 190px; }

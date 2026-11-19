@@ -9,6 +9,7 @@ import Footer from "../components/Footer";
 import TryOnModal from "../components/TryOnModal";
 import { getProductCategory, isEyewearType, requiresLensPackage } from "../utils/productTypes";
 import "../styles/ProductDetail.css";
+import { getProductLabels } from "../utils/productLabels";
 
 export default function ProductDetailPage() {
   const { addToCart } = useCart();
@@ -28,6 +29,7 @@ export default function ProductDetailPage() {
 
   const [visionMode, setVisionMode] = useState("plano");
   const [selectedPackageId, setSelectedPackageId] = useState(null);
+  const [lensPackageOpen, setLensPackageOpen] = useState(true);
   const [lensPackages, setLensPackages] = useState([]);
   const [packagesLoading, setPackagesLoading] = useState(true);
 
@@ -250,7 +252,8 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     setSelectedPackageId(null);
-  }, [visionMode]);
+    setLensPackageOpen(true);
+  }, [visionMode, id]);
 
   const availablePackages = useMemo(() => {
     if (!product || !requiresLensPackage(product.category || product.type)) return [];
@@ -265,6 +268,13 @@ export default function ProductDetailPage() {
   }, [product, visionMode, lensPackages]);
 
   const galleryImages = useMemo(() => {
+    if (product && !isEyewearType(product.category || product.type)) {
+      const productPhotos = [...(product.product_images || [])]
+        .sort((a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary)) || (a.sort_order ?? 0) - (b.sort_order ?? 0))
+        .map((image) => image.image_url?.trim())
+        .filter(Boolean);
+      if (productPhotos.length) return productPhotos;
+    }
     const colorImages = (selectedColor?.gallery_images || [])
       .map((image) => image?.image_url?.trim())
       .filter(Boolean);
@@ -272,7 +282,7 @@ export default function ProductDetailPage() {
       || mainImage
       || "https://placehold.co/900x675?text=No+Image";
     return colorImages.length ? colorImages : [fallbackImage];
-  }, [selectedColor, mainImage]);
+  }, [selectedColor, mainImage, product]);
 
   const handlePreviousImage = () => {
     setActiveImageIndex((current) =>
@@ -446,6 +456,7 @@ export default function ProductDetailPage() {
   };
 
   const focusLensSelection = () => {
+    setLensPackageOpen(true);
     window.setTimeout(() => {
       document.getElementById("pdp-lens-selection")?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 0);
@@ -462,6 +473,15 @@ export default function ProductDetailPage() {
 
         <main className="pdp-page pdp-care-page">
           <div className="pdp-container">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="pdp-back"
+              aria-label="Go back"
+            >
+              <ArrowLeftIcon size={18} strokeWidth={1.8} aria-hidden="true" />
+            </button>
+
             <div className="pdp-care-layout">
               <section className="pdp-gallery pdp-care-gallery" aria-label={`${product.name} images`}>
                 <div className="pdp-gallery__main pdp-care-image">
@@ -629,21 +649,21 @@ export default function ProductDetailPage() {
             <section className="pdp-details">
               <div className="pdp-product-heading">
                 <div>
-                  {product.is_new && (
-                    <p className="pdp-kicker pdp-kicker--new">NEW ARRIVAL</p>
+                  {getProductLabels(product).length > 0 && (
+                    <p className="pdp-kicker pdp-kicker--new">{getProductLabels(product).join(" · ").toUpperCase()}</p>
                   )}
 
                   <p className="pdp-kicker">
-                    {product.brands?.name || "MODEL"}
+                    {product.brands?.name || "Unbranded"}
                   </p>
 
                   <h1 className="pdp-title">{product.name}</h1>
 
-                  <p className="pdp-subtitle">
+                  {isEyewearType(product.category || product.type) && <p className="pdp-subtitle">
                     {product.frame_shape?.name || "Shape not specified"} ·{" "}
                     {product.frame_material?.name ||
                       "Material not specified"}
-                  </p>
+                  </p>}
                 </div>
 
                 <span
@@ -745,18 +765,25 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <div className="pdp-section">
-                <div className="pdp-section__label-row">
-                  <label className="pdp-label">
+              <details
+                className="pdp-care-disclosure pdp-lens-disclosure"
+                open={lensPackageOpen}
+                onToggle={(event) => setLensPackageOpen(event.currentTarget.open)}
+              >
+                <summary>
+                  <span className="pdp-lens-disclosure__heading">
+                  <span>
                     {visionMode === "plano"
                       ? "Lens Package (Plano)"
                       : "Lens Package (Prescription)"}
-                  </label>
-
-                  <span className="pdp-section-note">
-                    Select one
                   </span>
-                </div>
+                  <span className="pdp-lens-disclosure__selection">
+                    {selectedPackage
+                      ? `${selectedPackage.displayName} · +₱${Number(selectedPackage.price).toFixed(2)}`
+                      : "Select one"}
+                  </span>
+                  </span>
+                </summary>
 
                 <div className="pdp-package-list">
                   {packagesLoading ? (
@@ -818,8 +845,19 @@ export default function ProductDetailPage() {
                       Please select a lens package.
                     </p>
                   )}
-              </div>
+              </details>
               </>}
+
+              <details className="pdp-care-disclosure" key={product.id}>
+                <summary>Product information</summary>
+                <p>{product.description || "Product details are not available."}</p>
+                {product.frame_shape?.name && (
+                  <p><strong>Frame shape:</strong> {product.frame_shape.name}</p>
+                )}
+                {product.frame_material?.name && (
+                  <p><strong>Frame material:</strong> {product.frame_material.name}</p>
+                )}
+              </details>
 
               <div className="pdp-checkout">
                 <div className="pdp-checkout__row">
@@ -886,11 +924,6 @@ export default function ProductDetailPage() {
 
             </section>
           </div>
-
-          <section className="pdp-information pdp-description-block">
-            <h2>Description</h2>
-            <p>{product.description || "Elegant frame designed for comfort and style."}</p>
-          </section>
 
           {(suggestionsLoading || suggestedProducts.length > 0) && <section className="pdp-related">
             <div className="pdp-related__heading">

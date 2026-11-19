@@ -1,0 +1,10 @@
+.tryon-mode-section{position:absolute;z-index:3;left:14px;bottom:40px;max-width:calc(100% - 28px);padding:8px;background:rgba(23,22,21,.78);border:1px solid rgba(255,255,255,.22);border-radius:3px}
+.tryon-mode-options{display:flex;gap:8px}
+.tryon-mode-options button{padding:8px 16px;border:1px solid #d7d3ca;border-radius:2px;background:#fff;color:#1a1816;font:inherit;font-size:12px;cursor:pointer}
+.tryon-mode-options button[aria-pressed="true"]{border-color:#b3131b;color:#b3131b;background:#fff5f5}
+.tryon-mode-options button:focus-visible{outline:2px solid #b3131b;outline-offset:3px}
+.tryon-mode-section p{max-width:260px;margin:7px 0 0;font-size:10px;line-height:1.4;color:#fff}
+
+/* Keep the existing header and action buttons fixed while content scrolls. */
+.tryon-panel{min-height:0}
+.tryon-panel-header,.tryon-actions{flex-shrink:0}

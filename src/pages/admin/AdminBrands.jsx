@@ -1,6 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Search } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 import toast from "react-hot-toast";
+import "../../styles/AdminDashboard.css";
+import "../../styles/AdminBrands.css";
 
 export default function AdminBrands() {
   const [brands, setBrands] = useState([]);
@@ -9,6 +12,9 @@ export default function AdminBrands() {
   const [editName, setEditName] = useState("");
   const [newBrandName, setNewBrandName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [search, setSearch] = useState("");
+  const [loadError, setLoadError] = useState(false);
+  const deleteDialogRef = useRef(null);
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     brand: null,
@@ -22,9 +28,11 @@ export default function AdminBrands() {
         products ( id )
       `);
     if (error) {
+      setLoadError(true);
       toast.error("Failed to load brands.");
       console.error(error);
     } else {
+      setLoadError(false);
       const brandsWithCount = data.map((brand) => ({
         ...brand,
         product_count: brand.products?.length || 0,
@@ -106,167 +114,59 @@ export default function AdminBrands() {
     setDeleteModal({ isOpen: false, brand: null });
   };
 
-  if (loading) {
-    return <div className="text-center py-10">Loading brands...</div>;
-  }
+  useEffect(() => {
+    if (deleteModal.isOpen && !deleteDialogRef.current?.open) deleteDialogRef.current?.showModal();
+  }, [deleteModal.isOpen]);
+
+  const visibleBrands = brands.filter((brand) => brand.name.toLowerCase().includes(search.trim().toLowerCase()));
 
   return (
-    <>
-      <div>
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-[#1A1816]">Manage Brands</h1>
-          <button
-            onClick={() => setAdding(true)}
-            className="bg-[#D32F2F] text-white px-4 py-2 rounded-lg hover:bg-[#B71C1C]"
-          >
-            + Add Brand
-          </button>
+    <div className="apo-dashboard apo-brands-page">
+      <header className="apo-dashboard-header">
+        <div className="apo-dashboard-title-row">
+          <div><p className="apo-dashboard-eyebrow">Commerce</p><h1>Brands</h1><p className="apo-brands-subtitle">Manage the brands used in your product catalog.</p></div>
+          <button type="button" className="apo-dashboard-primary-action" onClick={() => { setAdding(true); setEditingId(null); }} disabled={loading || adding}><Plus size={16} aria-hidden="true" />Add brand</button>
         </div>
+      </header>
 
-        {adding && (
-          <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50 flex gap-2">
-            <input
-              type="text"
-              placeholder="Brand name"
-              value={newBrandName}
-              onChange={(e) => setNewBrandName(e.target.value)}
-              className="flex-1 border rounded px-3 py-2 focus:ring-2 focus:ring-[#D32F2F]"
-              autoFocus
-            />
-            <button
-              onClick={handleAdd}
-              className="bg-[#D32F2F] text-white px-4 py-2 rounded hover:bg-[#B71C1C]"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => {
-                setAdding(false);
-                setNewBrandName("");
-              }}
-              className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-100"
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Brand Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Products
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {brands.map((brand) => (
-                <tr key={brand.id}>
-                  <td className="px-6 py-4">
-                    {editingId === brand.id ? (
-                      <input
-                        type="text"
-                        value={editName}
-                        onChange={(e) => setEditName(e.target.value)}
-                        className="border rounded px-2 py-1 w-full"
-                        autoFocus
-                      />
-                    ) : (
-                      <span className="font-medium text-gray-900">
-                        {brand.name}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {brand.product_count}{" "}
-                    {brand.product_count === 1 ? "product" : "products"}
-                  </td>
-                  <td className="px-6 py-4 text-right space-x-2">
-                    {editingId === brand.id ? (
-                      <>
-                        <button
-                          onClick={() => handleUpdate(brand.id)}
-                          className="text-green-600 hover:underline"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="text-gray-500 hover:underline"
-                        >
-                          Cancel
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => handleEdit(brand)}
-                          className="text-blue-600 hover:underline"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => openDeleteModal(brand)}
-                          className="text-red-600 hover:underline"
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {brands.length === 0 && (
-                <tr>
-                  <td
-                    colSpan="3"
-                    className="px-6 py-8 text-center text-gray-500"
-                  >
-                    No brands yet. Click "Add Brand" to create one.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {deleteModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-[#1A1816] mb-2">
-              Confirm Delete
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete the brand{" "}
-              <strong>{deleteModal.brand?.name}</strong>? This action cannot be
-              undone.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={closeDeleteModal}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={confirmDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
+      {adding && (
+        <section className="apo-dashboard-panel apo-brands-editor" aria-labelledby="apo-add-brand-title">
+          <div className="apo-panel-heading"><div><h2 id="apo-add-brand-title">Add brand</h2><p>Use the brand name customers will see in the catalog.</p></div></div>
+          <form className="apo-brands-add-form" onSubmit={(event) => { event.preventDefault(); handleAdd(); }}>
+            <label htmlFor="apo-new-brand">Brand name<input id="apo-new-brand" autoFocus required value={newBrandName} onChange={(event) => setNewBrandName(event.target.value)} placeholder="Enter brand name" /></label>
+            <div className="apo-brands-form-actions"><button type="button" className="apo-brands-secondary" onClick={() => { setAdding(false); setNewBrandName(""); }}>Cancel</button><button type="submit" className="apo-brands-primary">Save brand</button></div>
+          </form>
+        </section>
       )}
-    </>
+
+      <section className="apo-dashboard-panel apo-brands-directory">
+        <div className="apo-panel-heading apo-brands-directory-heading"><div><h2>Brand directory</h2><p>Brand names and their linked products</p></div><span className="apo-panel-count">{loading || loadError ? "—" : `${brands.length} ${brands.length === 1 ? "brand" : "brands"}`}</span></div>
+        <div className="apo-brands-toolbar"><label className="apo-brands-search"><Search size={16} aria-hidden="true" /><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search brand name" aria-label="Search brand name" /></label></div>
+        <table className="apo-brands-table">
+          <thead><tr><th scope="col">Brand name</th><th scope="col">Products</th><th scope="col">Actions</th></tr></thead>
+          <tbody>
+            {loading ? <tr><td colSpan="3" className="apo-brands-message" role="status">Loading brands…</td></tr>
+              : loadError ? <tr><td colSpan="3" className="apo-brands-message">Brands could not be loaded. <button type="button" className="apo-brands-text-action" onClick={fetchBrands}>Try again</button></td></tr>
+                : visibleBrands.length === 0 ? <tr><td colSpan="3" className="apo-brands-message">{search.trim() ? "No brands match your search." : "No brands yet. Add a brand to get started."}</td></tr>
+                  : visibleBrands.map((brand) => (
+                    <tr key={brand.id}>
+                      <td>{editingId === brand.id ? <input className="apo-brands-name-input" autoFocus required value={editName} onChange={(event) => setEditName(event.target.value)} aria-label={`New name for ${brand.name}`} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); handleUpdate(brand.id); } if (event.key === "Escape") setEditingId(null); }} /> : <strong>{brand.name}</strong>}</td>
+                      <td>{brand.product_count} {brand.product_count === 1 ? "product" : "products"}</td>
+                      <td><div className="apo-brands-row-actions">{editingId === brand.id ? <><button type="button" className="apo-brands-text-action" onClick={() => handleUpdate(brand.id)}>Save</button><button type="button" className="apo-brands-text-action" onClick={() => setEditingId(null)}>Cancel</button></> : <><button type="button" className="apo-brands-text-action" aria-label={`Edit ${brand.name}`} onClick={() => { setAdding(false); handleEdit(brand); }}>Edit</button><button type="button" className="apo-brands-text-action is-danger" aria-label={`Delete ${brand.name}`} onClick={() => openDeleteModal(brand)}>Delete</button></>}</div></td>
+                    </tr>
+                  ))}
+          </tbody>
+        </table>
+        <footer className="apo-brands-footer"><span>{loading || loadError ? "Brand information is not available yet." : `Showing ${visibleBrands.length} of ${brands.length} brands`}</span><span>Reassign linked products before deleting a brand.</span></footer>
+      </section>
+
+      {deleteModal.isOpen && (
+        <dialog ref={deleteDialogRef} className="apo-brands-delete-dialog" aria-labelledby="apo-delete-brand-title" aria-describedby="apo-delete-brand-description" onCancel={closeDeleteModal} onClose={closeDeleteModal}>
+          <h2 id="apo-delete-brand-title">Delete brand?</h2>
+          <p id="apo-delete-brand-description">Delete <strong>{deleteModal.brand?.name}</strong>? This action cannot be undone.</p>
+          <div className="apo-brands-form-actions"><button type="button" autoFocus className="apo-brands-secondary" onClick={closeDeleteModal}>Cancel</button><button type="button" className="apo-brands-primary is-danger" onClick={confirmDelete}>Delete brand</button></div>
+        </dialog>
+      )}
+    </div>
   );
 }

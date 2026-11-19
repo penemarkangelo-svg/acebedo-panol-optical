@@ -7,9 +7,16 @@ import TryOnModal from "../components/TryOnModal";
 import { supabase } from "../lib/supabaseClient";
 import { getProductCategory, usesVariantStock } from "../utils/productTypes";
 import "../styles/shop.css";
+import { getProductLabels } from "../utils/productLabels";
 
 const ITEMS_PER_PAGE = 9;
 const MAX_PRICE = 5000;
+const ALL_PRODUCTS_PRIORITY = {
+  eyeglasses: 0,
+  sunglasses: 0,
+  accessory: 1,
+  eyedrops: 2,
+};
 
 export default function ShopPage() {
   const navigate = useNavigate();
@@ -181,6 +188,14 @@ export default function ShopPage() {
       stockMatch
     );
   });
+
+  // Keep the newest-first order within each group and sort before pagination.
+  if (productType === "all") {
+    filteredProducts.sort((a, b) =>
+      (ALL_PRODUCTS_PRIORITY[getProductCategory(a)] ?? 3) -
+      (ALL_PRODUCTS_PRIORITY[getProductCategory(b)] ?? 3)
+    );
+  }
 
   const totalPages = Math.ceil(
     filteredProducts.length / ITEMS_PER_PAGE
@@ -583,26 +598,9 @@ export default function ShopPage() {
                           className="shop-product"
                         >
                           <div className="shop-product__image-wrap">
-                            {product.is_new && (
-                              <span className="shop-product__badge">
-                                NEW ARRIVAL
-                              </span>
-                            )}
-
-                            {!product.is_new &&
-                              product.name === "Triomphe" && (
-                                <span className="shop-product__badge">
-                                  A MODERN CLASSIC
-                                </span>
-                              )}
-
-                            {!product.is_new &&
-                              product.name === "Model" && (
-                                <span className="shop-product__badge">
-                                  THE EVERYDAY EDIT
-                                </span>
-                              )}
-
+                            <div className="shop-product__badges">
+                              {(getProductLabels(product).length ? getProductLabels(product) : product.name === "Triomphe" ? ["A Modern Classic"] : product.name === "Model" ? ["The Everyday Edit"] : []).map((label) => <span className="shop-product__badge" key={label}>{label}</span>)}
+                            </div>
                             <button
                               type="button"
                               className="shop-product__heart"

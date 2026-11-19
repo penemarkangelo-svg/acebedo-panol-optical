@@ -1,3 +1,4 @@
+import { DEMO_MODE } from "../constants/screeningConfig";
 import { useEffect, useRef, useState } from "react";
 import { FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision";
 import cvReadyPromise from "@techstark/opencv-js";
@@ -569,12 +570,14 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
     };
   }, [phase, cameraStatus, openCvStatus]);
 
-  function finishCalibration() {
+  function finishCalibration(skipped = false) {
     if (phaseRef.current !== "card") return;
     const guideWidthCssPx = guideRef.current?.getBoundingClientRect()?.width || 0;
     if (guideWidthCssPx <= 0) return;
 
     const result = {
+      // Demo skip uses the guide as an assumed scale, not a measured calibration.
+      ...(DEMO_MODE ? { demoOnly: true, cardDetectionSkipped: skipped } : {}),
       pixelsPerMm: guideWidthCssPx / CARD_WIDTH_MM,
       cardWidthMm: CARD_WIDTH_MM,
       cardHeightMm: CARD_HEIGHT_MM,
@@ -827,6 +830,12 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
             <div style={{ padding: "12px 14px", borderRadius: 12, background: "var(--acebedo-error-bg)", border: "1px solid var(--acebedo-error-border)", color: "var(--acebedo-red-hover)", fontSize: 13, lineHeight: 1.5 }}>
               {error}
             </div>
+          )}
+
+          {DEMO_MODE && phase === "card" && cardStatus !== "complete" && (
+            <button type="button" onClick={() => finishCalibration(true)} style={{ minHeight: 44, border: "none", borderRadius: 12, background: "var(--acebedo-red)", color: "#fff", fontWeight: 700, cursor: "pointer" }}>
+              Skip card detection
+            </button>
           )}
 
           {phase === "card" && cardStatus === "error" && (

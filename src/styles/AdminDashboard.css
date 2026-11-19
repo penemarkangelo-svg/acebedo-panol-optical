@@ -145,32 +145,42 @@
 
 .apo-admin-sidebar-footer {
   border-top: 1px solid var(--apo-admin-line);
-  padding: 14px 6px 0;
+  padding: 6px 6px 0;
 }
 
 .apo-admin-profile { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.apo-admin-profile--sidebar { padding: 16px 7px 4px; }
 .apo-admin-avatar { display: grid; width: 28px; height: 28px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #e3e0d7; font-size: 10px; font-weight: 700; }
 .apo-admin-profile > span:last-child { min-width: 0; }
 .apo-admin-profile strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .apo-admin-profile small { margin-top: 2px; color: var(--apo-admin-muted); font-size: 11px; }
+.apo-admin-signout { display: flex; width: 100%; min-height: 44px; align-items: center; gap: 10px; margin-top: 0; padding: 8px; border: 0; border-radius: 4px; background: transparent; color: #B8242F; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.apo-admin-signout:hover { background: #F5E0DF; color: #9A1C26; }
+.apo-admin-signout:focus-visible { outline: 2px solid #B8242F; outline-offset: 2px; }
+.apo-admin-signout:disabled { cursor: wait; opacity: 0.65; }
 
 .apo-admin-main { min-width: 0; flex: 1; padding: 0 clamp(20px, 3.2vw, 48px) 24px; }
 
 .apo-dashboard { width: min(100%, 1440px); margin: 0 auto; }
 .apo-dashboard-header { border-bottom: 1px solid var(--apo-admin-line); }
 .apo-dashboard-topbar { display: flex; min-height: 62px; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 12px; border-bottom: 1px solid var(--apo-admin-line); }
+.apo-dashboard-admin-badge { display: flex; align-items: center; gap: 9px; margin-right: auto; padding: 8px 0; color: var(--apo-admin-ink); }
+.apo-dashboard-admin-badge strong { font-size: 12px; font-weight: 600; }
 .apo-dashboard-search { display: flex; width: min(420px, 48vw); min-height: 42px; align-items: center; gap: 10px; padding: 0 12px; color: #5C574F; border: 1px solid #bdb8ad; border-radius: 5px; background: #fff; box-shadow: 0 1px 2px rgb(35 31 24 / 5%); transition: border-color 140ms ease, box-shadow 140ms ease; }
 .apo-dashboard-search:focus-within { border-color: var(--apo-admin-brand); box-shadow: 0 0 0 3px rgb(179 19 27 / 10%); }
 .apo-dashboard-search > svg { flex: 0 0 auto; color: #5C574F; }
 .apo-dashboard-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #1A1816; font: inherit; font-size: 13px; }
 .apo-dashboard-search input::placeholder { color: #5C574F; opacity: 1; }
 .apo-dashboard-search-clear { min-height: 44px; padding: 0 4px; color: #5C574F; border: 0; background: transparent; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
-.apo-dashboard-search-status { color: #5C574F; font-size: 11px; }
+.apo-dashboard-search-status { flex-basis: 100%; color: #5C574F; font-size: 11px; text-align: right; }
 .apo-dashboard-title-row { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding: 20px 0 17px; }
 .apo-dashboard-eyebrow { margin: 0 0 3px; color: var(--apo-admin-brand); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
 .apo-dashboard-title-row h1 { margin: 0; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: clamp(28px, 3vw, 36px); font-weight: 400; letter-spacing: -0.035em; line-height: 1.1; }
 .apo-dashboard-date { margin: 5px 0 0; color: var(--apo-admin-muted); font-size: 12px; }
-.apo-dashboard-header-actions { display: flex; align-items: center; gap: 8px; }
+.apo-dashboard-header-actions { display: flex; width: min(420px, 48vw); flex-direction: column; align-items: stretch; gap: 6px; }
+.apo-dashboard-header-actions .apo-dashboard-search { width: 100%; }
+.apo-dashboard-header-actions .apo-dashboard-search-status { width: 100%; }
+.apo-dashboard-header-actions .apo-dashboard-primary-action { align-self: flex-end; }
 .apo-dashboard-primary-action { display: inline-flex; min-height: 38px; align-items: center; gap: 7px; padding: 0 12px; border: 1px solid var(--apo-admin-line); border-radius: 4px; color: #5C574F; font-size: 12px; text-decoration: none; }
 .apo-dashboard-primary-action { color: #fff; border-color: #292721; background: #292721; font-weight: 600; }
 .apo-dashboard-primary-action:hover { background: var(--apo-admin-brand); border-color: var(--apo-admin-brand); }
@@ -193,6 +203,9 @@
 .apo-panel-heading h2, .apo-side-heading h2 { margin: 0; color: #1A1816; font-size: 14px; font-weight: 700; }
 .apo-panel-heading p { margin: 4px 0 0; color: var(--apo-admin-muted); font-size: 11px; }
 .apo-panel-period, .apo-panel-count { padding-top: 2px; color: var(--apo-admin-muted); font-size: 11px; white-space: nowrap; }
+.apo-sales-refresh { display: grid; width: 44px; height: 44px; flex: 0 0 auto; place-items: center; padding: 0; border: 0; border-radius: 4px; background: transparent; color: var(--apo-admin-muted); cursor: pointer; }
+.apo-sales-refresh:hover:not(:disabled) { background: #f7f5f1; color: var(--apo-admin-ink); }
+.apo-sales-refresh:disabled { opacity: 0.5; cursor: wait; }
 .apo-sales-summary { display: flex; align-items: baseline; gap: 11px; padding: 10px 0 1px; }
 .apo-sales-summary strong { font-family: var(--font-brand, Georgia, serif); font-size: 24px; font-weight: 600; letter-spacing: -0.03em; }
 .apo-sales-summary span { display: inline-flex; align-items: center; gap: 4px; color: #5C574F; font-size: 11px; }
@@ -204,6 +217,11 @@
 .apo-chart-bar.is-today { background: var(--apo-admin-brand); }
 .apo-chart-label { padding-top: 4px; color: var(--apo-admin-muted); font-size: 11px; }
 .apo-chart-unavailable { align-self: center; grid-column: 1 / -1; margin: 0; color: var(--apo-admin-muted); font-size: 12px; text-align: center; }
+.apo-chart-unavailable p { margin: 0 0 8px; }
+.apo-dashboard-retry { min-height: 44px; padding: 8px 14px; border: 1px solid var(--apo-admin-line); border-radius: 4px; background: var(--apo-admin-card); color: var(--apo-admin-brand); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.apo-dashboard-retry:hover { background: #f7f5f1; color: #9A1C26; }
+.apo-action-unavailable { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--apo-admin-line); color: var(--apo-admin-muted); font-size: 12px; line-height: 1.5; }
+.apo-action-unavailable p { margin: 0 0 8px; }
 .apo-dashboard-empty-note { margin: 8px 0 0; color: var(--apo-admin-muted); font-size: 11px; }
 
 .apo-panel-link { display: inline-flex; align-items: center; gap: 5px; color: var(--apo-admin-brand); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; }
@@ -220,6 +238,11 @@
 .apo-dashboard-table--stock th:nth-child(2) { width: 17%; }
 .apo-dashboard-table--stock th:nth-child(3) { width: 33%; }
 .apo-dashboard-table tr:last-child td { border-bottom: 0; }
+/* Share white column headers across admin directories, detail tables, and editors. */
+.apo-admin-workspace-shell .apo-admin-main table thead,
+.apo-admin-workspace-shell .apo-admin-main table thead tr,
+.apo-admin-workspace-shell .apo-admin-main table thead th { background: #FFFFFF; }
+.apo-admin-workspace-shell .apo-admin-main table thead th { border-bottom: 1px solid var(--apo-admin-line); }
 .apo-dashboard-table td:first-child { color: #1A1816; font-weight: 650; }
 .apo-dashboard-table-empty { padding: 17px 7px !important; color: var(--apo-admin-muted) !important; text-align: center; }
 .apo-status-pill { display: inline-flex; max-width: 100%; padding: 4px 7px; border: 1px solid #ddd9cf; border-radius: 3px; background: #f2f1ed; color: #5C574F; font-size: 11px; line-height: 1.25; text-transform: capitalize; }
@@ -228,10 +251,9 @@
 .apo-status-pill--cancelled, .apo-status-pill--failed, .apo-status-pill--no-show { color: #9d3234; border-color: #e6c0c1; background: #fbefed; }
 .apo-stock-flag { display: inline-flex; align-items: center; gap: 5px; color: var(--apo-admin-brand); font-size: 11px; }
 
-.apo-dashboard-side-column { display: flex; min-width: 0; flex-direction: column; align-self: stretch; background: var(--apo-admin-side); border: 0; border-radius: 5px; box-shadow: 0 1px 3px rgb(35 31 24 / 5%); }
+.apo-dashboard-side-column { display: flex; min-width: 0; flex-direction: column; align-self: start; background: var(--apo-admin-side); border: 0; border-radius: 5px; box-shadow: 0 1px 3px rgb(35 31 24 / 5%); }
 .apo-side-section { min-height: 180px; padding: 16px 15px 14px; }
-.apo-actions-section { min-height: 225px; }
-.apo-appointments-section { min-height: 205px; }
+.apo-actions-section, .apo-appointments-section { min-height: 0; }
 .apo-activity-section { min-height: 190px; }
 .apo-side-section + .apo-side-section { border-top: 1px solid #d6d2c8; }
 .apo-side-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #d6d2c8; }
@@ -286,6 +308,9 @@
   .apo-admin-nav-link { justify-content: center; min-height: 44px; padding: 9px 4px; }
   .apo-admin-nav-link svg { width: 18px; height: 18px; }
   .apo-admin-profile { justify-content: center; }
+  .apo-admin-profile--sidebar { padding: 14px 0 2px; }
+  .apo-admin-signout { justify-content: center; padding: 8px 4px; }
+  .apo-admin-signout span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
   .apo-admin-main { padding-right: 18px; padding-left: 18px; }
   .apo-dashboard-columns { grid-template-columns: 1fr; }
   .apo-dashboard-side-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -301,8 +326,9 @@
   .apo-admin-main { padding: 0 12px 18px; }
   .apo-dashboard-topbar { min-height: 54px; }
   .apo-dashboard-search { width: 100%; min-height: 44px; }
-  .apo-dashboard-title-row { align-items: start; }
-  .apo-dashboard-header-actions { flex-direction: column; align-items: end; }
+  .apo-dashboard-title-row { align-items: start; flex-wrap: wrap; }
+  .apo-dashboard-header-actions { width: 100%; }
+  .apo-dashboard-header-actions .apo-dashboard-primary-action { align-self: flex-end; }
   .apo-dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .apo-metric-card:nth-child(3)::before { display: none; }
   .apo-metric-card:nth-child(n + 3) { border-top: 1px solid var(--apo-admin-line); }

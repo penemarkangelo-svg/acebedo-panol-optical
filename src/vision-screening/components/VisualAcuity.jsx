@@ -1,3 +1,4 @@
+import { DEMO_MODE } from "../constants/screeningConfig";
 import { useEffect, useRef, useState } from "react";
 import VisionTestLayout from "./VisionTestUI/VisionTestLayout";
 import { FaceLandmarker, FilesetResolver, HandLandmarker } from "@mediapipe/tasks-vision";
@@ -231,7 +232,7 @@ export default function VisualAcuity({ onContinue, onComplete }) {
           outputFaceBlendshapes: true,
           outputFacialTransformationMatrixes: false,
         }),
-        HandLandmarker.createFromOptions(vision, {
+        DEMO_MODE ? null : HandLandmarker.createFromOptions(vision, {
           baseOptions: { modelAssetPath: HAND_MODEL_URL, delegate: "GPU" },
           runningMode: "VIDEO",
           numHands: 2,
@@ -242,7 +243,7 @@ export default function VisualAcuity({ onContinue, onComplete }) {
       ]);
       if (!mountedRef.current) {
         landmarker.close();
-        handLandmarker.close();
+        handLandmarker?.close();
         return;
       }
       faceLandmarkerRef.current = landmarker;
@@ -331,9 +332,9 @@ export default function VisualAcuity({ onContinue, onComplete }) {
         /* Confirm the covered eye with hand/eye overlap; keep the tested eye open. */
         let coverWarning = "";
         const blendshapes = result.faceBlendshapes?.[0]?.categories;
-        if (localBaselineRef.current && !blendshapes) {
+        if (!DEMO_MODE && localBaselineRef.current && !blendshapes) {
           coverWarning = "We can't verify your eyes right now. Please face the camera.";
-        } else if (blendshapes && localBaselineRef.current) {
+        } else if (!DEMO_MODE && blendshapes && localBaselineRef.current) {
           const rawLeft = blendshapes.find((c) => c.categoryName === "eyeBlinkLeft")?.score || 0;
           const rawRight = blendshapes.find((c) => c.categoryName === "eyeBlinkRight")?.score || 0;
           if (!smoothed.blink) smoothed.blink = { left: rawLeft, right: rawRight };

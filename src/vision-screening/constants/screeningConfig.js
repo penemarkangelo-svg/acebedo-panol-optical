@@ -3,6 +3,10 @@
  * Change values here, not inside components.
  */
 
+// Temporary walkthrough mode. Set to false to restore 15 trials per eye,
+// hand/eye verification, and mandatory card detection. Restart screening afterward.
+export const DEMO_MODE = true;
+
 export const SESSION_KEYS = {
   calibration: "acebedoVisionCalibration",
   viewingPosition: "acebedoVisionViewingPosition",
@@ -50,7 +54,7 @@ export const SETUP = {
 /* Visual acuity (Landolt C + adaptive staircase) */
 export const ACUITY = {
   eyeOrder: ["right", "left"], // master copy: no "both"
-  trialsPerEye: 15,
+  trialsPerEye: DEMO_MODE ? 1 : 15,
   testDistanceMm: 500, // approximate near-viewing position
   startLogMAR: 1.2, // first C is large and obvious (about 43 px at 3.78 px/mm)
   minLogMAR: -0.1,

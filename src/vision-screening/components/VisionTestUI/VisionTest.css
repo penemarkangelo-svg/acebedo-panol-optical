@@ -1674,13 +1674,17 @@
 }
 
 .acebedo-btn-primary {
-  background: #2f604d;
+  background: var(--acebedo-red, #B3131B);
   color: #ffffff;
 
   border-radius: 4px;
 
   font-size: 8px;
   font-weight: 600;
+}
+
+.acebedo-btn-primary:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--acebedo-red-hover, #8E0E14);
 }
 
 .acebedo-intro-start {

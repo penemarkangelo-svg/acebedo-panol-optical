@@ -87,7 +87,7 @@ export default function LoginPage() {
     <>
       <Header />
       <main className="bg-[#F8F7F4] min-h-[calc(100vh-200px)] flex items-center justify-center px-6 md:px-12 lg:px-20 py-12">
-        <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-center shadow-sm rounded-xl overflow-hidden bg-[#FEFDFB]">
+        <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-center shadow-sm rounded-xl overflow-hidden bg-white">
           <div className="hidden md:block h-full">
             <img
               src={loginImage}
@@ -118,7 +118,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   onBlur={() => handleBlur("email")}
                   required
-                  className={`w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition ${
+                  className={`w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-white focus:ring-2 focus:ring-[#B8242F] outline-none transition ${
                     touched.email && !email.trim()
                       ? "border-red-500"
                       : "border-[#D2C9BA]"
@@ -154,7 +154,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     onBlur={() => handleBlur("password")}
                     required
-                    className={`w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-[#FEFDFB] focus:ring-2 focus:ring-[#B8242F] outline-none transition pr-10 ${
+                    className={`w-full px-4 py-2 border border-[#D2C9BA] rounded-lg bg-white focus:ring-2 focus:ring-[#B8242F] outline-none transition pr-10 ${
                       touched.password && !password.trim()
                         ? "border-red-500"
                         : "border-[#D2C9BA]"
