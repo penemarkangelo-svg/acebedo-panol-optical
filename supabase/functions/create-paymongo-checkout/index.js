@@ -35,42 +35,33 @@ function safeError(error, fallback) {
 }
 
 async function getCheckoutSessionState(paymongoSecretKey, sessionId) {
-  const providerResponse = await fetch(`https://api.paymongo.com/v2/checkout_sessions/${encodeURIComponent(sessionId)}`, {
+  const providerResponse = await fetch(`https://api.paymongo.com/v1/checkout_sessions/${encodeURIComponent(sessionId)}`, {
     headers: { Authorization: `Basic ${btoa(`${paymongoSecretKey}:`)}` },
   }).catch(() => null);
   const body = await providerResponse?.json().catch(() => null);
   const attributes = body?.data?.attributes;
   if (!providerResponse?.ok || !attributes) return "unknown";
-  const payments = Array.isArray(attributes.payments) ? attributes.payments : [];
-  if (payments.some((payment) => payment?.status === "paid")) return "paid";
+  const paymentStatuses = (Array.isArray(attributes.payments) ? attributes.payments : [])
+    .map((payment) => payment?.attributes?.status ?? payment?.status);
+  const intentStatus = attributes.payment_intent?.attributes?.status ?? attributes.payment_intent?.status;
+  if (paymentStatuses.includes("paid") || intentStatus === "succeeded") return "paid";
   if (attributes.status === "expired") return "expired";
-  if (payments.some((payment) => ["pending", "processing"].includes(payment?.status))) return "processing";
+  if (intentStatus === "processing" || paymentStatuses.some((status) => ["pending", "processing"].includes(status))) {
+    return "processing";
+  }
   return attributes.status === "active" ? "active" : "unknown";
 }
 
 async function expireCheckoutSession(paymongoSecretKey, sessionId) {
   const headers = { Authorization: `Basic ${btoa(`${paymongoSecretKey}:`)}` };
-  const expireResponse = await fetch(`https://api.paymongo.com/v2/checkout_sessions/${encodeURIComponent(sessionId)}/expire`, {
+  const expireResponse = await fetch(`https://api.paymongo.com/v1/checkout_sessions/${encodeURIComponent(sessionId)}/expire`, {
     method: "POST",
     headers,
   }).catch(() => null);
 
   if (expireResponse?.ok) return { status: "expired" };
 
-  const retrieveResponse = await fetch(`https://api.paymongo.com/v2/checkout_sessions/${encodeURIComponent(sessionId)}`, {
-    headers,
-  }).catch(() => null);
-  const body = await retrieveResponse?.json().catch(() => null);
-  if (!retrieveResponse?.ok || !body?.data?.attributes) return { status: "unknown" };
-
-  const attributes = body.data.attributes;
-  const payments = Array.isArray(attributes.payments) ? attributes.payments : [];
-  if (payments.some((payment) => payment?.status === "paid")) return { status: "paid" };
-  if (attributes.status === "expired") return { status: "expired" };
-  if (payments.some((payment) => ["pending", "processing"].includes(payment?.status))) {
-    return { status: "processing" };
-  }
-  return { status: attributes.status === "active" ? "active" : "unknown" };
+  return { status: await getCheckoutSessionState(paymongoSecretKey, sessionId) };
 }
 
 async function createPayMongoCheckoutSession({ paymongoSecretKey, appBaseUrl, orderId, paymentId, amountMinor }) {
@@ -189,10 +180,6 @@ Deno.serve(async (request) => {
       .maybeSingle();
     if (orderError) return safeError(orderError, "Could not check this order.");
     if (!order) return response({ error: "Order not found." }, 404);
-    if (order.order_status === "confirmed") {
-      return response({ orderId, alreadyPaid: true, liveMode: true });
-    }
-
     let { data: payment, error: paymentError } = await adminClient
       .from("payments")
       .select("id, status, paymongo_checkout_session_id, metadata")
@@ -213,6 +200,12 @@ Deno.serve(async (request) => {
       if (prepared.error) return safeError(prepared.error, "Could not check the saved payment.");
       payment = prepared.data;
     }
+    if (payment?.status === "paid") {
+      return response({ orderId, alreadyPaid: true, liveMode: true });
+    }
+    if (!["pending", "cancelled"].includes(order.order_status)) {
+      return response({ orderId, orderNotPayable: true, liveMode: true });
+    }
     if (!payment || payment.status !== "pending") {
       return response({ orderId, paymentWindowExpired: true, orderNotPayable: order.order_status !== "pending", liveMode: true });
     }
@@ -227,8 +220,10 @@ Deno.serve(async (request) => {
             .eq("id", payment.id)
             .eq("status", "pending");
           if (cancelPaymentError) return safeError(cancelPaymentError, "The closed order payment could not be updated.");
-        } else {
+        } else if (["paid", "processing"].includes(sessionState.status)) {
           return response({ orderId, paymentConfirmationPending: true, liveMode: true });
+        } else {
+          return response({ orderId, paymentStatusUnavailable: true, liveMode: true });
         }
       }
       return response({ orderId, orderNotPayable: true, liveMode: true });
@@ -251,11 +246,11 @@ Deno.serve(async (request) => {
         return response({ orderId, paymentWindowExpired: true, liveMode: true });
       }
       const sessionState = await expireCheckoutSession(paymongoSecretKey, payment.paymongo_checkout_session_id);
-      if (sessionState.status === "paid") {
+      if (["paid", "processing"].includes(sessionState.status)) {
         return response({ orderId, paymentConfirmationPending: true, liveMode: true });
       }
-      if (sessionState.status === "processing" || sessionState.status === "unknown" || sessionState.status === "active") {
-        return response({ orderId, paymentConfirmationPending: true, liveMode: true });
+      if (sessionState.status !== "expired") {
+        return response({ orderId, paymentStatusUnavailable: true, liveMode: true });
       }
 
       const { error: cancelPaymentError } = await adminClient
@@ -304,7 +299,10 @@ Deno.serve(async (request) => {
     const sessionState = payment.paymongo_checkout_session_id
       ? await getCheckoutSessionState(paymongoSecretKey, payment.paymongo_checkout_session_id)
       : "active";
-    if (payment.paymongo_checkout_session_id && (sessionState === "paid" || sessionState === "processing" || sessionState === "unknown")) {
+    if (sessionState === "unknown") {
+      return response({ orderId, paymentStatusUnavailable: true, liveMode: true });
+    }
+    if (sessionState === "paid" || sessionState === "processing") {
       return response({ orderId, paymentConfirmationPending: true, liveMode: true });
     }
     if (payment.paymongo_checkout_session_id && sessionState === "expired") {
