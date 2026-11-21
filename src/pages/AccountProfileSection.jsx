@@ -100,7 +100,7 @@ export default function AccountProfileSection({ user }) {
       <div className="account-profile-fields">
         <label>First name<input name="first_name" value={form.first_name} onChange={setField} disabled={!profileLoaded} required /></label>
         <label>Last name<input name="last_name" value={form.last_name} onChange={setField} disabled={!profileLoaded} required /></label>
-        <label>Email address<input value={user?.email || ""} readOnly /><span className="account-field-note account-field-note--verified"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m3.25 8.25 3 3 6.5-6.5" /></svg>Verified</span></label>
+        <label>Email address<input value={user?.email || ""} readOnly /></label>
         <label>Phone number<input name="phone_number" type="tel" value={form.phone_number} onChange={setField} disabled={!profileLoaded} placeholder="Add phone number" /></label>
       </div>
       <div className="account-profile-form-footer"><button type="submit" className="account-save-button" disabled={saving || !profileLoaded}>{saving ? "Saving…" : "Save changes"}</button></div>

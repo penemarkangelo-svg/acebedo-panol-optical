@@ -24,6 +24,7 @@ const PRESCRIPTION_LABELS = {
 const ORDERS_PER_PAGE = 5;
 const money = (value) => `₱${Number(value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const orderNumber = (order) => `#APO-${order.id}`;
+const isPaymentVerified = (order) => order.step_statuses?.["2"] === "Completed";
 const humanize = (value = "pending") => value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 export default function AdminOrders({ staffMode = false }) {
@@ -33,7 +34,7 @@ export default function AdminOrders({ staffMode = false }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("confirmed");
   const [fulfillmentFilter, setFulfillmentFilter] = useState("all");
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -97,7 +98,10 @@ export default function AdminOrders({ staffMode = false }) {
       order.email,
       order.contact_number,
     ].some((value) => String(value || "").toLowerCase().includes(query));
-    const matchesStatus = statusFilter === "all" || order.order_status === statusFilter;
+    const matchesStatus = statusFilter === "all" || (
+      order.order_status === statusFilter &&
+      (statusFilter !== "confirmed" || isPaymentVerified(order))
+    );
     const matchesFulfillment = fulfillmentFilter === "all" || order.fulfillment_method === fulfillmentFilter;
     return matchesSearch && matchesStatus && matchesFulfillment;
   }), [orders, searchQuery, statusFilter, fulfillmentFilter]);
@@ -223,7 +227,7 @@ export default function AdminOrders({ staffMode = false }) {
                   <td><span className="apo-orders-fulfillment">{order.fulfillment_method === "delivery" ? "Delivery" : "Pickup"}</span></td>
                   <td><span className={`apo-orders-prescription is-${prescription.tone}`}><i aria-hidden="true" />{prescription.label}</span></td>
                   <td className="apo-orders-money">{money(order.total)}</td>
-                    <td><span className={`apo-orders-status is-${order.order_status || "pending"}`}>{order.order_status === "pending" ? "Awaiting payment" : order.order_status === "confirmed" && order.step_statuses?.["2"] !== "Completed" ? "Payment unverified" : humanize(order.order_status)}</span></td>
+                  <td><span className={`apo-orders-status is-${order.order_status || "pending"}`}>{order.order_status === "pending" ? "Awaiting payment" : order.order_status === "confirmed" && !isPaymentVerified(order) ? "Payment unverified" : humanize(order.order_status)}</span></td>
                   <td><button className="apo-orders-view" type="button" onClick={() => setSelectedOrder(order)}>View details <ArrowRight size={14} /></button></td>
                 </tr>;
               })}

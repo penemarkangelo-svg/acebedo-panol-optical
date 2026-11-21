@@ -225,7 +225,7 @@ export default function OrderHistoryPage({ embedded = false }) {
                           : order.order_status?.toLowerCase() === "pending" && ["checking", "confirming"].includes(paymentRetryByOrder[order.id]?.status)
                             ? "Checking payment"
                           : order.order_status?.toLowerCase() === "pending"
-                            ? "Payment incomplete"
+                            ? paymentRetryByOrder[order.id]?.status === "unavailable" ? "Payment status unavailable" : "Awaiting payment"
                             : order.order_status === "confirmed" && order.step_statuses?.["2"] !== "Completed"
                               ? "Payment unverified"
                               : getStatusLabel(order.order_status)}
