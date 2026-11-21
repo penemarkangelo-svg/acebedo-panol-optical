@@ -114,7 +114,7 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (savedPayment) {
-      toast.error("You already have a payment for this order. Check your order status or wait before trying again.");
+      navigate(`/order-status/${savedPayment.orderId}`);
       return;
     }
     if (!isFormValid()) {
@@ -883,10 +883,10 @@ export default function CheckoutPage() {
               >
                 {saving
                   ? "Opening QR Ph checkout..."
-                  : "Continue to QR Ph"}
+                  : savedPayment ? "View payment status" : "Continue to QR Ph"}
               </button>
 
-              {savedPayment && <p className="checkout-order-hint">A payment already exists for this order. <Link to={`/order-status/${savedPayment.orderId}`}>View order status</Link></p>}
+              {savedPayment && <p className="checkout-order-hint">Your order is saved. You can resume QR Ph from the order page while the payment window is open.</p>}
               {!savedPayment && !isFormValid() && !saving && (
                 <p className="checkout-order-hint">
                   Complete the required contact and fulfillment details, select QR Ph, then confirm above to continue.

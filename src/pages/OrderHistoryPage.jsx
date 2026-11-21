@@ -226,7 +226,9 @@ export default function OrderHistoryPage({ embedded = false }) {
                             ? "Checking payment"
                           : order.order_status?.toLowerCase() === "pending"
                             ? "Payment incomplete"
-                            : getStatusLabel(order.order_status)}
+                            : order.order_status === "confirmed" && order.step_statuses?.["2"] !== "Completed"
+                              ? "Payment unverified"
+                              : getStatusLabel(order.order_status)}
                       </span>
                       <strong className="order-history__total">{formatPrice(order.total)}</strong>
                     </header>
