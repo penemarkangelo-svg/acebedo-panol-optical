@@ -27,7 +27,7 @@ async function readCheckoutResponse(data, error) {
 }
 
 const ORDER_STEPS = [
-  { key: "1", title: "Order received", description: "The clinic has received your order." },
+  { key: "1", title: "Order saved", description: "Your order details are saved." },
   { key: "2", title: "Payment confirmed", description: "Your QR Ph payment has been confirmed." },
   { key: "3", title: "Prescription review", description: "An optometrist will review the prescription, if one was submitted." },
   { key: "4", title: "Preparation", description: "The clinic is preparing your eyewear and order." },
@@ -50,6 +50,7 @@ export default function OrderConfirmationPage() {
   const stepStatuses = order?.step_statuses || {};
   const [loading, setLoading] = useState(true);
   const [paymentRetryAvailability, setPaymentRetryAvailability] = useState("not-applicable");
+  const [paymentCheckVersion, setPaymentCheckVersion] = useState(0);
   const [retryingPayment, setRetryingPayment] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -162,7 +163,7 @@ export default function OrderConfirmationPage() {
       if (active) setPaymentRetryAvailability("unavailable");
     });
     return () => { active = false; };
-  }, [order?.order_status, orderId]);
+  }, [order?.order_status, orderId, paymentCheckVersion]);
 
   const formatPrice = (value) => `₱${Number(value || 0).toFixed(2)}`;
   const formattedDate = order?.created_at
@@ -242,6 +243,7 @@ export default function OrderConfirmationPage() {
   const isPaid = stepStatuses["2"] === "Completed";
   const orderReference = displayOrderReference(order);
   const canResumePayment = status === "pending" && paymentRetryAvailability === "available";
+  const checkoutWasInterrupted = ["cancelled", "interrupted"].includes(paymentReturn);
   let banner = {
     tone: "success",
     icon: <FaCheckCircle aria-hidden="true" />,
@@ -256,9 +258,9 @@ export default function OrderConfirmationPage() {
     } else if (paymentReturn === "setup-failed") {
       banner = { tone: "pending", icon: <FaExclamationCircle aria-hidden="true" />, title: "Your order is saved", description: location.state?.checkoutError || (paymentRetryAvailability === "available" ? "The QR Ph page did not open. Your items are still reserved; try again while the payment window is open." : "The QR Ph page did not open. We’re checking whether the reserved order can still be paid.") };
     } else if (paymentRetryAvailability === "unavailable") {
-      banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "We couldn’t check the payment", description: "Refresh this page to check the payment status before trying again." };
+      banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "We couldn’t check your payment status", description: "Check again before attempting payment. If you were charged and the status stays unavailable, contact the clinic with your order reference." };
     } else if (canResumePayment) {
-      banner = { tone: "pending", icon: <FaClock aria-hidden="true" />, title: "Payment incomplete", description: "Your order is saved. Select Resume QR Ph payment to continue." };
+      banner = { tone: "pending", icon: <FaClock aria-hidden="true" />, title: checkoutWasInterrupted ? "Payment wasn’t completed" : "Awaiting payment", description: "Your order is saved. Select Resume QR Ph payment to continue." };
     } else {
       banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "Checking payment status", description: "Please wait while we check with PayMongo." };
     }
@@ -318,6 +320,9 @@ export default function OrderConfirmationPage() {
       <Header />
       <main className="order-details">
         <div className="order-details__container">
+          <Link to="/orders" className="order-details__back order-details__back-button">
+            <FaArrowLeft aria-hidden="true" /> Back to Order History
+          </Link>
           <header className="order-details__heading">
             <div>
               <p className="order-details__eyebrow">ORDER DETAILS</p>
@@ -337,6 +342,11 @@ export default function OrderConfirmationPage() {
               <button type="button" className="order-details__primary-button" onClick={handleRetryPayment} disabled={retryingPayment}>
                 {retryingPayment ? "Opening QR Ph…" : "Resume QR Ph payment"}
                 {!retryingPayment && <FaArrowRight aria-hidden="true" />}
+              </button>
+            )}
+            {status === "pending" && paymentRetryAvailability === "unavailable" && (
+              <button type="button" className="order-details__primary-button" onClick={() => setPaymentCheckVersion((version) => version + 1)}>
+                Check again
               </button>
             )}
           </section>
@@ -409,7 +419,7 @@ export default function OrderConfirmationPage() {
                     <div>
                       <span className="order-details__step-kicker">NEXT STEP</span>
                       <h3>{paymentRetryAvailability === "expired" ? "Place a new order" : paymentNeedsCheck ? "Payment confirmation" : paymentRetryAvailability === "unavailable" ? "Check payment status" : "Complete payment"}</h3>
-                      <p>{paymentRetryAvailability === "expired" ? "Return to your cart and check out again to reserve the items." : paymentNeedsCheck ? "We’re waiting for PayMongo to confirm your QR Ph payment." : paymentRetryAvailability === "unavailable" ? "Refresh this page to check the payment before trying again." : "Once payment is complete, the clinic can begin processing your order."}</p>
+                      <p>{paymentRetryAvailability === "expired" ? "Return to your cart and check out again to reserve the items." : paymentNeedsCheck ? "We're checking your QR Ph payment status." : paymentRetryAvailability === "unavailable" ? "Use Check again above to look up your payment status." : "Once payment is complete, the clinic can begin processing your order."}</p>
                     </div>
                   </div>
                 ) : status === "cancelled" ? (
@@ -450,7 +460,6 @@ export default function OrderConfirmationPage() {
                 )}
               </section>
               <div className="order-details__card-divider order-details__card-divider--progress" aria-hidden="true" />
-              {!canCancel && <Link to="/orders" className="order-details__back order-details__back-button"><FaArrowLeft aria-hidden="true" /> Order history</Link>}
 
               {hasPrescription && (
                 <section className="order-details__panel order-details__prescription">
@@ -460,13 +469,10 @@ export default function OrderConfirmationPage() {
               )}
 
               {canCancel && (
-                <>
-                  <section className="order-details__cancel">
-                    <div><h2>Need to change this order?</h2><p>You can cancel before prescription review is complete.</p></div>
-                    <button type="button" onClick={() => setShowCancelModal(true)}>Cancel order</button>
-                  </section>
-                  <Link to="/orders" className="order-details__back order-details__back-button"><FaArrowLeft aria-hidden="true" /> Order history</Link>
-                </>
+                <section className="order-details__cancel">
+                  <div><h2>Need to change this order?</h2><p>You can cancel before prescription review is complete.</p></div>
+                  <button type="button" onClick={() => setShowCancelModal(true)}>Cancel order</button>
+                </section>
               )}
             </aside>
           </div>

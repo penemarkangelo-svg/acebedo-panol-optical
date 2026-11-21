@@ -114,7 +114,7 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (savedPayment) {
-      navigate(`/order-status/${savedPayment.orderId}`);
+      navigate(`/order-status/${savedPayment.orderId}?payment=interrupted`);
       return;
     }
     if (!isFormValid()) {
