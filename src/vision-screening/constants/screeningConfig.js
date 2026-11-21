@@ -5,7 +5,7 @@
 
 // Temporary walkthrough mode. Set to false to restore 15 trials per eye,
 // hand/eye verification, and mandatory card detection. Restart screening afterward.
-export const DEMO_MODE = true;
+export const DEMO_MODE = false;
 
 export const SESSION_KEYS = {
   calibration: "acebedoVisionCalibration",

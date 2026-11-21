@@ -47,7 +47,7 @@ export default function OrderConfirmationPage() {
   const [searchParams] = useSearchParams();
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
-  const [stepStatuses, setStepStatuses] = useState({});
+  const stepStatuses = order?.step_statuses || {};
   const [loading, setLoading] = useState(true);
   const [paymentRetryAvailability, setPaymentRetryAvailability] = useState("not-applicable");
   const [retryingPayment, setRetryingPayment] = useState(false);
@@ -76,7 +76,6 @@ export default function OrderConfirmationPage() {
       }
 
       setOrder(orderData);
-      setStepStatuses(orderData.step_statuses || {});
       const { data: itemsData, error: itemsError } = await supabase
         .from("order_items")
         .select(`
@@ -106,6 +105,27 @@ export default function OrderConfirmationPage() {
     return () => { active = false; };
   }, [orderId]);
 
+  const orderStatus = order?.order_status;
+  useEffect(() => {
+    if (orderStatus !== "pending") return undefined;
+    let active = true;
+    let timeout;
+    const refresh = async () => {
+      const { data } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+      if (!active) return;
+      if (data && data.order_status !== "pending") {
+        setOrder((current) => current?.order_status === "pending" ? data : current);
+        return;
+      }
+      timeout = window.setTimeout(refresh, 4000);
+    };
+    timeout = window.setTimeout(refresh, 4000);
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
+  }, [orderId, orderStatus]);
+
   useEffect(() => {
     if (!orderId) return undefined;
     const channel = supabase
@@ -117,7 +137,6 @@ export default function OrderConfirmationPage() {
         filter: `id=eq.${orderId}`,
       }, (payload) => {
         setOrder(payload.new);
-        setStepStatuses(payload.new.step_statuses || {});
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -201,7 +220,7 @@ export default function OrderConfirmationPage() {
         body: { orderId: Number(order.id) },
       }).then(({ data: paymentData, error: paymentError }) => {
         if (paymentData?.paymentConfirmationPending) {
-          toast("The payment may already be processing. Please wait for the clinic to confirm it.");
+          toast("PayMongo may still be processing your QR Ph payment.");
         } else if (paymentError) {
           toast.error("We couldn’t confirm that the QR Ph checkout is closed. Contact the clinic if you already started payment.");
         }
@@ -220,7 +239,9 @@ export default function OrderConfirmationPage() {
   }
 
   const status = order.order_status;
-  const isPaid = !["pending", "cancelled"].includes(status);
+  const isPaid = stepStatuses["2"] === "Completed";
+  const orderReference = displayOrderReference(order);
+  const canResumePayment = status === "pending" && paymentRetryAvailability === "available";
   let banner = {
     tone: "success",
     icon: <FaCheckCircle aria-hidden="true" />,
@@ -229,22 +250,29 @@ export default function OrderConfirmationPage() {
   };
   if (status === "pending") {
     if (paymentRetryAvailability === "expired") {
-      banner = { tone: "expired", icon: <FaExclamationCircle aria-hidden="true" />, title: "Payment window expired", description: "This order can no longer be paid. The items are no longer reserved; start a new order from your cart." };
-    } else if (paymentRetryAvailability === "confirming" || paymentReturn === "return") {
-      banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "Checking your QR Ph payment", description: "PayMongo is confirming the result. We’ll update the order as soon as it is verified." };
-    } else if (paymentReturn === "cancelled") {
-      banner = { tone: "pending", icon: <FaExclamationCircle aria-hidden="true" />, title: "Payment was not completed", description: paymentRetryAvailability === "available" ? "You can try QR Ph again while this order’s payment window is open." : "We’re checking whether this order can still be paid." };
+      banner = { tone: "expired", icon: <FaExclamationCircle aria-hidden="true" />, title: "Payment window expired", description: "If you were charged, contact the clinic before placing another order. Otherwise, start a new order from your cart." };
+    } else if (paymentRetryAvailability === "confirming") {
+      banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "We’re verifying your payment", description: "If you already paid, please wait here. This page will update automatically when PayMongo confirms your payment." };
     } else if (paymentReturn === "setup-failed") {
       banner = { tone: "pending", icon: <FaExclamationCircle aria-hidden="true" />, title: "Your order is saved", description: location.state?.checkoutError || (paymentRetryAvailability === "available" ? "The QR Ph page did not open. Your items are still reserved; try again while the payment window is open." : "The QR Ph page did not open. We’re checking whether the reserved order can still be paid.") };
     } else if (paymentRetryAvailability === "unavailable") {
       banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "We couldn’t check the payment", description: "Refresh this page to check the payment status before trying again." };
+    } else if (canResumePayment) {
+      banner = { tone: "pending", icon: <FaClock aria-hidden="true" />, title: "Payment incomplete", description: "Your order is saved. Select Resume QR Ph payment to continue." };
     } else {
-      banner = { tone: "pending", icon: <FaClock aria-hidden="true" />, title: "Complete your QR Ph payment", description: "Your items are reserved for a limited time. Finish payment to confirm your order." };
+      banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "Checking payment status", description: "Please wait while we check with PayMongo." };
     }
   } else if (status === "cancelled") {
     banner = { tone: "cancelled", icon: <FaExclamationCircle aria-hidden="true" />, title: "Order cancelled", description: "This order is closed. If you already completed a payment, contact the clinic for help." };
   } else if (status === "manual_review") {
     banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "Payment needs clinic review", description: "The clinic is checking this payment before the order can continue. Please wait for an update." };
+  } else if (!isPaid) {
+    banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "Payment verification unavailable", description: "Contact the clinic if you completed payment for this order." };
+  } else if (status === "confirmed") {
+    const nextUpdate = isPickup
+      ? "Track this order to see when it’s ready for pickup at the Rosario Branch."
+      : "Track this order to see when it’s out for delivery.";
+    banner = { tone: "success", icon: <FaCheckCircle aria-hidden="true" />, title: "Payment received", description: `PayMongo confirmed your payment of ${formatPrice(order.total)} for order ${orderReference}. ${nextUpdate}` };
   } else if (status === "ready_for_pickup") {
     banner = { tone: "success", icon: <FaStore aria-hidden="true" />, title: "Your order is ready for pickup", description: "Your order is ready at the Rosario Branch." };
   } else if (status === "ready_for_delivery" || status === "out_for_delivery") {
@@ -266,13 +294,12 @@ export default function OrderConfirmationPage() {
     ? "Awaiting payment"
     : paymentRetryAvailability === "expired"
       ? "Payment window expired"
-      : paymentRetryAvailability === "confirming" || paymentReturn === "return"
+      : paymentRetryAvailability === "confirming"
         ? "Checking payment"
         : paymentRetryAvailability === "unavailable"
           ? "Status unavailable"
           : "Checking status";
-  const paymentNeedsCheck = ["checking", "confirming"].includes(paymentRetryAvailability)
-    || paymentReturn === "return";
+  const paymentNeedsCheck = ["checking", "confirming"].includes(paymentRetryAvailability);
   if (status === "pending") {
     normalizedStepStatuses["1"] = "Completed";
     normalizedStepStatuses["2"] = paymentProgressLabel;
@@ -297,7 +324,7 @@ export default function OrderConfirmationPage() {
               <h1>Order #{String(order.id).padStart(4, "0")}</h1>
               <p>Placed {formattedDate}</p>
             </div>
-            <span className="order-details__reference">{displayOrderReference(order)}</span>
+            <span className="order-details__reference">{orderReference}</span>
           </header>
 
           <section className={`order-details__status order-details__status--${banner.tone}`} aria-live="polite">
@@ -306,9 +333,9 @@ export default function OrderConfirmationPage() {
               <h2>{banner.title}</h2>
               <p>{banner.description}</p>
             </div>
-            {status === "pending" && paymentRetryAvailability === "available" && paymentReturn !== "return" && (
+            {canResumePayment && (
               <button type="button" className="order-details__primary-button" onClick={handleRetryPayment} disabled={retryingPayment}>
-                {retryingPayment ? "Opening QR Ph…" : paymentReturn === "cancelled" ? "Try QR Ph again" : "Pay with QR Ph"}
+                {retryingPayment ? "Opening QR Ph…" : "Resume QR Ph payment"}
                 {!retryingPayment && <FaArrowRight aria-hidden="true" />}
               </button>
             )}
@@ -354,7 +381,7 @@ export default function OrderConfirmationPage() {
                 </dl>
                 <div className="order-details__payment-line">
                   <div><span>Payment method</span><strong>QR Ph</strong></div>
-                  <div><span>Payment status</span><strong className={`order-details__payment-status order-details__payment-status--${status === "pending" ? paymentRetryAvailability === "unavailable" ? "unknown" : "pending" : status === "manual_review" ? "review" : status === "cancelled" ? "cancelled" : "paid"}`}>{status === "pending" ? paymentProgressLabel : status === "cancelled" ? "Check with clinic if charged" : status === "manual_review" ? "Under review" : "Paid"}</strong></div>
+                  <div><span>Payment status</span><strong className={`order-details__payment-status order-details__payment-status--${status === "pending" ? paymentRetryAvailability === "unavailable" ? "unknown" : "pending" : status === "manual_review" ? "review" : status === "cancelled" ? "cancelled" : isPaid ? "paid" : "unknown"}`}>{status === "pending" ? paymentProgressLabel : status === "cancelled" ? "Check with clinic if charged" : status === "manual_review" ? "Under review" : isPaid ? "Paid" : "Unverified"}</strong></div>
                 </div>
               </section>
               <section className="order-details__panel order-details__fulfillment">
@@ -389,6 +416,8 @@ export default function OrderConfirmationPage() {
                   <p className="order-details__muted-copy">No further order steps are scheduled for this order.</p>
                 ) : status === "manual_review" ? (
                   <div className="order-details__next-step"><span className="order-details__step-icon is-review"><FaClock aria-hidden="true" /></span><div><span className="order-details__step-kicker">ON HOLD</span><h3>Clinic review</h3><p>The clinic must resolve the payment check before fulfillment continues.</p></div></div>
+                ) : !isPaid ? (
+                  <p className="order-details__muted-copy">The clinic can begin fulfillment after payment is verified.</p>
                 ) : (
                   <div className="order-details__next-step">
                     <span className={`order-details__step-icon ${String(nextStepStatus).toLowerCase() === "in progress" ? "is-active" : ""}`}>
@@ -405,7 +434,7 @@ export default function OrderConfirmationPage() {
                   <div className="order-details__progress-list">
                     {visibleOrderSteps.map((step, index) => {
                       const label = !isPickup && step.key === "5" ? "Out for delivery" : !isPickup && step.key === "6" ? "Delivered" : step.title;
-                      const stepStatus = status === "pending" && Number(step.key) > 2
+                      const stepStatus = !isPaid && Number(step.key) > 2
                         ? "After payment"
                         : normalizedStepStatuses[step.key] || "Pending";
                       const statusClass = String(stepStatus).toLowerCase() === "completed"

@@ -40,7 +40,7 @@ function getCurrentStep(status, isPickup) {
   return -1;
 }
 
-export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatusUpdate, staffMode = false }) {
+export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatusUpdate }) {
   const [orderItems, setOrderItems] = useState([]);
   const [prescriptionUploads, setPrescriptionUploads] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -143,7 +143,8 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
 
   const isManualReview = order.order_status === "manual_review";
   const isClosed = ["completed", "cancelled"].includes(order.order_status);
-  const isBlocked = isManualReview || isClosed;
+  const paymentVerified = order.step_statuses?.["2"] === "Completed";
+  const isBlocked = !paymentVerified || isManualReview || isClosed;
   const subtotal = Number(order.subtotal ?? orderItems.reduce((sum, item) => sum + Number(item.subtotal || 0), 0));
   const shipping = Number(order.shipping_fee || 0);
   const total = Number(order.total ?? subtotal + shipping);
@@ -160,6 +161,8 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
       .from("orders")
       .update({ order_status: selectedStatus })
       .eq("id", order.id)
+      .eq("order_status", order.order_status)
+      .eq("step_statuses->>2", "Completed")
       .select("id, order_status")
       .maybeSingle();
 
@@ -208,7 +211,7 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
               Placed {order.created_at ? new Date(order.created_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "—"}
             </p>
             <div className="apo-order-tags">
-              <span className={`apo-order-status-tag status-${order.order_status}`}>{formatStatus(order.order_status)}</span>
+              <span className={`apo-order-status-tag status-${order.order_status}`}>{order.order_status === "pending" ? "Awaiting payment" : order.order_status === "confirmed" && !paymentVerified ? "Payment unverified" : formatStatus(order.order_status)}</span>
               <span className="apo-order-method-tag">{isPickup ? "Pickup" : "Delivery"}</span>
             </div>
           </div>
@@ -318,11 +321,11 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
           </section>
 
           <section className="apo-order-section">
-            <div className="apo-order-section-heading"><div><h3>Payment</h3><p>{staffMode ? "Payment verification is read-only and requires an administrator." : "Payment verification is read-only in order details."}</p></div><CreditCard size={17} aria-hidden="true" /></div>
+            <div className="apo-order-section-heading"><h3>Payment</h3><CreditCard size={17} aria-hidden="true" /></div>
             <div className="apo-order-payment-card">
               <div className="apo-order-payment-total"><span>Order total</span><strong>{formatPrice(total)}</strong></div>
-              <div className="apo-order-payment-state"><span>Payment record</span><span className="apo-order-status-tag is-neutral">Not available in this view</span></div>
-              <p>{staffMode ? "Ask an administrator to confirm payment before completing fulfillment. Do not mark the order paid here." : "Check the payment record in Payment Management before treating this order as paid."}</p>
+              <div className="apo-order-payment-state"><span>QR Ph payment</span><span className="apo-order-status-tag is-neutral">{paymentVerified ? "Verified" : "Awaiting verification"}</span></div>
+              <p>PayMongo confirms payment automatically. Refresh Orders to see the latest status.</p>
             </div>
           </section>
 
@@ -338,14 +341,13 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
 
         <footer className="apo-order-footer">
           {isBlocked ? (
-            <div className="apo-order-footer-message">{isManualReview ? "Fulfillment is blocked pending review." : `This order is ${formatStatus(order.order_status).toLowerCase()}.`}</div>
+            <div className="apo-order-footer-message">{isManualReview ? "Fulfillment is blocked pending review." : isClosed ? `This order is ${formatStatus(order.order_status).toLowerCase()}.` : "Fulfillment opens after PayMongo verifies payment."}</div>
           ) : (
             <>
               <label htmlFor="apo-order-status">Next order status</label>
               <div className="apo-order-footer-controls">
                 <select id="apo-order-status" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>
-                  <option value="pending">Pending</option>
-                  <option value="confirmed">Confirmed</option>
+                  {order.order_status === "confirmed" && <option value="confirmed" disabled>Confirmed</option>}
                   <option value="processing">Processing</option>
                   {isPickup ? <option value="ready_for_pickup">Ready for pickup</option> : <option value="out_for_delivery">Out for delivery</option>}
                   <option value="completed">{isPickup ? "Picked up" : "Delivered"}</option>

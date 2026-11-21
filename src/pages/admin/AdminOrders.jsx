@@ -5,7 +5,7 @@ import { supabase } from "../../lib/supabaseClient";
 import "../../styles/AdminOrders.css";
 
 const STATUS_OPTIONS = [
-  ["pending", "Pending"],
+  ["pending", "Awaiting payment"],
   ["confirmed", "Confirmed"],
   ["processing", "Processing"],
   ["ready_for_pickup", "Ready for pickup"],
@@ -223,7 +223,7 @@ export default function AdminOrders({ staffMode = false }) {
                   <td><span className="apo-orders-fulfillment">{order.fulfillment_method === "delivery" ? "Delivery" : "Pickup"}</span></td>
                   <td><span className={`apo-orders-prescription is-${prescription.tone}`}><i aria-hidden="true" />{prescription.label}</span></td>
                   <td className="apo-orders-money">{money(order.total)}</td>
-                  <td><span className={`apo-orders-status is-${order.order_status || "pending"}`}>{humanize(order.order_status)}</span></td>
+                    <td><span className={`apo-orders-status is-${order.order_status || "pending"}`}>{order.order_status === "pending" ? "Awaiting payment" : order.order_status === "confirmed" && order.step_statuses?.["2"] !== "Completed" ? "Payment unverified" : humanize(order.order_status)}</span></td>
                   <td><button className="apo-orders-view" type="button" onClick={() => setSelectedOrder(order)}>View details <ArrowRight size={14} /></button></td>
                 </tr>;
               })}
@@ -257,7 +257,7 @@ export default function AdminOrders({ staffMode = false }) {
         </footer>
       </section>
 
-      {selectedOrder && <AdminOrderDetails order={selectedOrder} isOpen onClose={() => setSelectedOrder(null)} onStatusUpdate={handleStatusUpdate} staffMode={staffMode} />}
+      {selectedOrder && <AdminOrderDetails order={selectedOrder} isOpen onClose={() => setSelectedOrder(null)} onStatusUpdate={handleStatusUpdate} />}
     </div>
   );
 }

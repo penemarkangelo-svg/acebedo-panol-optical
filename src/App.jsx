@@ -53,12 +53,11 @@ function App() {
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/product/:id" element={<ProductDetailPage />} />
         <Route path="/cart" element={<CartPage />} />
+        {/* Protected customer routes */}
         <Route
           path="/order-status/:orderId"
-          element={<OrderConfirmationPage />}
+          element={<ProtectedRoute><OrderConfirmationPage /></ProtectedRoute>}
         />
-
-        {/* Protected customer routes */}
         <Route
           path="/main"
           element={
