@@ -242,7 +242,7 @@ export default function TryOnModal({ product, selectedColor: initialColor, onClo
     : overlayImageState.path !== assetPath || overlayImageState.status !== "ready" ? (use3D ? "Loading 3D sample." : "Loading frame image.")
     : !faceShape ? cameraMessage : null;
 
-  return <div className="tryon-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+  return <div className={previewOnly ? "tryon-overlay" : "tryon-overlay tryon-overlay--customer"} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="tryon-modal" role="dialog" aria-modal="true" aria-label={`${product.name} virtual try-on`}>
       <div className="tryon-preview">
         <video ref={videoRef} className="tryon-video" style={inputMode === "photo" ? { display: "none" } : undefined} autoPlay muted playsInline aria-label="Live camera preview" />

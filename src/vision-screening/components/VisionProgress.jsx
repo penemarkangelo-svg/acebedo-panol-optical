@@ -1,4 +1,4 @@
-const stages = [
+export const screeningStages = [
   "Questionnaire",
   "Setup",
   "Visual Acuity",
@@ -17,7 +17,7 @@ export default function VisionProgress({
       className="w-full acebedo-vision-progress"
     >
       <ol className="acebedo-progress">
-        {(skipQuestionnaire ? stages.slice(1) : stages).map((stage, index) => {
+        {(skipQuestionnaire ? screeningStages.slice(1) : screeningStages).map((stage, index) => {
           const adjustedIndex = skipQuestionnaire ? index + 1 : index;
           const isCurrent = adjustedIndex === currentStage;
           const isComplete = adjustedIndex < currentStage;

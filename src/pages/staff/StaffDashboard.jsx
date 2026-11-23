@@ -53,26 +53,37 @@ export default function StaffDashboard() {
   const dateTime = (value) => value ? new Intl.DateTimeFormat("en-PH", { hour: "numeric", minute: "2-digit", timeZone: "Asia/Manila" }).format(new Date(`2020-01-01T${value}+08:00`)) : "Time not set";
 
   return (
-    <div className="apo-dashboard apo-staff-home">
+    <div className="apo-dashboard">
       <header className="apo-dashboard-header">
-        <div className="apo-dashboard-topbar" aria-hidden="true" />
         <div className="apo-dashboard-title-row">
-          <div><p className="apo-dashboard-eyebrow">Clinic workspace</p><h1>Staff dashboard</h1><p className="apo-dashboard-date">{todayLabel}</p></div>
+          <div><p className="apo-dashboard-eyebrow">Clinic workspace</p><h1>Dashboard</h1><p className="apo-dashboard-date">{todayLabel}</p></div>
           <button className="apo-staff-refresh" type="button" onClick={() => loadWork({ quiet: true })} disabled={loading || refreshing}>
             <RefreshCw size={16} className={refreshing ? "apo-staff-spin" : ""} aria-hidden="true" /> Refresh
           </button>
         </div>
       </header>
 
-      <section className="apo-staff-summary" aria-label="Today's work">
-        <article><span>Orders to process</span><strong>{loading || ordersUnavailable ? "—" : actionableOrders.length}</strong><small>Open order work</small></article>
-        <article><span>Appointments today</span><strong>{loading || appointmentsUnavailable ? "—" : todaysActiveAppointments.length}</strong><small>Patient visits scheduled</small></article>
-        <article className={heldOrders.length ? "is-attention" : ""}><span>Orders on hold</span><strong>{loading || ordersUnavailable ? "—" : heldOrders.length}</strong><small>Manual review required before fulfillment</small></article>
+      <section className="apo-dashboard-metrics apo-staff-summary" aria-label="Clinic work overview">
+        <article className="apo-metric-card apo-metric-card--brand">
+          <div className="apo-metric-label"><span>Orders to process</span><BagIcon size={16} aria-hidden="true" /></div>
+          <strong>{loading || ordersUnavailable ? "-" : actionableOrders.length}</strong>
+          <small>{ordersUnavailable ? "Order data unavailable" : "Pickup and delivery"}</small>
+        </article>
+        <article className="apo-metric-card">
+          <div className="apo-metric-label"><span>Today's appointments</span><CalendarIcon size={16} aria-hidden="true" /></div>
+          <strong>{loading || appointmentsUnavailable ? "-" : todaysActiveAppointments.length}</strong>
+          <small>{appointmentsUnavailable ? "Appointment data unavailable" : "Pending or confirmed visits"}</small>
+        </article>
+        <article className={`apo-metric-card${heldOrders.length ? " apo-metric-card--alert" : ""}`}>
+          <div className="apo-metric-label"><span>Orders on hold</span><DangerIcon size={16} aria-hidden="true" /></div>
+          <strong>{loading || ordersUnavailable ? "-" : heldOrders.length}</strong>
+          <small>{ordersUnavailable ? "Order data unavailable" : "Manual review before fulfillment"}</small>
+        </article>
       </section>
 
       <div className="apo-staff-work-grid">
         <section className="apo-dashboard-panel apo-staff-work-panel">
-          <div className="apo-staff-panel-heading"><div><h2>Order queue</h2><p>Review customer orders and update fulfillment progress.</p></div><Link to="/staff/orders">All orders <ArrowRightIcon size={14} /></Link></div>
+          <div className="apo-panel-heading"><h2>Order queue</h2><Link className="apo-panel-link" to="/staff/orders">All orders <ArrowRightIcon size={14} aria-hidden="true" /></Link></div>
           {ordersUnavailable ? <div className="apo-staff-empty"><BagIcon size={19} /><strong>Orders aren’t available right now</strong><span>Refresh the page or contact an administrator if this continues.</span></div> : loading ? <div className="apo-staff-empty">Loading orders…</div> : actionableOrders.length === 0 ? <div className="apo-staff-empty"><BagIcon size={19} /><strong>No open orders</strong><span>New orders that need staff attention will appear here.</span></div> : (
             <div className="apo-staff-queue-list">
               {actionableOrders.slice(0, 5).map((order) => (
@@ -88,7 +99,7 @@ export default function StaffDashboard() {
         </section>
 
         <section className="apo-dashboard-panel apo-staff-work-panel">
-          <div className="apo-staff-panel-heading"><div><h2>Today’s appointments</h2><p>Upcoming patient visits and their status.</p></div><Link to="/staff/appointments">Appointments <ArrowRightIcon size={14} /></Link></div>
+          <div className="apo-panel-heading"><h2>Today's appointments</h2><Link className="apo-panel-link" to="/staff/appointments">All appointments <ArrowRightIcon size={14} aria-hidden="true" /></Link></div>
           {appointmentsUnavailable ? <div className="apo-staff-empty"><CalendarIcon size={19} /><strong>Appointments aren’t available right now</strong><span>Refresh the page or contact an administrator if this continues.</span></div> : loading ? <div className="apo-staff-empty">Loading appointments…</div> : todaysActiveAppointments.length === 0 ? <div className="apo-staff-empty"><CalendarIcon size={19} /><strong>No appointments today</strong><span>Today’s patient visits will appear here.</span></div> : (
             <div className="apo-staff-queue-list">
               {todaysActiveAppointments.slice(0, 6).map((appointment) => (
@@ -102,7 +113,6 @@ export default function StaffDashboard() {
           )}
         </section>
       </div>
-      <p className="apo-staff-scope-note">Clinic Staff can process orders and manage appointments. Prescription files and clinical screening details are restricted to the Optometrist workflow.</p>
     </div>
   );
 }

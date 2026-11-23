@@ -38,3 +38,21 @@
 .tryon-take-photo>span{width:54px;height:54px;border:3px solid #fff;outline:1px solid rgba(23,22,21,.5);outline-offset:3px;background:rgba(248,247,244,.94);color:#1a1816}
 .tryon-preview-top button.tryon-pd{pointer-events:auto;z-index:5}
 @media(max-width:760px){.tryon-take-photo>span{width:44px;height:44px}.tryon-preview-top button.tryon-pd{position:absolute}}
+
+.tryon-overlay--customer :is(.tryon-camera-message, .tryon-photo-message, .tryon-empty-note, .tryon-pd-info p:not(.tryon-eyebrow)) {
+  font-size: var(--acebedo-font-body);
+}
+
+.tryon-overlay--customer :is(.tryon-actions button, .tryon-pd-dismiss) {
+  font-size: var(--acebedo-font-md);
+}
+
+.tryon-overlay--customer :is(.tryon-live-indicator, .tryon-pd, .tryon-eyebrow, .tryon-preview-disclaimer, .tryon-price, .tryon-section-heading > span, .tryon-detected-shape, .tryon-available-heading, .tryon-recommendation strong, .tryon-recommendation small, .tryon-recommendation > b, .tryon-input-options button, .tryon-mode-options button, .tryon-upload-photo, .tryon-pd-reading) {
+  font-size: var(--acebedo-font-sm);
+}
+
+@media (min-width: 90rem) {
+  .tryon-overlay--customer .tryon-modal {
+    width: min(100%, calc(1320px + var(--acebedo-customer-width-growth)));
+  }
+}

@@ -31,127 +31,124 @@ const NEEDS = [
   },
 ];
 
-export default function ScreeningIntro({ onStart, onClose }) {
+export default function ScreeningIntro({ onStart, onClose, startDisabled }) {
+  const dialogRef = useRef(null);
   const titleRef = useRef(null);
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
 
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    dialog.showModal();
     titleRef.current?.focus({ preventScroll: true });
 
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        onClose?.();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-
     return () => {
+      dialog.close();
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [onClose]);
+  }, []);
 
   return (
-    <div
-      className="acebedo-dialog-overlay"
-      role="dialog"
-      aria-modal="true"
+    <dialog
+      ref={dialogRef}
+      className="acebedo-intro-dialog vision-screening-intro"
       aria-labelledby="vision-screening-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
     >
-      <section className="acebedo-dialog acebedo-intro-dialog">
-        <div className="acebedo-dialog-content acebedo-intro-content">
-          {/* Header */}
-          <header className="acebedo-intro-header">
-            <p className="acebedo-eyebrow">
-              Preliminary vision screening
-            </p>
-
-            <h1
-              id="vision-screening-title"
-              ref={titleRef}
-              tabIndex={-1}
-              className="acebedo-heading-sm acebedo-intro-title"
-            >
-              Let’s Check Your Vision
-            </h1>
-          </header>
-
-          {/* Preparation */}
-          <section
-            className="acebedo-intro-preparation"
-            aria-labelledby="preparation-title"
-          >
-            <h2
-              id="preparation-title"
-              className="acebedo-intro-label"
-            >
-              Before you begin
-            </h2>
-
-            <div className="acebedo-intro-grid">
-              {NEEDS.map((item) => {
-                const Icon = item.icon;
-
-                return (
-                  <div
-                    key={item.title}
-                    className="acebedo-intro-tile"
-                  >
-                    <div className="acebedo-intro-item-header">
-                      <Icon
-                        size={22}
-                        color="var(--acebedo-red)"
-                        strokeWidth={1.5}
-                        aria-hidden="true"
-                      />
-
-                      <h3 className="acebedo-intro-item-title">
-                        {item.title}
-                      </h3>
-                    </div>
-
-                    <p className="acebedo-intro-copy">
-                      {item.text}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* Disclaimer */}
-          <p className="acebedo-intro-disclaimer">
-            <span className="acebedo-text-strong">
-              Please note.
-            </span>{" "}
-            This is a preliminary digital screening only. It does not
-            diagnose eye conditions or provide a prescription. A
-            comprehensive eye examination is needed for a full
-            assessment of your vision.
+      <div className="acebedo-dialog-content acebedo-intro-content">
+        {/* Header */}
+        <header className="acebedo-intro-header">
+          <p className="acebedo-eyebrow">
+            Preliminary vision screening
           </p>
 
-          {/* Actions */}
-          <footer className="acebedo-intro-actions">
-            <button
-              type="button"
-              onClick={onClose}
-              className="acebedo-btn acebedo-btn-quiet"
-            >
-              Cancel
-            </button>
+          <h1
+            id="vision-screening-title"
+            ref={titleRef}
+            tabIndex={-1}
+            className="acebedo-heading-sm acebedo-intro-title"
+          >
+            Let’s Check Your Vision
+          </h1>
+        </header>
 
-            <button
-              type="button"
-              onClick={onStart}
-              className="acebedo-btn acebedo-btn-primary acebedo-intro-start"
-            >
-              Begin screening
-            </button>
-          </footer>
-        </div>
-      </section>
-    </div>
+        {/* Preparation */}
+        <section
+          className="acebedo-intro-preparation"
+          aria-labelledby="preparation-title"
+        >
+          <h2
+            id="preparation-title"
+            className="acebedo-intro-label"
+          >
+            Before you begin
+          </h2>
+
+          <div className="acebedo-intro-grid">
+            {NEEDS.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <div
+                  key={item.title}
+                  className="acebedo-intro-tile"
+                >
+                  <div className="acebedo-intro-item-header">
+                    <Icon
+                      size={22}
+                      color="var(--acebedo-red)"
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+
+                    <h3 className="acebedo-intro-item-title">
+                      {item.title}
+                    </h3>
+                  </div>
+
+                  <p className="acebedo-intro-copy">
+                    {item.text}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Disclaimer */}
+        <p className="acebedo-intro-disclaimer">
+          <span className="acebedo-text-strong">
+            Please note.
+          </span>{" "}
+          This is a preliminary digital screening only. It does not
+          diagnose eye conditions or provide a prescription. A
+          comprehensive eye examination is needed for a full
+          assessment of your vision.
+        </p>
+
+        {/* Actions */}
+        <footer className="acebedo-intro-actions">
+          <button
+            type="button"
+            onClick={onClose}
+            className="acebedo-btn acebedo-btn-quiet"
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={startDisabled}
+            className="acebedo-btn acebedo-btn-primary acebedo-intro-start"
+          >
+            Begin screening
+          </button>
+        </footer>
+      </div>
+    </dialog>
   );
 }

@@ -25,6 +25,7 @@
 .apo-prescriptions-filters label:not(.apo-prescriptions-search) { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; color: #5C574F; font-size: 11px; }
 .apo-prescriptions-search:focus-within, .apo-prescriptions-filters select:focus { border-color: #888277; outline: 2px solid rgb(179 19 27 / 9%); }
 .apo-prescriptions-table-wrap { min-width: 0; border-top: 1px solid #e7e4dd; border-bottom: 1px solid #e7e4dd; }
+.apo-prescriptions-page.is-review-mode .apo-prescriptions-table-wrap { overflow-x: auto; }
 .apo-prescriptions-table { width: 100%; border-collapse: collapse; text-align: left; }
 .apo-prescriptions-table th { padding: 9px 9px; background: #f2f0ec; color: #5C574F; font-size: 10px; font-weight: 700; letter-spacing: .055em; text-transform: uppercase; white-space: nowrap; }
 .apo-prescriptions-table td { padding: 10px 9px; border-bottom: 1px solid #e9e6df; color: #5C574F; font-size: 12px; vertical-align: middle; }
@@ -86,10 +87,17 @@
 .apo-prescription-preview-message { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 20px; color: #5C574F; font-size: 12px; text-align: center; }
 .apo-prescription-preview-message.is-error { color: #9e3832; }
 .apo-prescription-preview-expiry { display: block; margin-top: 6px; color: #5C574F; font-size: 10px; }
+.apo-prescription-review-form { display: grid; gap: 7px; margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--apo-admin-line, #d6d1c6); }
+.apo-prescription-review-form label { color: #1A1816; font-size: 12px; font-weight: 650; }
+.apo-prescription-review-form > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.apo-prescription-review-form :is(select, button) { min-height: 36px; padding: 0 10px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 12px; }
+.apo-prescription-review-form select { flex: 1 1 180px; }
+.apo-prescription-review-form button { border-color: #292721; background: #292721; color: #fff; cursor: pointer; }
+.apo-prescription-review-form button:disabled { opacity: .55; cursor: default; }
 .apo-prescription-drawer-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 21px; border-top: 1px solid #d6d1c6; background: #fff; }
 .apo-prescription-drawer-footer a, .apo-prescription-drawer-footer button { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 6px; padding: 0 11px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 11px; text-decoration: none; cursor: pointer; }
 .apo-prescription-drawer-footer a { color: #356b5a; }
-.apo-prescription-drawer-footer button { background: #292721; border-color: #292721; color: #fff; }
+.apo-prescription-drawer-footer button { margin-inline-start: auto; background: #292721; border-color: #292721; color: #fff; }
 .is-spinning { animation: apo-prescription-spin 1s linear infinite; }
 @keyframes apo-prescription-spin { to { transform: rotate(360deg); } }
 

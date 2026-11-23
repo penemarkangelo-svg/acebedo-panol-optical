@@ -6,7 +6,7 @@ import { overlayUrl } from "../lib/arOverlay";
 import { framePlacement } from "../ar/framePlacement";
 
 // All image bytes and face landmarks stay in browser memory.
-export default function PhotoTryOn({ path, onFaceDetected }) {
+export default function PhotoTryOn({ path, onFaceDetected, uploadOnly = false, renderOverlay }) {
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const fileInput = useRef(null);
@@ -21,7 +21,7 @@ export default function PhotoTryOn({ path, onFaceDetected }) {
   const [frameError, setFrameError] = useState(false);
 
   useEffect(() => {
-    if (source) return undefined;
+    if (source || uploadOnly) return undefined;
     let active = true;
     let stream;
     setCameraState("starting");
@@ -43,7 +43,7 @@ export default function PhotoTryOn({ path, onFaceDetected }) {
     }
     start();
     return () => { active = false; stream?.getTracks().forEach((track) => track.stop()); };
-  }, [source, cameraAttempt]);
+  }, [source, cameraAttempt, uploadOnly]);
 
   function capturePhoto() {
     const video = videoRef.current;
@@ -63,7 +63,7 @@ export default function PhotoTryOn({ path, onFaceDetected }) {
 
   function retake() {
     setError(""); setPhoto(null); setPoints(null); setStatus("idle");
-    onFaceDetected(null);
+    onFaceDetected?.(null);
     setSource(null);
   }
 
@@ -79,7 +79,7 @@ export default function PhotoTryOn({ path, onFaceDetected }) {
     setError("");
     setPhoto(null);
     setPoints(null);
-    onFaceDetected(null);
+    onFaceDetected?.(null);
     async function process() {
       try {
         const image = new Image();
@@ -109,7 +109,7 @@ export default function PhotoTryOn({ path, onFaceDetected }) {
         const faces = detector.detect(input).faceLandmarks || [];
         if (faces.length !== 1) throw new Error(faces.length ? "Use a photo with only one person." : "No face found. Take a clear front-facing photo with your whole face visible.");
         setPoints(faces[0]);
-        onFaceDetected(faces[0]);
+        onFaceDetected?.(faces[0]);
         setStatus("ready");
       } catch (failure) {
         if (active) { setError(failure.message || "Could not process this photo. Please try another."); setStatus("error"); }
@@ -142,7 +142,12 @@ export default function PhotoTryOn({ path, onFaceDetected }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.drawImage(photo, 0, 0);
-    if (!points || !frame) return;
+    if (!points) return;
+    if (renderOverlay) {
+      renderOverlay(ctx, points);
+      return;
+    }
+    if (!frame) return;
     const fit = framePlacement({ path, points, map: (p) => ({ x: p.x * canvas.width, y: p.y * canvas.height }), imageWidth: frame.naturalWidth, imageHeight: frame.naturalHeight });
     if (!fit) return;
     ctx.save();
@@ -150,7 +155,7 @@ export default function PhotoTryOn({ path, onFaceDetected }) {
     ctx.rotate(fit.angle);
     ctx.drawImage(frame, fit.offsetX, fit.offsetY, fit.width, fit.height);
     ctx.restore();
-  }, [photo, points, frame, path]);
+  }, [photo, points, frame, path, renderOverlay]);
 
   function choosePhoto(event) {
     const file = event.target.files?.[0];
@@ -163,15 +168,19 @@ export default function PhotoTryOn({ path, onFaceDetected }) {
     setSource(URL.createObjectURL(file));
   }
 
-  const message = error || (!source ? cameraState === "starting" ? "Starting your camera..." : null : status === "processing" ? "Finding your face in the photo..." : status === "ready" ? frameError ? "The frame image could not be loaded. Try another frame or color." : !path ? "No AR asset saved for this color yet." : !frame ? "Loading frame image..." : null : null);
+  const frameMessage = frameError ? "The frame image could not be loaded. Try another frame or color." : !path ? "No AR asset saved for this color yet." : !frame ? "Loading frame image..." : null;
+  let message = error;
+  if (!message && !source && !uploadOnly && cameraState === "starting") message = "Starting your camera...";
+  if (!message && status === "processing") message = "Finding your face in the photo...";
+  if (!message && status === "ready" && !renderOverlay) message = frameMessage;
 
   return <div className="tryon-photo">
-    {!source && <video ref={videoRef} className="tryon-video" autoPlay muted playsInline aria-label="Camera preview for taking your photo" />}
-    {photo && <canvas ref={canvasRef} className="tryon-photo-canvas" aria-label="Your photo with the selected eyewear frame" />}
+    {!source && !uploadOnly && <video ref={videoRef} className="tryon-video" autoPlay muted playsInline aria-label="Camera preview for taking your photo" />}
+    {photo && <canvas ref={canvasRef} className="tryon-photo-canvas" aria-label={renderOverlay ? "Your contact lens color preview" : "Your photo with the selected eyewear frame"} />}
     {message && <p className="tryon-photo-message" role="status">{message}</p>}
     <div className="tryon-photo-controls">
       <input ref={fileInput} type="file" accept="image/*" hidden onChange={choosePhoto} aria-label="Choose a photo" />
-      {source ? <>
+      {uploadOnly ? <button className="tryon-upload-photo" type="button" onClick={() => fileInput.current.click()} disabled={status === "processing"}><span><ImagePlus size={19} aria-hidden="true" /></span>{source ? "Choose another photo" : "Choose photo"}</button> : source ? <>
         <button className="tryon-upload-photo" type="button" onClick={() => fileInput.current.click()} disabled={status === "processing"} title="Your photo is processed only in your browser"><span><ImagePlus size={19} aria-hidden="true" /></span>Upload photo</button>
         <button className="tryon-photo-secondary" type="button" onClick={retake} aria-label="Retake photo" title="Retake photo"><RotateCcw size={18} aria-hidden="true" /></button>
       </> : cameraState === "error" ? <button className="tryon-upload-photo" type="button" onClick={() => { setError(""); setCameraAttempt((value) => value + 1); }}><span><RotateCcw size={19} aria-hidden="true" /></span>Retry camera</button> : <button className="tryon-upload-photo tryon-take-photo" type="button" onClick={capturePhoto} disabled={cameraState !== "ready"} aria-label="Take photo"><span><Camera size={24} aria-hidden="true" /></span>Take photo</button>}

@@ -1,0 +1,128 @@
+.contact-lens-demo {
+  box-sizing: border-box;
+  min-height: 100dvh;
+  max-width: 69rem;
+  margin-inline: auto;
+  padding: clamp(1rem, 4vw, 3rem);
+  color: var(--acebedo-text);
+}
+
+.contact-lens-demo__back {
+  color: var(--acebedo-text-brand);
+  text-decoration: underline;
+}
+
+.contact-lens-demo h1 {
+  margin: 1rem 0 0.5rem;
+  font-family: var(--font-brand);
+  font-size: clamp(1.875rem, 4vw, 2.75rem);
+  line-height: 1.15;
+}
+
+.contact-lens-demo p {
+  margin: 0;
+  color: var(--acebedo-text-muted);
+  font-size: var(--acebedo-font-body);
+}
+
+.contact-lens-demo__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 19rem);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.contact-lens-demo__preview {
+  position: relative;
+  min-height: clamp(20rem, 56vh, 35rem);
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
+
+.contact-lens-demo .tryon-photo-canvas {
+  height: calc(100% - 5.5rem);
+}
+
+.contact-lens-demo .tryon-photo-controls {
+  bottom: 1rem;
+}
+
+.contact-lens-demo .tryon-photo-message {
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  background: #292825e6;
+  color: #fff;
+}
+
+.contact-lens-demo .tryon-upload-photo {
+  flex-direction: row;
+  gap: 0.5rem;
+  padding: 0.2rem 0.75rem;
+  border: 1px solid #ffffff80;
+  border-radius: 1.5rem;
+  background: #292825;
+  font-size: var(--acebedo-font-sm) !important;
+}
+
+.contact-lens-demo__controls {
+  align-self: start;
+  padding: 1rem;
+  border: 1px solid var(--acebedo-border);
+  border-radius: 0.75rem;
+  background: var(--acebedo-surface);
+}
+
+.contact-lens-demo__controls h2 {
+  margin: 0;
+  font-size: var(--acebedo-font-lg);
+  font-weight: 600;
+}
+
+.contact-lens-demo__shades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-block: 0.75rem 1rem;
+}
+
+.contact-lens-demo__shades button,
+.contact-lens-demo__close-up {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  padding-inline: 0.75rem;
+  border: 1px solid var(--acebedo-border-strong);
+  border-radius: 1.5rem;
+  background: var(--acebedo-surface);
+  color: inherit;
+  font-size: var(--acebedo-font-sm);
+  cursor: pointer;
+}
+
+.contact-lens-demo__close-up {
+  margin-bottom: 1rem;
+}
+
+.contact-lens-demo__close-up:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.contact-lens-demo__shades button[aria-pressed="true"],
+.contact-lens-demo__close-up[aria-pressed="true"] {
+  border-color: var(--acebedo-text);
+  background: var(--acebedo-surface-muted);
+}
+
+.contact-lens-demo__shades span {
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+}
+
+@media (max-width: 640px) {
+  .contact-lens-demo__layout {
+    grid-template-columns: 1fr;
+  }
+}

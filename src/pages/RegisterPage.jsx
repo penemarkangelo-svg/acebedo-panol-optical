@@ -94,13 +94,13 @@ export default function RegisterPage() {
     <>
       <Header />
       <main className="bg-[#F8F7F4] min-h-[calc(100vh-200px)] flex items-center justify-center px-6 md:px-12 lg:px-20 py-12">
-        <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-stretch shadow-sm rounded-xl overflow-hidden bg-white">
+        <div className="max-w-[calc(80rem+var(--acebedo-customer-width-growth))] mx-auto w-full grid md:grid-cols-2 gap-12 items-stretch shadow-sm rounded-xl overflow-hidden bg-white">
           {/* Left side: Image – stable, no resizing */}
           <div className="hidden md:block h-full">
             <img src={registerImage} alt="Acebedo Panol Optical" className="w-full h-full object-cover" />
           </div>
 
-          <div className="px-8 py-12 md:px-12">
+          <div className="px-5 py-10 sm:px-8 md:px-12">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-[#1A1816]">Create your account</h2>
               <p className="text-[#5C574F] mt-2">Join Acebedo Panol Optical today</p>
@@ -120,7 +120,7 @@ export default function RegisterPage() {
                   required
                 />
                 {touched.fullName && !fullName.trim() && (
-                  <p className="text-red-500 text-xs mt-1">Full name is required.</p>
+                  <p className="text-[#B3131B] text-sm mt-1">Full name is required.</p>
                 )}
               </div>
 
@@ -139,7 +139,7 @@ export default function RegisterPage() {
                   placeholder="you@example.com"
                   required
                 />
-                {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
+                {emailError && <p className="text-[#B3131B] text-sm mt-1">{emailError}</p>}
               </div>
 
               {/* Password with strength indicator and eye toggle */}
@@ -169,7 +169,7 @@ export default function RegisterPage() {
                 </div>
 
                 {(touched.password || passwordFocused) && (
-                  <div className="mt-2 space-y-1 text-xs">
+                  <div className="mt-2 space-y-1 text-sm">
                     <p className={passwordValidations.isLongEnough ? "text-green-600" : "text-gray-500"}>
                       {passwordValidations.isLongEnough ? "✓" : "○"} 8 characters or more
                     </p>
@@ -189,7 +189,7 @@ export default function RegisterPage() {
                 )}
 
                 {touched.password && !isPasswordValid && (
-                  <p className="text-red-500 text-xs mt-1">Please meet all password requirements.</p>
+                  <p className="text-[#B3131B] text-sm mt-1">Please meet all password requirements.</p>
                 )}
               </div>
 
@@ -215,7 +215,7 @@ export default function RegisterPage() {
                   </button>
                 </div>
                 {touched.confirmPassword && !doPasswordsMatch && (
-                  <p className="text-red-500 text-xs mt-1">Passwords do not match.</p>
+                  <p className="text-[#B3131B] text-sm mt-1">Passwords do not match.</p>
                 )}
               </div>
 
@@ -227,7 +227,7 @@ export default function RegisterPage() {
               </button>
             </form>
 
-            <p className="text-xs text-[#5C574F] text-center mt-6">
+            <p className="text-sm text-[#5C574F] text-center mt-6">
               By signing up, you agree to our{" "}
               <a href="#" className="text-[#B8242F] hover:text-[#9A1C26] hover:underline">Terms of Service</a>{" "}
               and{" "}

@@ -147,9 +147,6 @@ export default function AdminDashboard() {
   return (
     <div className="apo-dashboard">
       <header className="apo-dashboard-header">
-        <div className="apo-dashboard-topbar">
-          <div className="apo-dashboard-admin-badge"><span className="apo-admin-avatar" aria-hidden="true">A</span><strong>Welcome Administrator</strong></div>
-        </div>
         <div className="apo-dashboard-title-row">
           <div><p className="apo-dashboard-eyebrow">Administration</p><h1>Dashboard</h1><p className="apo-dashboard-date">{dateLabel}</p></div>
           <div className="apo-dashboard-header-actions">

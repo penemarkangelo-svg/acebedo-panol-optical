@@ -1,23 +1,96 @@
-.apo-optometrist-shell .apo-admin-nav { gap: 1.25rem; }
-.apo-optometrist-shell .apo-admin-nav-group { display: grid; gap: 0.35rem; }
-.apo-optometrist-shell .apo-admin-nav-link.is-disabled { color: var(--apo-muted, #77736b); cursor: not-allowed; opacity: .72; }
-.apo-optometrist-shell .apo-admin-nav-link.is-disabled small { margin-left: auto; font-size: .7rem; }
-.apo-optometrist-main { min-width: 0; }
-.apo-optometrist-page { width: min(100%, 1120px); margin: 0 auto; padding: clamp(1.25rem, 3vw, 2.5rem); color: #1A1816; }
-.apo-optometrist-header { padding-bottom: 1.5rem; border-bottom: 1px solid #dedbd3; }
-.apo-optometrist-eyebrow { margin: 0 0 .45rem; color: #B8242F; font-size: .75rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.apo-optometrist-page h1 { margin: 0; font-family: Georgia, serif; font-size: clamp(2rem, 4vw, 2.7rem); font-weight: 400; }
-.apo-optometrist-lead { max-width: 68ch; margin: .6rem 0 0; color: #5C574F; font-size: 1rem; line-height: 1.6; }
-.apo-optometrist-task-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; margin-top: 1.5rem; }
-.apo-optometrist-task { display: flex; min-height: 100px; align-items: center; gap: 1rem; padding: 1.1rem; border: 1px solid #dedbd3; border-radius: 10px; background: #fff; color: inherit; text-decoration: none; transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease, transform .16s ease; }
-.apo-optometrist-task:hover { border-color: #b9b3a9; background: #faf9f6; box-shadow: 0 5px 15px #26252112; transform: translateY(-1px); }
-.apo-optometrist-task:focus-visible { outline: 3px solid #b3131b; outline-offset: 3px; }
-.apo-optometrist-task-icon { display: grid; width: 42px; height: 42px; flex: 0 0 auto; place-items: center; border-radius: 9px; background: #f7ebeb; color: #B8242F; }
-.apo-optometrist-task-icon svg { width: 22px; height: 22px; }
-.apo-optometrist-task strong, .apo-optometrist-task small { display: block; }
-.apo-optometrist-task strong { font-size: 1rem; }
-.apo-optometrist-task small { margin-top: .3rem; color: #5C574F; font-size: .9rem; line-height: 1.45; }
-.apo-optometrist-task-arrow { margin-left: auto; color: #5C574F; font-size: 1.2rem; }
-.apo-optometrist-notice { margin-top: 1.25rem; padding: 1rem 1.1rem; border-left: 3px solid #b9b3a9; background: #f3f2ef; color: #1A1816; }
-.apo-optometrist-notice p { margin: .35rem 0 0; color: #5C574F; line-height: 1.55; }
-@media (max-width: 700px) { .apo-optometrist-task-list { grid-template-columns: 1fr; } }
+.apo-optometrist-description { max-width: 68ch; line-height: 1.5; }
+
+.apo-dashboard-metrics.apo-optometrist-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); overflow: hidden; }
+.apo-optometrist-summary .apo-metric-label svg { flex-shrink: 0; }
+.apo-action-row.apo-optometrist-review-link:first-of-type { border-top: 0; }
+.apo-optometrist-review-link:hover strong { color: var(--apo-admin-brand); text-decoration: underline; }
+.apo-optometrist-reminder { margin: 0; padding-top: 10px; border-top: 1px solid var(--apo-admin-line); color: var(--apo-admin-muted); font-size: 12px; line-height: 1.5; }
+.apo-optometrist-note { margin-top: 16px; }
+.apo-optometrist-note h2 { margin: 0; color: var(--apo-admin-ink); font-size: 14px; font-weight: 700; }
+.apo-optometrist-note p { margin: 6px 0 0; color: var(--apo-admin-muted); font-size: 13px; line-height: 1.5; }
+
+.apo-optometrist-appointments .apo-appointments-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.apo-optometrist-appointments .apo-appointments-table-wrap { border-top: 0; }
+.apo-optometrist-appointments .apo-appointments-table { min-width: 0; }
+.apo-optometrist-appointments .apo-appointments-table th { white-space: normal; }
+
+.apo-clinical-records-page .apo-prescriptions-table-wrap { overflow-x: auto; }
+.apo-clinical-records-page .apo-prescriptions-table th { white-space: normal; }
+.apo-clinical-record-search { display: flex; flex-wrap: wrap; }
+.apo-clinical-record-search .apo-prescriptions-search { flex: 1 1 200px; }
+.apo-clinical-record-pagination { flex-direction: row; align-items: center; }
+.apo-clinical-record-drawer { position: fixed; inset: 0 0 0 auto; max-width: none; max-height: none; margin: 0; padding: 0; }
+.apo-clinical-record-drawer:not([open]) { display: none; }
+.apo-clinical-record-drawer::backdrop { background: rgb(25 24 21 / 40%); }
+.apo-clinical-record-notes { white-space: pre-wrap; overflow-wrap: anywhere; }
+.apo-clinical-record-files { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.apo-clinical-record-files .apo-prescription-file-summary > div { flex: 1; }
+.apo-clinical-record-files button:disabled { opacity: .6; cursor: wait; }
+
+.apo-clinical-header-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.apo-clinical-records-page .apo-clinical-primary,
+.apo-clinical-record-drawer .apo-clinical-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 37px;
+  padding: 0 12px;
+  border: 1px solid #B8242F;
+  border-radius: 4px;
+  background: #B8242F;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.apo-clinical-records-page .apo-clinical-primary:hover:not(:disabled),
+.apo-clinical-record-drawer .apo-clinical-primary:hover:not(:disabled) { background: #9A1C26; border-color: #9A1C26; }
+.apo-clinical-record-drawer button:disabled { opacity: .6; cursor: default; }
+.apo-clinical-footer .apo-prescriptions-refresh { margin-inline-start: 0; background: #fff; border-color: #d6d1c6; color: #1A1816; }
+
+.apo-clinical-lookup, .apo-clinical-values, .apo-clinical-values label { display: grid; gap: 8px; }
+.apo-clinical-lookup > div, .apo-clinical-patient, .apo-clinical-release { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.apo-clinical-lookup > div > input, .apo-clinical-patient > div { flex: 1 1 185px; }
+.apo-clinical-lookup label, .apo-clinical-values label, .apo-clinical-values legend { color: #1A1816; font-size: 13px; font-weight: 600; }
+.apo-clinical-lookup small, .apo-clinical-patient small { color: #5C574F; font-size: 12px; font-weight: 400; }
+.apo-clinical-patient small { display: block; margin-top: 4px; }
+.apo-clinical-values { min-width: 0; margin: 18px 0 0; padding: 0; border: 0; }
+.apo-clinical-values legend { margin-bottom: 8px; padding: 0; }
+.apo-clinical-values .apo-prescriptions-table { table-layout: fixed; min-width: 0; }
+.apo-clinical-values .apo-prescriptions-table th, .apo-clinical-values .apo-prescriptions-table td { padding: 6px; }
+.apo-clinical-values .apo-prescriptions-table th { white-space: normal; }
+.apo-clinical-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-block: 8px; }
+.apo-clinical-lookup input, .apo-clinical-values input, .apo-clinical-values textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid #d6d1c6;
+  border-radius: 4px;
+  background: #fff;
+  color: #1A1816;
+  font: inherit;
+  font-size: 13px;
+}
+.apo-clinical-values textarea { resize: vertical; }
+.apo-clinical-attach, .apo-clinical-release { margin-top: 14px; }
+.apo-clinical-release { padding: 10px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; }
+.apo-clinical-release p { flex-basis: 100%; margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.apo-clinical-error, .apo-clinical-notice { margin: 10px 0 0; font-size: 13px; }
+.apo-clinical-error { color: #9A1C26; }
+.apo-clinical-notice { color: #356b5a; }
+
+@media (max-width: 900px) {
+  .apo-optometrist-appointments .apo-appointments-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .apo-optometrist-appointments .apo-appointments-metrics article:last-child { grid-column: 1 / -1; }
+}
+
+@media (max-width: 560px) {
+  .apo-dashboard-metrics.apo-optometrist-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .apo-optometrist-summary .apo-metric-card:last-child { grid-column: 1 / -1; }
+  .apo-clinical-records-page .apo-prescriptions-header { flex-wrap: wrap; }
+  .apo-clinical-header-actions { justify-content: flex-start; }
+  .apo-clinical-record-files .apo-prescription-file-summary { flex-wrap: wrap; }
+}

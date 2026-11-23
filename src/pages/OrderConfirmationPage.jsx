@@ -51,6 +51,8 @@ export default function OrderConfirmationPage() {
   const [loading, setLoading] = useState(true);
   const [paymentRetryAvailability, setPaymentRetryAvailability] = useState("not-applicable");
   const [paymentCheckVersion, setPaymentCheckVersion] = useState(0);
+  const [closedCheckout, setClosedCheckout] = useState(null);
+  const [customerCancelledOrderId, setCustomerCancelledOrderId] = useState(null);
   const [retryingPayment, setRetryingPayment] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -165,6 +167,19 @@ export default function OrderConfirmationPage() {
     return () => { active = false; };
   }, [order?.order_status, orderId, paymentCheckVersion]);
 
+  useEffect(() => {
+    if (orderStatus !== "cancelled") return undefined;
+    let active = true;
+    supabase.functions.invoke("create-paymongo-checkout", {
+      body: { orderId: Number(orderId), checkClosedOrder: true },
+    }).then(({ data, error }) => {
+      if (active && !error && data?.closedPaymentStatus) {
+        setClosedCheckout({ ...data, orderId });
+      }
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [orderStatus, orderId, paymentCheckVersion]);
+
   const formatPrice = (value) => `₱${Number(value || 0).toFixed(2)}`;
   const formattedDate = order?.created_at
     ? new Date(order.created_at).toLocaleString("en-PH", {
@@ -209,25 +224,27 @@ export default function OrderConfirmationPage() {
       .from("orders")
       .update({ order_status: "cancelled", updated_at: new Date().toISOString() })
       .eq("id", order.id)
+      .eq("order_status", order.order_status)
       .select()
       .single();
     if (error) {
       toast.error("We couldn’t cancel the order. Please try again.");
     } else {
+      setCustomerCancelledOrderId(orderId);
       setOrder(data);
       setShowCancelModal(false);
-      toast.success("Order cancelled.");
+      toast.success("You cancelled this order.");
       supabase.functions.invoke("create-paymongo-checkout", {
         body: { orderId: Number(order.id) },
       }).then(({ data: paymentData, error: paymentError }) => {
         if (paymentData?.paymentConfirmationPending) {
           toast("PayMongo may still be processing your QR Ph payment.");
-        } else if (paymentError) {
+        } else if (paymentError || paymentData?.paymentStatusUnavailable) {
           toast.error("We couldn’t confirm that the QR Ph checkout is closed. Contact the clinic if you already started payment.");
         }
       }).catch(() => {
         toast.error("We couldn’t confirm that the QR Ph checkout is closed. Contact the clinic if you already started payment.");
-      });
+      }).finally(() => setPaymentCheckVersion((version) => version + 1));
     }
     setCancelling(false);
   };
@@ -241,6 +258,14 @@ export default function OrderConfirmationPage() {
 
   const status = order.order_status;
   const isPaid = stepStatuses["2"] === "Completed";
+  const closedPayment = closedCheckout?.orderId === orderId ? closedCheckout : null;
+  const closedPaymentStatus = isPaid ? "paid" : closedPayment?.closedPaymentStatus;
+  const closedPaymentLabel = {
+    paid: "Payment received",
+    unpaid: "Unpaid",
+    failed: "Payment failed",
+    confirming: "Verifying payment",
+  }[closedPaymentStatus] ?? "No payment confirmed";
   const orderReference = displayOrderReference(order);
   const canResumePayment = status === "pending" && paymentRetryAvailability === "available";
   const checkoutWasInterrupted = ["cancelled", "interrupted"].includes(paymentReturn);
@@ -265,9 +290,25 @@ export default function OrderConfirmationPage() {
       banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "Checking payment status", description: "Please wait while we check with PayMongo." };
     }
   } else if (status === "cancelled") {
-    banner = { tone: "cancelled", icon: <FaExclamationCircle aria-hidden="true" />, title: "Order cancelled", description: "This order is closed. If you already completed a payment, contact the clinic for help." };
+    const closedByCustomer = customerCancelledOrderId === orderId;
+    const expired = !closedByCustomer && closedPayment?.paymentWindowExpired;
+    const reason = expired
+      ? "The system closed this order when the QR Ph payment window ended."
+      : closedByCustomer ? "You cancelled this order." : "This order is closed and can no longer be paid.";
+    const paymentMessage = {
+      paid: "Payment was received. Contact the clinic with your order reference for the next step.",
+      confirming: "PayMongo may still be processing your payment. Wait for confirmation before paying again.",
+      failed: "PayMongo did not complete the payment for this order.",
+      unpaid: "PayMongo closed the checkout without a completed payment.",
+    }[closedPaymentStatus] ?? "No payment has been confirmed for this order.";
+    banner = {
+      tone: expired ? "expired" : "cancelled",
+      icon: <FaExclamationCircle aria-hidden="true" />,
+      title: expired ? "Payment window expired" : closedByCustomer ? "You cancelled this order" : "Order closed",
+      description: `${reason} ${paymentMessage}`,
+    };
   } else if (status === "manual_review") {
-    banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "Payment needs clinic review", description: "The clinic is checking this payment before the order can continue. Please wait for an update." };
+    banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: isPaid ? "Payment received · Order on hold" : "Order on hold", description: "The clinic will review this order before preparing it. Please wait for an update." };
   } else if (!isPaid) {
     banner = { tone: "checking", icon: <FaClock aria-hidden="true" />, title: "Payment verification unavailable", description: "Contact the clinic if you completed payment for this order." };
   } else if (status === "confirmed") {
@@ -391,7 +432,7 @@ export default function OrderConfirmationPage() {
                 </dl>
                 <div className="order-details__payment-line">
                   <div><span>Payment method</span><strong>QR Ph</strong></div>
-                  <div><span>Payment status</span><strong className={`order-details__payment-status order-details__payment-status--${status === "pending" ? paymentRetryAvailability === "unavailable" ? "unknown" : "pending" : status === "manual_review" ? "review" : status === "cancelled" ? "cancelled" : isPaid ? "paid" : "unknown"}`}>{status === "pending" ? paymentProgressLabel : status === "cancelled" ? "Check with clinic if charged" : status === "manual_review" ? "Under review" : isPaid ? "Paid" : "Unverified"}</strong></div>
+                  <div><span>Payment status</span><strong className={`order-details__payment-status order-details__payment-status--${status === "pending" ? paymentRetryAvailability === "unavailable" ? "unknown" : "pending" : closedPaymentStatus === "paid" ? "paid" : status === "manual_review" ? "review" : status === "cancelled" ? "cancelled" : "unknown"}`}>{status === "pending" ? paymentProgressLabel : status === "cancelled" ? closedPaymentLabel : isPaid ? "Paid" : status === "manual_review" ? "Under review" : "Unverified"}</strong></div>
                 </div>
               </section>
               <section className="order-details__panel order-details__fulfillment">
@@ -423,7 +464,7 @@ export default function OrderConfirmationPage() {
                     </div>
                   </div>
                 ) : status === "cancelled" ? (
-                  <p className="order-details__muted-copy">No further order steps are scheduled for this order.</p>
+                  <p className="order-details__muted-copy">{["unpaid", "failed"].includes(closedPaymentStatus) ? "To buy these items, start a new checkout." : "This order won’t proceed to fulfillment."}</p>
                 ) : status === "manual_review" ? (
                   <div className="order-details__next-step"><span className="order-details__step-icon is-review"><FaClock aria-hidden="true" /></span><div><span className="order-details__step-kicker">ON HOLD</span><h3>Clinic review</h3><p>The clinic must resolve the payment check before fulfillment continues.</p></div></div>
                 ) : !isPaid ? (

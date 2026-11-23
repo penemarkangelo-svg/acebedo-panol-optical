@@ -39,7 +39,7 @@
 .apo-payments-table-message > div small { color: #5C574F; font-size: 11px; line-height: 1.5; }
 .apo-payments-table-message svg { margin-right: 5px; vertical-align: middle; }
 .apo-payments-table-message.is-error { color: #805e22 !important; }
-.apo-payments-directory-footer { display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; color: #5C574F; font-size: 11px; }
+.apo-payments-directory-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 9px; color: #5C574F; font-size: 11px; }
 .apo-payments-note { display: flex; align-items: flex-start; gap: 6px; margin: -4px 0 0; color: #5C574F; font-size: 11px; line-height: 1.5; }
 .apo-payments-note svg { flex: 0 0 auto; margin-top: 1px; }
 
@@ -78,6 +78,14 @@
 .apo-payment-drawer-footer { display: flex; justify-content: space-between; gap: 10px; padding: 12px 21px; border-top: 1px solid #d6d1c6; background: #fff; }
 .apo-payment-drawer-footer a, .apo-payment-drawer-footer button { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 6px; padding: 0 11px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #356b5a; font: inherit; font-size: 11px; text-decoration: none; cursor: pointer; }
 .apo-payment-drawer-footer button { margin-left: auto; border-color: #292721; background: #292721; color: #fff; }
+.apo-payments-pagination { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.apo-payments-pagination button { min-width: 29px; height: 29px; padding: 0 7px; border: 1px solid #d8d4ca; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; cursor: pointer; }
+.apo-payments-pagination button[aria-current="page"] { font-weight: 700; background: #f2f0ec; }
+.apo-payments-pagination button:hover:not(:disabled) { background: #f2f0ec; }
+.apo-payments-pagination button:disabled { opacity: .55; cursor: default; }
+.apo-payments-page-jump { margin-left: 10px; }
+.apo-payments-page-jump label { display: flex; align-items: center; gap: 7px; color: #1A1816; white-space: nowrap; }
+.apo-payments-page-jump input { box-sizing: border-box; width: 58px; height: 29px; padding: 0 6px; border: 1px solid #d8d4ca; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; }
 .is-spinning { animation: apo-payment-spin 1s linear infinite; }
 @keyframes apo-payment-spin { to { transform: rotate(360deg); } }
 

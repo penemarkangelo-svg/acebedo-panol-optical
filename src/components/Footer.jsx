@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { ScreeningLink } from "../vision-screening/components/ScreeningEntry";
 import "../styles/Footer.css";
 
 export default function Footer() {
@@ -19,7 +20,7 @@ export default function Footer() {
               <h2>Navigation</h2>
               <Link to="/">Home</Link>
               <Link to="/shop">Shop frames</Link>
-              <Link to="/vision-screening">Vision test</Link>
+              <ScreeningLink>Vision test</ScreeningLink>
             </div>
             <div className="acebedo-footer__group">
               <h2>Support</h2>

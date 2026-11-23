@@ -1,11 +1,22 @@
-/* Scoped above the older shared screening overrides. */
-.acebedo-dialog.acebedo-intro-dialog {
-  width: min(720px, calc(100vw - 32px));
-  max-width: 720px;
-  max-height: calc(100dvh - 32px);
+.acebedo-intro-dialog.vision-screening-intro {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  width: min(45rem, calc(100% - 1.5rem));
+  max-width: none;
+  max-height: calc(100dvh - 1.5rem);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--acebedo-border);
+  border-radius: var(--acebedo-radius-lg);
+  box-shadow: var(--acebedo-shadow-md);
   background: #fff;
   color: #1A1816;
+}
+
+.vision-screening-intro::backdrop {
+  background: rgba(31, 30, 27, 0.42);
 }
 
 .acebedo-intro-dialog .acebedo-intro-content { padding: 20px 24px; }
@@ -13,7 +24,7 @@
 .acebedo-intro-dialog .acebedo-eyebrow {
   margin: 0 0 8px;
   color: #B8242F;
-  font-size: 11px;
+  font-size: var(--acebedo-font-sm);
   line-height: 1.5;
   letter-spacing: .08em;
 }
@@ -41,25 +52,24 @@
   color: #B8242F !important; /* Older VisionTest.css forces a green icon color. */
   background: transparent;
 }
-.acebedo-intro-dialog .acebedo-intro-item-title { margin: 0; font-size: 14px; line-height: 1.45; }
-.acebedo-intro-dialog .acebedo-intro-copy { margin: 0; padding: 0; font-size: 14px; line-height: 1.45; color: #5C574F; }
+.acebedo-intro-dialog .acebedo-intro-item-title { margin: 0; font-size: var(--acebedo-font-md); line-height: 1.45; }
+.acebedo-intro-dialog .acebedo-intro-copy { margin: 0; padding: 0; font-size: var(--acebedo-font-body); line-height: 1.45; color: #5C574F; }
 .acebedo-intro-dialog .acebedo-intro-disclaimer {
   margin: 14px 0 0;
   padding: 10px 12px;
   background: #F8F7F4;
   color: #5C574F;
-  font-size: 12px;
+  font-size: var(--acebedo-font-sm);
   line-height: 1.5;
 }
 .acebedo-intro-dialog .acebedo-intro-actions { margin-top: 14px; min-height: 0; padding: 12px 0 0; gap: 12px; flex-wrap: wrap; }
-.acebedo-intro-dialog .acebedo-btn { min-height: 44px; height: auto; padding: 10px 16px; border: 0; font-size: 14px; line-height: 1.5; box-shadow: none; }
+.acebedo-intro-dialog .acebedo-btn { min-height: 44px; height: auto; padding: 10px 16px; border: 0; font-size: var(--acebedo-font-md); line-height: 1.5; box-shadow: none; }
 .acebedo-intro-dialog .acebedo-btn-quiet { color: #1A1816; }
 .acebedo-intro-dialog .acebedo-intro-start { width: auto; min-width: 150px; background: #B8242F; color: #fff; }
 .acebedo-intro-dialog .acebedo-intro-start:hover:not(:disabled):not([aria-disabled="true"]) { background: #9A1C26; box-shadow: none; transform: none; }
 .acebedo-intro-dialog .acebedo-btn:focus-visible { outline: none; box-shadow: none; text-decoration: underline; text-underline-offset: 4px; }
 
 @media (max-width: 560px) {
-  .acebedo-dialog.acebedo-intro-dialog { width: calc(100vw - 20px); max-height: calc(100dvh - 20px); }
   .acebedo-intro-dialog .acebedo-intro-content { padding: 16px; }
   .acebedo-intro-dialog .acebedo-intro-tile { grid-template-columns: 1fr; gap: 6px; }
   .acebedo-intro-dialog .acebedo-intro-copy { padding-left: 32px; }

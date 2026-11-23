@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import Hero from "../components/Hero";
 import Footer from "../components/Footer";
 import TryOnModal from "../components/TryOnModal";
+import { ScreeningLink } from "../vision-screening/components/ScreeningEntry";
 import { supabase } from "../lib/supabaseClient";
 import { getProductCategory, usesVariantStock } from "../utils/productTypes";
 import "../styles/LandingPage.css";
@@ -152,7 +153,7 @@ export default function LandingPage() {
             <div className="landing-care__list">
               <Link to="/appointments/book"><span>01</span><div><strong>A thoughtful eye exam</strong><small>Personal attention for your vision and your needs.</small></div><b aria-hidden="true">↗</b></Link>
               <Link to="/shop"><span>02</span><div><strong>The right frame, just for you</strong><small>Explore considered shapes, materials, and details.</small></div><b aria-hidden="true">↗</b></Link>
-              <Link to="/vision-screening"><span>03</span><div><strong>A first look at your vision</strong><small>Try a preliminary screening from home. It is not a diagnosis.</small></div><b aria-hidden="true">↗</b></Link>
+              <ScreeningLink><span>03</span><div><strong>A first look at your vision</strong><small>Try a preliminary screening from home. It is not a diagnosis.</small></div><b aria-hidden="true">↗</b></ScreeningLink>
             </div>
           </div>
         </section>

@@ -436,7 +436,7 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
       cv.Canny(blurred, edges, 40, 150);
       kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5));
       cv.morphologyEx(edges, closed, cv.MORPH_CLOSE, kernel);
-      cv.findContours(closed, contours, hierarchy, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
+      cv.findContours(closed, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
 
       const frameArea = ANALYSIS_WIDTH * ANALYSIS_HEIGHT;
       const guideDiagonal = Math.hypot(guide.width, guide.height);
@@ -593,13 +593,13 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
     setCardAligned(true);
     setCardStatus("complete");
 
-    // Short "calibrated" confirmation, then move on to the face position step
+    // Brief calibrated confirmation, then move on to the face position step.
     setTimeout(() => {
       if (!mountedRef.current) return;
       phaseRef.current = "face";
       setPhase("face");
       setError("");
-    }, 1000);
+    }, COMPLETE_DELAY_MS);
   }
 
   function retryCardDetection() {
@@ -659,23 +659,13 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
   };
 
   const camBadge = {
-    padding: "7px 12px", borderRadius: 999, background: "rgba(0,0,0,.72)", color: "#fff", fontSize: 12, fontWeight: 700,
+    padding: "7px 12px", borderRadius: 999, background: "rgba(0,0,0,.72)", color: "#fff", fontSize: "var(--acebedo-font-sm)", fontWeight: 700,
   };
   const green = "var(--acebedo-success)";
 
   return (
-    <section
-      style={{
-        width: "100%", minHeight: "calc(100vh - 80px)", background: "var(--acebedo-background)", padding: "20px",
-        boxSizing: "border-box", display: "flex", alignItems: "center",
-      }}
-    >
-      <div
-        style={{
-          width: "min(1240px, 100%)", margin: "0 auto", display: "grid",
-          gridTemplateColumns: "minmax(0, 1.6fr) minmax(300px, 1fr)", gap: 28, alignItems: "center",
-        }}
-      >
+    <section className="vision-setup">
+      <div className="vision-setup__layout">
         {/* LEFT: camera */}
         <div
           ref={cameraContainerRef}
@@ -704,7 +694,7 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
                 <div style={{ position: "absolute", left: "50%", top: "42%", width: 18, height: 18, transform: "translate(-50%, -50%)", border: isFaceReady ? "2px solid var(--acebedo-camera-ok)" : "2px solid rgba(255,255,255,.88)", borderRadius: "50%" }} />
               </div>
 
-              <div style={{ position: "absolute", left: "50%", bottom: 16, transform: "translateX(-50%)", maxWidth: "calc(100% - 32px)", padding: "10px 18px", borderRadius: 999, background: isFaceReady ? "rgba(19,168,117,.94)" : "rgba(0,0,0,.78)", color: "#fff", fontSize: 13, fontWeight: 600, textAlign: "center", zIndex: 5, pointerEvents: "none" }}>
+              <div style={{ position: "absolute", left: "50%", bottom: 16, transform: "translateX(-50%)", maxWidth: "calc(100% - 32px)", padding: "10px 18px", borderRadius: 999, background: isFaceReady ? "rgba(19,168,117,.94)" : "rgba(0,0,0,.78)", color: "#fff", fontSize: "var(--acebedo-font-body)", fontWeight: 600, textAlign: "center", zIndex: 5, pointerEvents: "none" }}>
                 {faceMessage}
               </div>
             </>
@@ -726,7 +716,7 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
                 {[["top", "left"], ["top", "right"], ["bottom", "left"], ["bottom", "right"]].map(([v, h]) => (
                   <div key={v + h} style={{ position: "absolute", [v]: -2, [h]: -2, width: 24, height: 24, boxSizing: "border-box", zIndex: 2, [`border${cap(v)}`]: "4px solid #fff", [`border${cap(h)}`]: "4px solid #fff", [`border${cap(v)}${cap(h)}Radius`]: 16 }} />
                 ))}
-                <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", padding: "8px 14px", borderRadius: 999, background: cardAligned ? green : "rgba(0,0,0,.78)", color: "#fff", fontSize: 13, fontWeight: 700, whiteSpace: "nowrap", zIndex: 3 }}>
+                <div style={{ position: "absolute", left: "50%", top: "50%", transform: "translate(-50%, -50%)", padding: "8px 14px", borderRadius: 999, background: cardAligned ? green : "rgba(0,0,0,.78)", color: "#fff", fontSize: "var(--acebedo-font-body)", fontWeight: 700, whiteSpace: "nowrap", zIndex: 3 }}>
                   {cardAligned ? "Hold still" : "Align card here"}
                 </div>
               </div>
@@ -735,7 +725,7 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
                 <div style={{ position: "absolute", ...candidateStyle, border: cardAligned ? "3px solid var(--acebedo-camera-ok)" : "2px solid rgba(255,255,255,.85)", borderRadius: 16, pointerEvents: "none", zIndex: 3, transition: "all .15s cubic-bezier(0.2, 0.8, 0.2, 1)" }} />
               )}
 
-              <div style={{ position: "absolute", left: "50%", bottom: 16, transform: "translateX(-50%)", width: "min(640px, calc(100% - 32px))", padding: "10px 18px", borderRadius: 999, background: cardAligned ? "rgba(19,168,117,.94)" : "rgba(0,0,0,.78)", color: "#fff", fontSize: 13, fontWeight: 600, textAlign: "center", zIndex: 5, pointerEvents: "none" }}>
+              <div style={{ position: "absolute", left: "50%", bottom: 16, transform: "translateX(-50%)", width: "min(640px, calc(100% - 32px))", padding: "10px 18px", borderRadius: 999, background: cardAligned ? "rgba(19,168,117,.94)" : "rgba(0,0,0,.78)", color: "#fff", fontSize: "var(--acebedo-font-body)", fontWeight: 600, textAlign: "center", zIndex: 5, pointerEvents: "none" }}>
                 {cardMessage}
               </div>
             </>
@@ -746,7 +736,7 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
               <div style={{ width: "min(360px, calc(100% - 32px))", padding: 24, borderRadius: 20, background: "rgba(255,255,255,.96)", textAlign: "center" }}>
                 <div style={{ width: 48, height: 48, margin: "0 auto 12px", borderRadius: "50%", background: "var(--acebedo-success-bg)", color: "var(--acebedo-success)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 800 }}>✓</div>
                 <h2 style={{ margin: "0 0 6px", color: "var(--acebedo-text)", fontFamily: "var(--font-brand)", fontSize: 24 }}>{phase === "complete" ? "Position saved" : "Screen calibrated"}</h2>
-                <p style={{ margin: 0, color: "var(--acebedo-text-muted)", lineHeight: 1.5, fontSize: 14 }}>{phase === "complete" ? "Stay in this position for the test." : "Next: take your viewing position."}</p>
+                <p style={{ margin: 0, color: "var(--acebedo-text-muted)", lineHeight: 1.5, fontSize: "var(--acebedo-font-body)" }}>{phase === "complete" ? "Stay in this position for the test." : "Next: take your viewing position."}</p>
               </div>
             </div>
           )}
@@ -763,7 +753,7 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
                 return <div key={p} style={{ flex: 1, height: 4, borderRadius: 4, background: done || active ? "var(--acebedo-red)" : "var(--acebedo-border)" }} />;
               })}
             </div>
-            <div style={{ marginTop: 8, color: "var(--acebedo-text-muted)", fontSize: 12, fontWeight: 700 }}>
+            <div style={{ marginTop: 8, color: "var(--acebedo-text-muted)", fontSize: "var(--acebedo-font-sm)", fontWeight: 700 }}>
               {phase === "card" ? "Setup · Step 1 of 2: Screen calibration" : "Setup · Step 2 of 2: Viewing position"}
             </div>
           </div>
@@ -772,7 +762,7 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
             <h1 style={{ margin: 0, color: "var(--acebedo-text)", fontFamily: "var(--font-brand)", fontSize: "clamp(26px, 2.6vw, 36px)", lineHeight: 1.1 }}>
               {titles[phase][0]}
             </h1>
-            <p style={{ margin: "10px 0 0", color: "var(--acebedo-text-muted)", fontSize: 14, lineHeight: 1.6 }}>{titles[phase][1]}</p>
+            <p style={{ margin: "10px 0 0", color: "var(--acebedo-text-muted)", fontSize: "var(--acebedo-font-body)", lineHeight: 1.6 }}>{titles[phase][1]}</p>
           </div>
 
           {/* Compact status rows */}
@@ -803,7 +793,7 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
           {/* Instructions */}
           <div style={{ padding: 16, borderRadius: 16, background: "var(--acebedo-surface)", border: "1px solid var(--acebedo-border)" }}>
             {phase === "face" && (
-              <ol style={{ margin: 0, paddingLeft: 20, listStyle: "decimal", color: "var(--acebedo-text-muted)", fontSize: 13, lineHeight: 1.7 }}>
+              <ol style={{ margin: 0, paddingLeft: 20, listStyle: "decimal", color: "var(--acebedo-text-muted)", fontSize: "var(--acebedo-font-body)", lineHeight: 1.7 }}>
                 <li>Put your card down and sit as you will for the test.</li>
                 <li>Fit your face inside the oval.</li>
                 <li>Hold still. The camera preview is hidden once the test starts.</li>
@@ -811,7 +801,7 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
             )}
             {phase === "card" && (
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ color: "var(--acebedo-text-muted)", fontSize: 13, lineHeight: 1.6 }}>
+                <div style={{ color: "var(--acebedo-text-muted)", fontSize: "var(--acebedo-font-body)", lineHeight: 1.6 }}>
                   <strong style={{ color: "var(--acebedo-red-hover)" }}>How to hold your card</strong>
                   <br />
                   Hold it by the <strong>left and right edges</strong>. Keep fingers off the top and bottom edges so the camera can trace its shape.
@@ -820,14 +810,14 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
               </div>
             )}
             {phase === "complete" && calibrationResult && (
-              <div style={{ color: "var(--acebedo-text-muted)", fontSize: 13, lineHeight: 1.7 }}>
+              <div style={{ color: "var(--acebedo-text-muted)", fontSize: "var(--acebedo-font-body)", lineHeight: 1.7 }}>
                 Screen scale {calibrationResult.pixelsPerMm.toFixed(3)} px/mm · Viewing position saved. Please stay in this position during the test.
               </div>
             )}
           </div>
 
           {error && (
-            <div style={{ padding: "12px 14px", borderRadius: 12, background: "var(--acebedo-error-bg)", border: "1px solid var(--acebedo-error-border)", color: "var(--acebedo-red-hover)", fontSize: 13, lineHeight: 1.5 }}>
+            <div style={{ padding: "12px 14px", borderRadius: 12, background: "var(--acebedo-error-bg)", border: "1px solid var(--acebedo-error-border)", color: "var(--acebedo-red-hover)", fontSize: "var(--acebedo-font-body)", lineHeight: 1.5 }}>
               {error}
             </div>
           )}
@@ -844,7 +834,7 @@ export default function EnvironmentSetup({ onContinue, onComplete }) {
             </button>
           )}
 
-          <p style={{ margin: 0, color: "var(--acebedo-text-muted)", fontSize: 11, lineHeight: 1.6 }}>
+          <p style={{ margin: 0, color: "var(--acebedo-text-muted)", fontSize: "var(--acebedo-font-sm)", lineHeight: 1.6 }}>
             Preliminary digital vision screening. It does not replace a comprehensive eye examination or provide a prescription. Your camera feed is processed on this device and is not stored.
           </p>
         </div>
@@ -915,7 +905,7 @@ function StatusRow({ title, state, text, Icon, SuccessIcon }) {
           justifyContent: "space-between",
           gap: 8,
           flex: 1,
-          fontSize: 13,
+          fontSize: "var(--acebedo-font-body)",
         }}
       >
         <span style={{ color: "var(--acebedo-text)", fontWeight: 700 }}>

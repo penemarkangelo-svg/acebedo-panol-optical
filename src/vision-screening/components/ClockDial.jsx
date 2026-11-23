@@ -32,6 +32,7 @@ const {
   handCoverConfirmScore: HAND_COVER_CONFIRM_SCORE,
   handCoverMaxScore: HAND_COVER_MAX_SCORE,
   handCoverMissDecay: HAND_COVER_MISS_DECAY,
+  handCoverReleaseScore: HAND_COVER_RELEASE_SCORE,
   handDetectionConfidence: HAND_DETECTION_CONFIDENCE,
   warningConfirmMs: MOVEMENT_WARNING_CONFIRMATION_MS,
   pauseConfirmMs: MOVEMENT_PAUSE_CONFIRMATION_MS,
@@ -160,6 +161,7 @@ export default function ClockDial({ onContinue, onComplete }) {
   const localBaselineRef = useRef(null);
   const eyeCoverWarningRef = useRef("");
   const coveredEyeConfidenceRef = useRef({ left: 0, right: 0 });
+  const confirmedHandCoverRef = useRef({ left: false, right: false });
   const currentEyeRef = useRef(EYES[0]);
 
   const [viewingPosition] = useState(() =>
@@ -388,7 +390,6 @@ export default function ClockDial({ onContinue, onComplete }) {
 
       try {
         const result = landmarker.detectForVideo(video, now);
-        const hands = handLandmarkerRef.current?.detectForVideo(video, now)?.landmarks || [];
         const faces = result?.faceLandmarks || [];
 
         if (faces.length === 0) {
@@ -432,6 +433,11 @@ export default function ClockDial({ onContinue, onComplete }) {
 
         faceLostStartedRef.current = null;
         multipleFaceStartedRef.current = null;
+
+        // Hand inference is only useful once one face and its saved position are available.
+        const hands = localBaselineRef.current
+          ? handLandmarkerRef.current?.detectForVideo(video, now)?.landmarks || []
+          : [];
 
         const metrics = getRelativeFaceMetrics(faces[0]);
         if (!metrics) return;
@@ -483,8 +489,12 @@ export default function ClockDial({ onContinue, onComplete }) {
             HAND_COVER_MAX_SCORE,
             HAND_COVER_MISS_DECAY
           );
-          const handCoverConfirmed =
-            coveredEyeConfidenceRef.current[coveredEye] >= HAND_COVER_CONFIRM_SCORE;
+          if (coveredEyeConfidenceRef.current[coveredEye] >= HAND_COVER_CONFIRM_SCORE) {
+            confirmedHandCoverRef.current[coveredEye] = true;
+          } else if (coveredEyeConfidenceRef.current[coveredEye] <= HAND_COVER_RELEASE_SCORE) {
+            confirmedHandCoverRef.current[coveredEye] = false;
+          }
+          const handCoverConfirmed = confirmedHandCoverRef.current[coveredEye];
           if (!handCoverConfirmed) {
             coverWarning = `Please cover your ${coveredEye} eye with your hand.`;
           } else if (currentEyeRef.current === "right" && right > EYE_COVERED_THRESHOLD) {

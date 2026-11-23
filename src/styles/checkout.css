@@ -11,7 +11,7 @@
 }
 
 .checkout-container {
-  width: min(100%, 1180px);
+  width: min(100%, calc(1180px + var(--acebedo-customer-width-growth)));
   margin: 0 auto;
 }
 
@@ -42,7 +42,7 @@
   align-items: center;
   gap: 0.45rem;
   padding-top: 0.45rem;
-  font-size: 0.7rem;
+  font-size: var(--acebedo-font-sm);
   line-height: 1;
   color: #1A1816;
   white-space: nowrap;
@@ -109,7 +109,7 @@
 
 .checkout-section-heading p {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: var(--acebedo-font-sm);
   line-height: 1.5;
   color: #5C574F;
 }
@@ -132,20 +132,20 @@
 
 .checkout-small-label {
   margin-bottom: 0.15rem;
-  font-size: 0.5rem;
+  font-size: var(--acebedo-font-sm);
   line-height: 1;
   letter-spacing: 0.08em;
   color: #5C574F;
 }
 
 .checkout-pickup-location strong {
-  font-size: 0.68rem;
+  font-size: var(--acebedo-font-body);
   line-height: 1.4;
   font-weight: 500;
 }
 
 .checkout-pickup-location span:last-child {
-  font-size: 0.6rem;
+  font-size: var(--acebedo-font-sm);
   color: #5C574F;
 }
 
@@ -177,7 +177,7 @@
 .checkout-field label {
   display: block;
   margin-bottom: 0.3rem;
-  font-size: 0.62rem;
+  font-size: var(--acebedo-font-sm);
   line-height: 1.2;
   color: #1A1816;
 }
@@ -190,7 +190,7 @@
 .checkout-input {
   display: block;
   width: 100%;
-  height: 40px;
+  min-height: var(--acebedo-control-height);
   padding: 0 0.1rem;
   border: 0;
   border-bottom: 1px solid #dedbd4;
@@ -199,7 +199,7 @@
   background: transparent;
   color: #1A1816;
   font: inherit;
-  font-size: 0.67rem;
+  font-size: var(--acebedo-font-md);
   transition:
     border-color 120ms ease,
     box-shadow 120ms ease;
@@ -220,7 +220,7 @@
 
 .checkout-error {
   margin: 0.25rem 0 0;
-  font-size: 0.56rem;
+  font-size: var(--acebedo-font-sm);
   line-height: 1.3;
   color: #B8242F;
 }
@@ -314,7 +314,7 @@
 
 .checkout-payment-unavailable {
   color: #5C574F;
-  font-size: 0.7rem;
+  font-size: var(--acebedo-font-sm);
   font-weight: 500;
 }
 
@@ -364,13 +364,13 @@
   border: 1px solid #d8d4cc;
   border-radius: 2px;
   color: #5C574F;
-  font-size: 0.47rem;
+  font-size: var(--acebedo-font-sm);
 }
 
 .checkout-payment-note {
   margin: 0.45rem 0 0;
   color: #5C574F;
-  font-size: 0.56rem;
+  font-size: var(--acebedo-font-sm);
   line-height: 1.45;
 }
 
@@ -395,7 +395,7 @@
 }
 
 .checkout-summary-heading > span {
-  font-size: 0.55rem;
+  font-size: var(--acebedo-font-sm);
   color: #5C574F;
 }
 
@@ -427,14 +427,14 @@
 .checkout-summary-product h3 {
   margin: 0 0 0.15rem;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 0.85rem;
+  font-size: var(--acebedo-font-md);
   line-height: 1.2;
   font-weight: 400;
 }
 
 .checkout-summary-product p {
   margin: 0 0 0.1rem;
-  font-size: 0.54rem;
+  font-size: var(--acebedo-font-sm);
   line-height: 1.35;
   color: #5C574F;
 }
@@ -442,7 +442,7 @@
 .checkout-summary-product strong {
   display: block;
   margin-top: 0.2rem;
-  font-size: 0.65rem;
+  font-size: var(--acebedo-font-body);
   font-weight: 600;
 }
 
@@ -463,20 +463,20 @@
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.35rem;
-  font-size: 0.54rem;
+  font-size: var(--acebedo-font-sm);
 }
 
 .checkout-prescription-heading span {
   padding: 0.12rem 0.3rem;
   background: #f1f5f8;
   color: #527087;
-  font-size: 0.48rem;
+  font-size: var(--acebedo-font-sm);
 }
 
 .checkout-prescription table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.5rem;
+  font-size: var(--acebedo-font-sm);
 }
 
 .checkout-prescription th {
@@ -494,7 +494,7 @@
   margin-top: 0.35rem;
   padding-top: 0.3rem;
   border-top: 1px solid #e4e1da;
-  font-size: 0.5rem;
+  font-size: var(--acebedo-font-sm);
 }
 
 /* =========================================================
@@ -519,7 +519,7 @@
 
 .checkout-summary-lines span,
 .checkout-summary-lines strong {
-  font-size: 0.62rem;
+  font-size: var(--acebedo-font-body);
   font-weight: 400;
 }
 
@@ -532,12 +532,165 @@
 }
 
 .checkout-summary-total span {
-  font-size: 0.7rem;
+  font-size: var(--acebedo-font-sm);
 }
 
 .checkout-summary-total strong {
   font-size: 1.25rem;
   font-weight: 400;
+}
+
+.checkout-prescription-upload {
+  margin: 0.3rem 0 1rem;
+}
+
+.checkout-prescription-upload-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #dedbd4;
+  border-radius: 8px;
+  background: transparent;
+  color: #9A1C26;
+  text-align: left;
+  cursor: pointer;
+}
+
+.checkout-prescription-upload-button:hover:not(:disabled) {
+  border-color: #b6b0a6;
+  background: #eeece6;
+}
+
+.checkout-prescription-upload button:focus-visible {
+  outline: 2px solid #b8242f;
+  outline-offset: 2px;
+}
+
+.checkout-prescription-upload button:disabled {
+  cursor: wait;
+}
+
+.checkout-prescription-upload-icon {
+  display: grid;
+  flex: 0 0 1.25rem;
+  place-items: center;
+}
+
+.checkout-prescription-upload-button strong,
+.checkout-prescription-upload-button small {
+  display: block;
+  line-height: 1.4;
+}
+
+.checkout-prescription-upload-button strong {
+  font-size: var(--acebedo-font-body);
+  font-weight: 600;
+}
+
+.checkout-prescription-upload-button small {
+  color: #5C574F;
+  font-size: var(--acebedo-font-sm);
+}
+
+.checkout-prescription-file {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+  padding: 0 0.35rem 0 0.75rem;
+  border: 1px solid #dedbd4;
+  border-radius: 6px;
+  color: #5C574F;
+  font-size: var(--acebedo-font-sm);
+}
+
+.checkout-prescription-file > svg {
+  flex-shrink: 0;
+}
+
+.checkout-prescription-file > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.checkout-prescription-file button {
+  display: grid;
+  flex: 0 0 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #9A1C26;
+  cursor: pointer;
+}
+
+.checkout-prescription-file button:hover:not(:disabled) {
+  background: #f7e7e5;
+}
+
+.checkout-prescription-dialog {
+  width: min(28rem, calc(100% - 2rem));
+  margin: auto;
+  padding: clamp(1rem, 4vw, 1.5rem);
+  border: 1px solid #dedbd4;
+  border-radius: 8px;
+  background: #f8f7f4;
+  color: #1A1816;
+}
+
+.checkout-prescription-dialog::backdrop {
+  background: rgb(26 24 22 / 45%);
+}
+
+.checkout-prescription-dialog h2 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.4rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.checkout-prescription-dialog p {
+  margin: 0.65rem 0 0;
+  color: #5C574F;
+  font-size: var(--acebedo-font-body);
+  line-height: 1.45;
+}
+
+.checkout-prescription-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.15rem;
+}
+
+.checkout-prescription-dialog-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--acebedo-control-height);
+  padding: 0.45rem 0.7rem;
+  border: 1px solid #dedbd4;
+  border-radius: 6px;
+  background: transparent;
+  color: #1A1816;
+  font-size: var(--acebedo-font-body);
+  cursor: pointer;
+}
+
+.checkout-prescription-dialog-actions button:hover {
+  background: #eeece6;
+}
+
+.checkout-prescription-dialog-actions button:last-child {
+  color: #9A1C26;
+  font-weight: 600;
 }
 
 /* =========================================================
@@ -561,7 +714,7 @@
 }
 
 .checkout-confirmation span {
-  font-size: 0.5rem;
+  font-size: var(--acebedo-font-body);
   line-height: 1.4;
   color: #5C574F;
 }
@@ -572,14 +725,15 @@
 
 .checkout-place-order {
   width: 100%;
-  height: 36px;
+  min-height: var(--acebedo-control-height);
+  padding: 0.65rem 1rem;
   margin-top: 0.8rem;
   border: 0;
   border-radius: 1px;
   background: #d8d6d1;
   color: #5C574F;
   font: inherit;
-  font-size: 0.58rem;
+  font-size: var(--acebedo-font-md);
   font-weight: 500;
   cursor: not-allowed;
 }
@@ -596,8 +750,8 @@
 
 .checkout-order-hint {
   margin: 0.45rem auto 0;
-  max-width: 250px;
-  font-size: 0.48rem;
+  max-width: 45ch;
+  font-size: var(--acebedo-font-sm);
   line-height: 1.4;
   text-align: center;
   color: #5C574F;
@@ -608,7 +762,7 @@
   width: fit-content;
   margin: 0.65rem auto 0;
   color: #B8242F;
-  font-size: 0.57rem;
+  font-size: var(--acebedo-font-md);
   text-decoration: none;
 }
 
@@ -636,12 +790,12 @@
 .checkout-empty p {
   margin: 0 0 1rem;
   color: #5C574F;
-  font-size: 0.85rem;
+  font-size: var(--acebedo-font-body);
 }
 
 .checkout-empty a {
   color: #B8242F;
-  font-size: 0.75rem;
+  font-size: var(--acebedo-font-md);
   text-decoration: none;
 }
 
