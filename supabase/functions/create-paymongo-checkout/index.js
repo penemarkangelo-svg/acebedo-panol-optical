@@ -190,6 +190,36 @@ Deno.serve(async (request) => {
       .limit(1)
       .maybeSingle();
     if (paymentError) return safeError(paymentError, "Could not check the payment session.");
+
+    if (payload.checkClosedOrder === true) {
+      if (order.order_status !== "cancelled") return response({ orderNotPayable: true });
+
+      const { data: reservation, error: reservationError } = await adminClient
+        .from("inventory_reservations")
+        .select("release_reason")
+        .eq("order_id", orderId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (reservationError) return safeError(reservationError, "Could not check why the order closed.");
+
+      let closedPaymentStatus = "unconfirmed";
+      if (payment?.status === "paid") {
+        closedPaymentStatus = "paid";
+      } else if (payment?.status === "failed") {
+        closedPaymentStatus = "failed";
+      } else if (payment?.paymongo_checkout_session_id) {
+        const sessionState = await getCheckoutSessionState(paymongoSecretKey, payment.paymongo_checkout_session_id);
+        if (sessionState === "expired") closedPaymentStatus = "unpaid";
+        if (["paid", "processing"].includes(sessionState)) closedPaymentStatus = "confirming";
+      }
+
+      return response({
+        paymentWindowExpired: ["reservation_timeout", "provider_expired"].includes(reservation?.release_reason),
+        closedPaymentStatus,
+      });
+    }
+
     if (!payment && order.order_status === "pending") {
       const { error: prepareError } = await adminClient.rpc("create_pending_paymongo_payment", { p_order_id: orderId });
       if (prepareError) return safeError(prepareError, "Could not prepare this saved order for payment.");
