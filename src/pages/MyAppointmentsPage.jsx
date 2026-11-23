@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
+import { useAccountUpdates } from "../context/AccountUpdatesContext";
 import { supabase } from "../lib/supabaseClient";
 import { AppointmentFooter } from "../appointments/AppointmentChrome";
 import Header from "../components/Header";
@@ -10,23 +11,33 @@ import "../styles/AppointmentPage.css";
 
 export default function MyAppointmentsPage({ embedded = false }) {
   const { user } = useAuth();
+  const { acknowledge } = useAccountUpdates();
+  const userId = user?.id;
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadAppointments = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("appointments")
-      .select("id, appointment_date, appointment_time, status")
-      .eq("user_id", user.id)
-      .order("appointment_date", { ascending: false })
-      .order("appointment_time", { ascending: false });
-    if (error) toast.error("Unable to load appointments.");
-    else setAppointments(data || []);
-    setLoading(false);
-  }, [user.id]);
-
-  useEffect(() => { loadAppointments(); }, [loadAppointments]);
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    async function loadAppointments() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("id, appointment_date, appointment_time, status")
+        .eq("user_id", userId)
+        .order("appointment_date", { ascending: false })
+        .order("appointment_time", { ascending: false });
+      if (!active) return;
+      if (error) toast.error("Unable to load appointments.");
+      else {
+        setAppointments(data || []);
+        acknowledge("appointments", data || []);
+      }
+      setLoading(false);
+    }
+    loadAppointments();
+    return () => { active = false; };
+  }, [userId, acknowledge]);
 
   return (
     <div className={`appointment-page appointment-my-page${embedded ? " appointment-my-page--embedded" : ""}`}>

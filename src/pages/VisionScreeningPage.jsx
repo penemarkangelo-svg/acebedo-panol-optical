@@ -1,14 +1,12 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { FiChevronDown, FiChevronUp, FiLogOut } from "react-icons/fi";
 
-import Header from "../components/Header";
-import Footer from "../components/Footer";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 
-import VisionProgress from "../vision-screening/components/VisionProgress";
-import ScreeningIntro from "../vision-screening/components/ScreeningIntro";
+import VisionProgress, { screeningStages } from "../vision-screening/components/VisionProgress";
 import Questionnaire from "../vision-screening/components/Questionnaire";
 import EnvironmentSetup from "../vision-screening/components/EnvironmentSetup";
 import VisualAcuity from "../vision-screening/components/VisualAcuity";
@@ -44,19 +42,22 @@ export default function VisionScreeningPage() {
    * During camera testing the temporary flag below starts at Setup.
    */
 
-  const [showIntro, setShowIntro] = useState(true);
-
   /*
    * Start at Setup while the temporary camera-test flag is enabled.
    */
   const [currentStage, setCurrentStage] = useState(SKIP_QUESTIONNAIRE_FOR_TESTING ? 1 : 0);
+  const [progressVisibility, setProgressVisibility] = useState({});
 
   const [testData, setTestData] = useState({});
-  const startedAtRef = useRef(null);
+  const [startedAt] = useState(() => new Date().toISOString());
   const [submissionId] = useState(createSubmissionId);
   const saveStateRef = useRef({ inFlight: false, savedId: null });
   const [saveStatus, setSaveStatus] = useState("idle");
   const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [currentStage]);
 
   /*
    * ------------------------------------------------------------
@@ -73,18 +74,15 @@ export default function VisionScreeningPage() {
 
   /*
    * ------------------------------------------------------------
-   * INTRO
+   * EXIT
    * ------------------------------------------------------------
    */
 
-  const handleStart = () => {
-    startedAtRef.current = new Date().toISOString();
-    setShowIntro(false);
-    setCurrentStage(SKIP_QUESTIONNAIRE_FOR_TESTING ? 1 : 0);
-  };
-
-  const handleCancelScreening = () => {
-    navigate(-1);
+  const exitScreening = () => {
+    if (currentStage < 5 && !window.confirm("Exit screening? Your progress in this session will be lost.")) {
+      return;
+    }
+    navigate("/shop", { replace: true });
   };
 
   /*
@@ -220,7 +218,7 @@ export default function VisionScreeningPage() {
     try {
       const screeningData = buildScreeningData({
         ...completedData,
-        startedAt: startedAtRef.current,
+        startedAt,
         completedAt: new Date().toISOString(),
         submissionId,
       });
@@ -264,132 +262,120 @@ export default function VisionScreeningPage() {
    * ------------------------------------------------------------
    */
 
+  const wideLayoutClassName = [0, 1, 5].includes(currentStage) ? " acebedo-screening-wide" : "";
+  const isFocusedStage = currentStage > 0 && currentStage < 5;
+  const layoutClassName = isFocusedStage ? " vision-screening-focused" : " pb-8 pt-3 md:pb-12 md:pt-4";
+  const showProgress = progressVisibility[currentStage] ?? !isFocusedStage;
+  const progressLabel = showProgress ? "Hide progress" : "Show progress";
+  const exitLabel = currentStage === 5 ? "Back to Shop Frames" : "Exit screening";
+  const skippedStages = SKIP_QUESTIONNAIRE_FOR_TESTING ? 1 : 0;
+  const step = currentStage + 1 - skippedStages;
+  const stepCount = screeningStages.length - skippedStages;
+  const ProgressChevron = showProgress ? FiChevronUp : FiChevronDown;
+
   return (
-    <>
-      <Header />
-
-      <main className="acebedo-page">
-        <div className="acebedo-container pb-8 pt-3 md:pb-12 md:pt-4">
-          {!showIntro && (
-            <>
-              {/* ==================================================
-                  VISION SCREENING PROGRESS
-                  ================================================== */}
-
-              <div className="acebedo-screening-progress-wrap">
-                <VisionProgress
-                  currentStage={currentStage}
-                  skipQuestionnaire={SKIP_QUESTIONNAIRE_FOR_TESTING}
-                />
-              </div>
-
-              {/* ==================================================
-                  STAGE 0 — QUESTIONNAIRE
-                  ==================================================
-                  
-                  Normal intake stage when not in temporary camera-test mode.
-              */}
-              {currentStage === 0 && (
-                <Questionnaire
-                  data={testData.questionnaireAnswers || {}}
-                  updateData={updateQuestionnaireAnswers}
-                  onComplete={handleQuestionnaireComplete}
-                />
-              )}
-
-              {/* ==================================================
-                  STAGE 1 — SETUP
-                  ================================================== */}
-
-              {currentStage === 1 && (
-                <EnvironmentSetup
-                  onComplete={handleSetupComplete}
-                />
-              )}
-
-              {/* ==================================================
-                  STAGE 2 — VISUAL ACUITY
-                  ================================================== */}
-
-              {currentStage === 2 && (
-                <VisualAcuity
-                  onComplete={handleVisualAcuityComplete}
-                  onContinue={handleVisualAcuityContinue}
-                />
-              )}
-
-              {/* ==================================================
-                  STAGE 3 — DUOCHROME
-                  ================================================== */}
-
-              {currentStage === 3 && (
-                <Duochrome
-                  onComplete={handleDuochromeComplete}
-                />
-              )}
-
-              {/* ==================================================
-                  STAGE 4 — CLOCK DIAL
-                  ================================================== */}
-
-              {currentStage === 4 && (
-                <ClockDial
-                  onComplete={handleClockDialComplete}
-                />
-              )}
-
-              {/* ==================================================
-                  STAGE 5 — RESULTS
-                  ================================================== */}
-
-              {currentStage === 5 && (
-                <>
-                  {saveStatus === "test-only" && (
-                    <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">
-                      Test run: the questionnaire was skipped, so these results were not saved.
-                    </p>
-                  )}
-                  {saveStatus === "saving" && (
-                    <p className="mb-4 text-sm text-gray-600" role="status">
-                      Saving your screening results…
-                    </p>
-                  )}
-                  {saveStatus === "error" && (
-                    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
-                      <p>{saveError}</p>
-                      <button
-                        type="button"
-                        onClick={() => saveCompletedScreening(testData)}
-                        className="mt-2 font-semibold underline"
-                      >
-                        Retry saving
-                      </button>
-                    </div>
-                  )}
-                  <ScreeningResults
-                    acuity={testData.visualAcuity}
-                    duochrome={testData.duochrome}
-                    clockDial={testData.clockDial}
-                  />
-                </>
-              )}
-            </>
-          )}
+    <main className="acebedo-page vision-screening-page">
+      <div className={`acebedo-container${layoutClassName}${wideLayoutClassName}`}>
+        <div className="vision-screening-navigation">
+          <header className="vision-screening-session">
+            <button
+              type="button"
+              className="vision-screening-session__exit"
+              aria-label={exitLabel}
+              title={exitLabel}
+              onClick={exitScreening}
+              disabled={saveStatus === "saving"}
+            >
+              <FiLogOut size={20} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="vision-screening-session__progress"
+              aria-label={`${progressLabel}. Step ${step} of ${stepCount}.`}
+              title={progressLabel}
+              aria-expanded={showProgress}
+              aria-controls="vision-screening-progress"
+              onClick={() => setProgressVisibility((previous) => ({ ...previous, [currentStage]: !showProgress }))}
+            >
+              <span className="vision-screening-session__track" aria-hidden="true">
+                <span style={{ width: `${(step / stepCount) * 100}%` }} />
+              </span>
+              <span aria-hidden="true">{step} / {stepCount}</span>
+              <ProgressChevron size={16} aria-hidden="true" />
+            </button>
+          </header>
+          <div id="vision-screening-progress" className="acebedo-screening-progress-wrap" hidden={!showProgress}>
+            <VisionProgress
+              currentStage={currentStage}
+              skipQuestionnaire={SKIP_QUESTIONNAIRE_FOR_TESTING}
+            />
+          </div>
         </div>
-      </main>
 
-      <Footer />
+        {/* ==================================================
+            STAGE 0 — QUESTIONNAIRE
+            ==================================================
 
-      {/* ========================================================
-          INTRODUCTION
-          ======================================================== */}
+            Normal intake stage when not in temporary camera-test mode.
+        */}
+        {currentStage === 0 && (
+          <Questionnaire
+            data={testData.questionnaireAnswers || {}}
+            updateData={updateQuestionnaireAnswers}
+            onComplete={handleQuestionnaireComplete}
+          />
+        )}
 
-      {showIntro && (
-        <ScreeningIntro
-          onStart={handleStart}
-          onClose={handleCancelScreening}
-        />
-      )}
-    </>
+        {isFocusedStage && (
+          <div className="vision-screening-stage">
+            {currentStage === 1 && <EnvironmentSetup onComplete={handleSetupComplete} />}
+            {currentStage === 2 && (
+              <VisualAcuity
+                onComplete={handleVisualAcuityComplete}
+                onContinue={handleVisualAcuityContinue}
+              />
+            )}
+            {currentStage === 3 && <Duochrome onComplete={handleDuochromeComplete} />}
+            {currentStage === 4 && <ClockDial onComplete={handleClockDialComplete} />}
+          </div>
+        )}
+
+        {/* ==================================================
+            STAGE 5 — RESULTS
+            ================================================== */}
+
+        {currentStage === 5 && (
+          <>
+            {saveStatus === "test-only" && (
+              <p className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900" role="status">
+                Test run: the questionnaire was skipped, so these results were not saved.
+              </p>
+            )}
+            {saveStatus === "saving" && (
+              <p className="mb-4 text-sm text-gray-600" role="status">
+                Saving your screening results…
+              </p>
+            )}
+            {saveStatus === "error" && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+                <p>{saveError}</p>
+                <button
+                  type="button"
+                  onClick={() => saveCompletedScreening(testData)}
+                  className="mt-2 font-semibold underline"
+                >
+                  Retry saving
+                </button>
+              </div>
+            )}
+            <ScreeningResults
+              acuity={testData.visualAcuity}
+              duochrome={testData.duochrome}
+              clockDial={testData.clockDial}
+            />
+          </>
+        )}
+      </div>
+    </main>
   );
 }

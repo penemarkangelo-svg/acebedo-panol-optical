@@ -49,7 +49,7 @@
 .account-loading__content p {
   margin: -7px 0 0;
   color: #5c574f;
-  font-size: 12px;
+  font-size: var(--acebedo-font-body);
   letter-spacing: .01em;
 }
 

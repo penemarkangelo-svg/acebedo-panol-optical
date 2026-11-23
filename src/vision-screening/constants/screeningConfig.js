@@ -5,7 +5,7 @@
 
 // Temporary walkthrough mode. Set to false to restore 15 trials per eye,
 // hand/eye verification, and mandatory card detection. Restart screening afterward.
-export const DEMO_MODE = false;
+export const DEMO_MODE = true;
 
 export const SESSION_KEYS = {
   calibration: "acebedoVisionCalibration",
@@ -45,8 +45,8 @@ export const SETUP = {
   faceCenterToleranceX: 0.22,
   faceCenterToleranceY: 0.22,
   faceMinLandmarks: 300,
-  cardStableMs: 200,
-  completeDelayMs: 1200,
+  cardStableMs: 100,
+  completeDelayMs: 300,
   /* How closely the detected card must match the on-screen guide */
   cardAlignment: { center: 0.1, size: 0.14, aspect: 0.12 },
 };
@@ -72,9 +72,10 @@ export const POSITION_MONITOR = {
   smoothing: 0.08,
   eyeCoveredThreshold: 0.18,
   handEyeOverlapThreshold: 0.14,
-  handCoverConfirmScore: 1.5,
+  handCoverConfirmScore: 1,
   handCoverMaxScore: 3,
-  handCoverMissDecay: 0.5,
+  handCoverMissDecay: 0.25,
+  handCoverReleaseScore: 0.25,
   handDetectionConfidence: 0.4,
   warning: { scale: 0.25, x: 0.35, y: 0.35 },
   pause: { scale: 0.35, x: 0.45, y: 0.45 },

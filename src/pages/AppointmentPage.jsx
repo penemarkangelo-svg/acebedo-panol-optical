@@ -5,22 +5,16 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { APPOINTMENT_TYPE, formatAppointmentDate, formatAppointmentTime, formatMonth, formatScreeningDate, getScreeningReference, toLocalDateKey } from "../appointments/appointmentUtils";
+import { APPOINTMENT_TYPE, formatAppointmentDate, formatAppointmentTime, formatMonth, formatScreeningDate, getCalendarCells, getScreeningReference, toLocalDateKey } from "../appointments/appointmentUtils";
 import "../styles/AppointmentPage.css";
 
 const today = new Date();
-const initialMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-function getCalendarCells(month) {
-  const firstWeekday = new Date(month.getFullYear(), month.getMonth(), 1).getDay();
-  const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-  return [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, index) => index + 1)];
-}
+const month = new Date(today.getFullYear(), today.getMonth(), 1);
+const cells = getCalendarCells(month);
 
 export default function AppointmentPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [month, setMonth] = useState(initialMonth);
   const [slots, setSlots] = useState([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -66,7 +60,7 @@ export default function AppointmentPage() {
     }
     loadSlots();
     return () => { active = false; };
-  }, [month]);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -93,17 +87,7 @@ export default function AppointmentPage() {
     (grouped[slot.slot_date] ||= []).push(slot);
     return grouped;
   }, {}), [slots]);
-  const cells = useMemo(() => getCalendarCells(month), [month]);
-  const monthIsCurrent = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
-  const datesInCurrentMonth = monthIsCurrent ? slotsByDate : {};
   const selectedDateLabel = selectedDate ? formatAppointmentDate(selectedDate) : "Choose a date";
-
-  const changeMonth = (direction) => {
-    const next = new Date(month.getFullYear(), month.getMonth() + direction, 1);
-    if (next < new Date(today.getFullYear(), today.getMonth(), 1)) return;
-    setMonth(next);
-    setSelectedDate("");
-  };
 
   const handleBook = async () => {
     if (!selectedSlot || !user?.id) return;
@@ -176,10 +160,6 @@ export default function AppointmentPage() {
                 <div className="appointment-calendar">
                   <div className="appointment-month-row">
                     <h3>{formatMonth(month)}</h3>
-                    <div className="appointment-month-actions">
-                      <button type="button" aria-label="Previous month" onClick={() => changeMonth(-1)} disabled={monthIsCurrent}>‹</button>
-                      <button type="button" aria-label="Next month" onClick={() => changeMonth(1)} disabled={monthIsCurrent}>›</button>
-                    </div>
                   </div>
                   <div className="appointment-calendar-grid" role="grid" aria-label={formatMonth(month)}>
                     {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => <span className="appointment-weekday" key={`${day}-${index}`}>{day}</span>)}
@@ -188,7 +168,7 @@ export default function AppointmentPage() {
                       const date = new Date(month.getFullYear(), month.getMonth(), day);
                       const key = toLocalDateKey(date);
                       const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                      const hasSlots = Boolean(datesInCurrentMonth[key]?.length);
+                      const hasSlots = Boolean(slotsByDate[key]?.length);
                       const selected = selectedDate === key;
                       return (
                         <button

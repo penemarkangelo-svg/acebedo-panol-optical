@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, ArrowRight, ClipboardList, RefreshCw, Search } from "lucide-react";
 import AdminOrderDetails from "./AdminOrderDetails";
 import { supabase } from "../../lib/supabaseClient";
@@ -11,7 +12,7 @@ const STATUS_OPTIONS = [
   ["ready_for_pickup", "Ready for pickup"],
   ["out_for_delivery", "Out for delivery"],
   ["completed", "Completed"],
-  ["cancelled", "Cancelled"],
+  ["cancelled", "Closed orders"],
   ["manual_review", "Manual review"],
 ];
 
@@ -27,8 +28,22 @@ const orderNumber = (order) => `#APO-${order.id}`;
 const isPaymentVerified = (order) => order.step_statuses?.["2"] === "Completed";
 const humanize = (value = "pending") => value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-export default function AdminOrders({ staffMode = false }) {
+function getOrderStatusLabel(order) {
+  if (order.order_status === "pending") return "Awaiting payment";
+  if (order.order_status === "cancelled") {
+    return isPaymentVerified(order) ? "Closed · Payment received" : "Closed · No payment confirmed";
+  }
+  if (order.order_status === "confirmed" && !isPaymentVerified(order)) return "Payment unverified";
+  return humanize(order.order_status);
+}
+
+export default function AdminOrders() {
+  const { id: linkedOrderId } = useParams();
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
+  const [archivedOrderIds, setArchivedOrderIds] = useState(() => new Set());
+  const [archiveUnavailable, setArchiveUnavailable] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [prescriptionStatuses, setPrescriptionStatuses] = useState({});
   const [prescriptionStatusUnavailable, setPrescriptionStatusUnavailable] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -58,14 +73,28 @@ export default function AdminOrders({ staffMode = false }) {
     }
 
     const rows = data || [];
+    if (linkedOrderId && /^\d+$/.test(linkedOrderId)
+      && !rows.some((order) => String(order.id) === linkedOrderId)) {
+      const { data: linkedOrder } = await supabase.from("orders")
+        .select("*").eq("id", linkedOrderId).maybeSingle();
+      if (linkedOrder) rows.unshift(linkedOrder);
+    }
     setOrders(rows);
     if (rows.length) {
-      const { data: uploads, error: uploadError } = await supabase
-        .from("order_prescription_uploads")
-        // Staff need the status only; do not request document paths or clinical details.
-        .select("order_id, status, uploaded_at")
-        .in("order_id", rows.map((row) => row.id))
-        .order("uploaded_at", { ascending: false });
+      const closedOrderIds = rows.filter((order) => order.order_status === "cancelled").map((order) => order.id);
+      const [{ data: uploads, error: uploadError }, archiveResult] = await Promise.all([
+        supabase
+          .from("order_prescription_uploads")
+          // Staff need the status only; do not request document paths or clinical details.
+          .select("order_id, status, uploaded_at")
+          .in("order_id", rows.map((row) => row.id))
+          .order("uploaded_at", { ascending: false }),
+        closedOrderIds.length
+          ? supabase.rpc("get_archived_unpaid_order_ids", { p_order_ids: closedOrderIds })
+          : { data: [] },
+      ]);
+      setArchivedOrderIds(new Set((archiveResult.data || []).map(({ order_id }) => order_id)));
+      setArchiveUnavailable(Boolean(archiveResult.error));
 
       if (uploadError) {
         console.error("Could not load prescription status labels:", uploadError);
@@ -81,13 +110,21 @@ export default function AdminOrders({ staffMode = false }) {
         setPrescriptionStatusUnavailable(false);
       }
     } else {
+      setArchivedOrderIds(new Set());
+      setArchiveUnavailable(false);
       setPrescriptionStatuses({});
       setPrescriptionStatusUnavailable(false);
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => { fetchOrders(); }, [linkedOrderId]);
+
+  const openOrder = selectedOrder || orders.find((order) => String(order.id) === linkedOrderId);
+  const closeOrder = () => {
+    setSelectedOrder(null);
+    if (linkedOrderId) navigate("/admin/orders", { replace: true });
+  };
 
   const filteredOrders = useMemo(() => orders.filter((order) => {
     const query = searchQuery.trim().toLowerCase();
@@ -98,13 +135,14 @@ export default function AdminOrders({ staffMode = false }) {
       order.email,
       order.contact_number,
     ].some((value) => String(value || "").toLowerCase().includes(query));
-    const matchesStatus = statusFilter === "all" || (
+    const isArchived = order.order_status === "cancelled" && !isPaymentVerified(order) && archivedOrderIds.has(order.id);
+    const matchesStatus = showArchived ? isArchived : !isArchived && (statusFilter === "all" || (
       order.order_status === statusFilter &&
       (statusFilter !== "confirmed" || isPaymentVerified(order))
-    );
+    ));
     const matchesFulfillment = fulfillmentFilter === "all" || order.fulfillment_method === fulfillmentFilter;
     return matchesSearch && matchesStatus && matchesFulfillment;
-  }), [orders, searchQuery, statusFilter, fulfillmentFilter]);
+  }), [orders, archivedOrderIds, showArchived, searchQuery, statusFilter, fulfillmentFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
   const page = Math.min(currentPage, pageCount);
@@ -174,28 +212,33 @@ export default function AdminOrders({ staffMode = false }) {
               {needsPrescriptionReview > 0 && <span>{needsPrescriptionReview} prescription {needsPrescriptionReview === 1 ? "awaits" : "await"} Optometrist review</span>}
             </p>
           </div>
-          {manualReviewCount > 0 && <button type="button" onClick={() => updateFilter(setStatusFilter, "manual_review")}>View held orders <ArrowRight size={14} /></button>}
+          {manualReviewCount > 0 && <button type="button" onClick={() => {
+            setShowArchived(false);
+            updateFilter(setStatusFilter, "manual_review");
+          }}>View held orders <ArrowRight size={14} /></button>}
         </section>
       )}
 
-      <section className={staffMode ? "apo-orders-directory" : "apo-orders-directory apo-dashboard-panel"}>
+      <section className="apo-orders-directory apo-dashboard-panel">
         <div className="apo-orders-directory-heading">
-          <div><h2>Orders</h2><span>{filteredOrders.length} {filteredOrders.length === 1 ? "order" : "orders"}</span></div>
-          <span className="apo-orders-sort-note">Newest first</span>
+          <div><h2>{showArchived ? "Archived orders" : "Orders"}</h2><span>{filteredOrders.length} {filteredOrders.length === 1 ? "order" : "orders"}</span></div>
+          <button className="apo-orders-refresh" type="button" onClick={() => updateFilter(setShowArchived, !showArchived)}>
+            {showArchived ? "Back to orders" : "View archived orders"}
+          </button>
         </div>
 
-        <div className="apo-orders-filters">
+        <div className={`apo-orders-filters${showArchived ? " apo-orders-filters--archive" : ""}`}>
           <label className="apo-orders-search">
             <Search size={16} aria-hidden="true" />
             <input value={searchQuery} onChange={(event) => updateFilter(setSearchQuery, event.target.value)} placeholder="Search order number, customer, or email" aria-label="Search orders" />
           </label>
-          <label>
+          {!showArchived && <label>
             <span>Order status</span>
             <select value={statusFilter} onChange={(event) => updateFilter(setStatusFilter, event.target.value)}>
               <option value="all">All statuses</option>
               {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
-          </label>
+          </label>}
           <label>
             <span>Fulfillment</span>
             <select value={fulfillmentFilter} onChange={(event) => updateFilter(setFulfillmentFilter, event.target.value)}>
@@ -206,7 +249,7 @@ export default function AdminOrders({ staffMode = false }) {
           </label>
         </div>
 
-        <div className="apo-orders-table-wrap apo-admin-fit-table-wrap">
+        <div className="apo-orders-table-wrap apo-admin-fit-table-wrap" role="region" aria-label="Orders table" tabIndex={0}>
           <table className="apo-orders-table apo-admin-fit-table">
             <thead><tr>
               <th>Order</th><th>Customer</th><th>Placed</th><th>Fulfillment</th><th>Prescription</th><th>Total</th><th>Status</th><th>Action</th>
@@ -217,7 +260,7 @@ export default function AdminOrders({ staffMode = false }) {
               ) : loadError ? (
                 <tr><td colSpan="8" className="apo-orders-empty"><ClipboardList size={18} /> Orders could not be loaded. Refresh to try again.</td></tr>
               ) : filteredOrders.length === 0 ? (
-                <tr><td colSpan="8" className="apo-orders-empty"><ClipboardList size={18} /> No orders match these filters.</td></tr>
+                <tr><td colSpan="8" className="apo-orders-empty"><ClipboardList size={18} /> {showArchived && archiveUnavailable ? "Archived orders are unavailable. Refresh to try again." : "No orders match these filters."}</td></tr>
               ) : paginatedOrders.map((order) => {
                 const prescription = getPrescriptionDisplay(order.id);
                 return <tr key={order.id}>
@@ -227,7 +270,7 @@ export default function AdminOrders({ staffMode = false }) {
                   <td><span className="apo-orders-fulfillment">{order.fulfillment_method === "delivery" ? "Delivery" : "Pickup"}</span></td>
                   <td><span className={`apo-orders-prescription is-${prescription.tone}`}><i aria-hidden="true" />{prescription.label}</span></td>
                   <td className="apo-orders-money">{money(order.total)}</td>
-                  <td><span className={`apo-orders-status is-${order.order_status || "pending"}`}>{order.order_status === "pending" ? "Awaiting payment" : order.order_status === "confirmed" && !isPaymentVerified(order) ? "Payment unverified" : humanize(order.order_status)}</span></td>
+                  <td><span className={`apo-orders-status is-${order.order_status || "pending"}`}>{getOrderStatusLabel(order)}</span></td>
                   <td><button className="apo-orders-view" type="button" onClick={() => setSelectedOrder(order)}>View details <ArrowRight size={14} /></button></td>
                 </tr>;
               })}
@@ -261,7 +304,8 @@ export default function AdminOrders({ staffMode = false }) {
         </footer>
       </section>
 
-      {selectedOrder && <AdminOrderDetails order={selectedOrder} isOpen onClose={() => setSelectedOrder(null)} onStatusUpdate={handleStatusUpdate} />}
+      {linkedOrderId && !loading && !loadError && !openOrder && <p role="status">The linked order is unavailable.</p>}
+      {openOrder && <AdminOrderDetails order={openOrder} isOpen onClose={closeOrder} onStatusUpdate={handleStatusUpdate} />}
     </div>
   );
 }

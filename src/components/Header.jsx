@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useAccountUpdates } from "../context/AccountUpdatesContext";
 import { useCart } from "../context/CartContext";
+import { ScreeningLink } from "../vision-screening/components/ScreeningEntry";
 import "../styles/SystemHeader.css";
 
 export default function Header() {
   const { totalItems } = useCart();
   const { user } = useAuth();
+  const { orders, appointments } = useAccountUpdates();
+  const updateCount = orders + appointments;
   const location = useLocation();
   const [guestMenuOpen, setGuestMenuOpen] = useState(false);
   const guestMenuRef = useRef(null);
@@ -37,7 +41,7 @@ export default function Header() {
       {!isAuthPage && <nav className="system-header__nav" aria-label="Main navigation">
         {!user && navLink("/", "Home", location.pathname === "/")}
         {navLink("/shop", "Shop Frames", location.pathname.startsWith("/shop"))}
-        {navLink("/vision-screening", "Vision Screening", location.pathname.startsWith("/vision-screening"))}
+        <ScreeningLink className="system-header__link">Vision Screening</ScreeningLink>
         {navLink("/appointments/book", "Appointments", location.pathname.startsWith("/appointments"))}
         {!user && navLink("/about", "About Us", location.pathname.startsWith("/about"))}
       </nav>}
@@ -47,8 +51,9 @@ export default function Header() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h2l2.2 12.2a2 2 0 0 0 2 1.7h8.5a2 2 0 0 0 1.9-1.4L22 8H6"/><circle cx="10" cy="21" r="1"/><circle cx="18" cy="21" r="1"/></svg>
             {totalItems > 0 && <span>{totalItems}</span>}
           </Link>
-          {user ? <Link className={`system-header__account-button${location.pathname.startsWith("/account") ? " is-active" : ""}`} to="/account" aria-label="My Account">
+          {user ? <Link className={`system-header__account-button${location.pathname.startsWith("/account") ? " is-active" : ""}`} to="/account" aria-label={updateCount ? `My Account, ${updateCount} unread updates` : "My Account"}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg>
+            {updateCount > 0 && <span className="system-header__account-badge" aria-hidden="true">{updateCount > 99 ? "99+" : updateCount}</span>}
           </Link> : <div className="system-header__guest" ref={guestMenuRef}>
             <button className="system-header__account-button" aria-label="Open account options" aria-expanded={guestMenuOpen} onClick={() => setGuestMenuOpen((open) => !open)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.65" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5a6.5 6.5 0 0 1 13 0V20"/></svg>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useAccountUpdates } from "../context/AccountUpdatesContext";
 import { supabase } from "../lib/supabaseClient";
 import { FaEye } from "react-icons/fa";
 import Header from "../components/Header";
@@ -9,6 +10,7 @@ import "../styles/OrderHistoryPage.css";
 
 export default function OrderHistoryPage({ embedded = false }) {
   const { user } = useAuth();
+  const { acknowledge } = useAccountUpdates();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("All");
@@ -72,7 +74,10 @@ export default function OrderHistoryPage({ embedded = false }) {
             }
             return [order.id, { status: "available" }];
           }));
-          if (active) setPaymentRetryByOrder(Object.fromEntries(retryChecks));
+          if (active) {
+            setPaymentRetryByOrder(Object.fromEntries(retryChecks));
+            acknowledge("orders", enriched);
+          }
         }
       } else if (error) {
         console.error(error);
@@ -81,7 +86,7 @@ export default function OrderHistoryPage({ embedded = false }) {
     };
     fetchOrders();
     return () => { active = false; };
-  }, [user]);
+  }, [user, acknowledge]);
 
   const handleRetryPayment = async (orderId) => {
     setRetryingOrderId(orderId);

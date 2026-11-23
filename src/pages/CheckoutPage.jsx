@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { FileText, Upload, X } from "lucide-react";
 import qrPhLogo from "../assets/qr-ph-logo.svg";
 import gcashLogo from "../assets/gcash-logo.svg";
 import { useAuth } from "../context/AuthContext";
@@ -11,6 +12,12 @@ import Footer from "../components/Footer";
 import "../styles/checkout.css";
 
 const PAYMENT_RETURN_KEY = "apo-payment-return";
+const PRESCRIPTION_FILE_TYPES = new Map([
+  ["application/pdf", "pdf"],
+  ["image/jpeg", "jpg"],
+  ["image/png", "png"],
+]);
+const PRESCRIPTION_FILE_LIMIT = 5 * 1024 * 1024;
 
 function readPaymentReturn(userId) {
   try {
@@ -19,6 +26,36 @@ function readPaymentReturn(userId) {
   } catch {
     return null;
   }
+}
+
+async function attachPrescription({ file, id, extension }, userId, orderId) {
+  const storagePath = `${userId}/orders/${orderId}/${id}.${extension}`;
+  const { data: existing, error: lookupError } = await supabase
+    .from("order_prescription_uploads")
+    .select("id")
+    .eq("order_id", orderId)
+    .eq("uploaded_by", userId)
+    .eq("storage_path", storagePath)
+    .maybeSingle();
+  if (lookupError) throw lookupError;
+  if (existing) return;
+
+  const { error: uploadError } = await supabase.storage
+    .from("prescription-uploads")
+    .upload(storagePath, file, { contentType: file.type, upsert: false });
+  // A retry can find the same file already stored after a failed metadata write.
+  if (uploadError && !["Duplicate", "KeyAlreadyExists", "409"].includes(uploadError.statusCode)) {
+    throw uploadError;
+  }
+
+  const { error: insertError } = await supabase.from("order_prescription_uploads").insert({
+    order_id: orderId,
+    uploaded_by: userId,
+    storage_path: storagePath,
+    original_filename: file.name,
+    mime_type: file.type,
+  });
+  if (insertError) throw insertError;
 }
 
 export default function CheckoutPage() {
@@ -49,6 +86,11 @@ export default function CheckoutPage() {
   const [saving, setSaving] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(savedPayment ? "qrph" : "");
   const [touched, setTouched] = useState({});
+  const [prescription, setPrescription] = useState(null);
+  const [prescriptionError, setPrescriptionError] = useState("");
+  const prescriptionInput = useRef(null);
+  const prescriptionButton = useRef(null);
+  const prescriptionDialog = useRef(null);
   const restoredOrder = useRef(null);
 
   useEffect(() => {
@@ -96,6 +138,25 @@ export default function CheckoutPage() {
   };
 
   const selectedItems = savedPayment?.items || cartItems;
+  const requiresPrescription = !savedPayment && selectedItems.some(
+    (item) => item.selectedOptions?.visionMode === "Prescription Lens",
+  );
+  const selectedPrescription = prescription?.userId === user?.id ? prescription : null;
+
+  const handlePrescriptionChange = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const extension = PRESCRIPTION_FILE_TYPES.get(file.type);
+    if (!extension || file.size === 0 || file.size > PRESCRIPTION_FILE_LIMIT) {
+      setPrescriptionError("Choose a non-empty PDF, JPG, or PNG file up to 5 MB.");
+      return;
+    }
+
+    setPrescription({ file, extension, id: crypto.randomUUID(), userId: user?.id });
+    setPrescriptionError("");
+  };
 
   const totalItems = selectedItems.reduce(
     (sum, item) => sum + item.quantity,
@@ -147,8 +208,13 @@ export default function CheckoutPage() {
       toast.error("Your cart is still syncing. Please try again in a moment.");
       return;
     }
+    if (requiresPrescription && !selectedPrescription) {
+      prescriptionDialog.current?.showModal();
+      return;
+    }
 
     setSaving(true);
+    setPrescriptionError("");
 
     try {
       const deliveryAddress = isPickup
@@ -173,7 +239,29 @@ export default function CheckoutPage() {
         },
       });
 
-      if (error) throw error;
+      const responseBody = typeof error?.context?.clone === "function"
+        ? await error.context.clone().json().catch(() => null)
+        : null;
+      const recoverableOrder = responseBody?.canResumeOrder && responseBody?.orderId;
+      const orderId = data?.orderId || recoverableOrder;
+
+      if (requiresPrescription && selectedPrescription && orderId) {
+        try {
+          await attachPrescription(selectedPrescription, user.id, orderId);
+        } catch {
+          setPrescriptionError("Your order was saved, but the prescription could not be attached. Try continuing again.");
+          return;
+        }
+      }
+
+      if (recoverableOrder) {
+        navigate(`/order-status/${recoverableOrder}?payment=setup-failed`, {
+          replace: true,
+          state: { checkoutError: responseBody.error },
+        });
+        return;
+      }
+      if (error) throw new Error(responseBody?.error || error.message);
       if (data?.alreadyPaid && data?.orderId) {
         navigate(`/order-status/${data.orderId}`);
         return;
@@ -194,21 +282,7 @@ export default function CheckoutPage() {
       window.location.assign(data.checkoutUrl);
     } catch (err) {
       console.error(err);
-      let errorMessage = err?.message;
-      if (typeof err?.context?.clone === "function") {
-        const responseBody = await err.context.clone().json().catch(() => null);
-        if (responseBody?.canResumeOrder && responseBody?.orderId) {
-          navigate(`/order-status/${responseBody.orderId}?payment=setup-failed`, {
-            replace: true,
-            state: { checkoutError: responseBody.error },
-          });
-          return;
-        }
-        if (typeof responseBody?.error === "string") {
-          errorMessage = responseBody.error;
-        }
-      }
-      toast.error(errorMessage || "Could not start QR Ph checkout. Please try again.");
+      toast.error(err?.message || "Could not start QR Ph checkout. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -850,6 +924,86 @@ export default function CheckoutPage() {
                   {formatPrice(total)}
                 </strong>
               </div>
+
+              {requiresPrescription && (
+                <div className="checkout-prescription-upload">
+                  <input
+                    ref={prescriptionInput}
+                    type="file"
+                    accept={Array.from(PRESCRIPTION_FILE_TYPES.keys()).join(",")}
+                    onChange={handlePrescriptionChange}
+                    hidden
+                  />
+                  <button
+                    ref={prescriptionButton}
+                    type="button"
+                    className="checkout-prescription-upload-button"
+                    aria-labelledby="checkout-prescription-upload-label"
+                    aria-describedby="checkout-prescription-file-hint"
+                    onClick={() => prescriptionInput.current?.click()}
+                    disabled={saving}
+                  >
+                    <span className="checkout-prescription-upload-icon">
+                      <Upload size={18} aria-hidden="true" />
+                    </span>
+                    <span>
+                      <strong id="checkout-prescription-upload-label">
+                        {selectedPrescription ? "Replace prescription" : "Upload prescription"}
+                      </strong>
+                      <small id="checkout-prescription-file-hint">Required · PDF, JPG or PNG up to 5 MB</small>
+                    </span>
+                  </button>
+                  {selectedPrescription && (
+                    <div className="checkout-prescription-file">
+                      <FileText size={16} aria-hidden="true" />
+                      <span role="status">{selectedPrescription.file.name}</span>
+                      <button
+                        type="button"
+                        aria-label="Remove prescription file"
+                        onClick={() => {
+                          setPrescription(null);
+                          setPrescriptionError("");
+                          prescriptionButton.current?.focus();
+                        }}
+                        disabled={saving}
+                      >
+                        <X size={16} aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                  {prescriptionError && <p className="checkout-error" role="alert">{prescriptionError}</p>}
+                  <dialog
+                    ref={prescriptionDialog}
+                    className="checkout-prescription-dialog"
+                    aria-labelledby="checkout-prescription-dialog-title"
+                    aria-describedby="checkout-prescription-dialog-instructions checkout-prescription-dialog-privacy"
+                  >
+                    <h2 id="checkout-prescription-dialog-title">Prescription required</h2>
+                    <p id="checkout-prescription-dialog-instructions">
+                      Please upload a clear copy of your eyeglass prescription so we can verify the lens details for your order.
+                    </p>
+                    <p id="checkout-prescription-dialog-privacy">
+                      Your prescription is stored privately. Only authorized clinic personnel can view it, and we use it only to review and process this order.
+                    </p>
+                    <div className="checkout-prescription-dialog-actions">
+                      <button type="button" onClick={() => prescriptionDialog.current?.close()}>
+                        Back to checkout
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          prescriptionDialog.current?.close();
+                          prescriptionButton.current?.focus();
+                          prescriptionInput.current?.click();
+                        }}
+                      >
+                        <Upload size={16} aria-hidden="true" />
+                        Upload prescription
+                      </button>
+                    </div>
+                  </dialog>
+                </div>
+              )}
 
               <label className="checkout-confirmation">
                 <input

@@ -27,7 +27,7 @@
 .apo-orders-search input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: #1A1816; font: inherit; font-size: 12px; }
 .apo-orders-search input::placeholder { color: #5C574F; }
 .apo-orders-filters select { width: 100%; min-height: 38px; padding: 0 9px; border: 1px solid #cbc7bd; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 12px; }
-.apo-orders-table-wrap { min-width: 0; border-top: 1px solid #d8d4ca; }
+.apo-orders-table-wrap { min-width: 0; overflow-x: auto; border-top: 1px solid #d8d4ca; }
 .apo-orders-table { width: 100%; border-collapse: collapse; text-align: left; }
 .apo-orders-table th { padding: 10px 11px; background: #f2f0ec; color: #5C574F; font-size: 10px; font-weight: 700; letter-spacing: .045em; text-transform: uppercase; white-space: nowrap; }
 .apo-orders-table td { padding: 11px; border-bottom: 1px solid #e9e6df; color: #5C574F; font-size: 12px; vertical-align: middle; }
@@ -76,6 +76,9 @@
   .apo-orders-attention { align-items: flex-start; flex-wrap: wrap; }
   .apo-orders-attention button { margin-left: 28px; padding-left: 0; }
   .apo-orders-table-footer { padding-inline: 11px; font-size: 10px; }
+}
+@media (min-width: 901px) {
+  .apo-orders-filters.apo-orders-filters--archive { grid-template-columns: minmax(220px, 1fr) minmax(145px, 185px); }
 }
 .apo-orders-table-footer { align-items: center; min-height: 48px; }
 .apo-orders-pagination { display: flex; align-items: center; gap: 4px; }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import toast from "react-hot-toast";
 import { FiEye, FiEyeOff } from "react-icons/fi";
@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [touched, setTouched] = useState({});
   const [resetSending, setResetSending] = useState(false);
   const navigate = useNavigate();
+  const { state } = useLocation();
 
   const handleBlur = (field) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -55,7 +56,11 @@ export default function LoginPage() {
       navigate("/optometrist");
     } else {
       toast.success("Logged in successfully!");
-      navigate("/shop");
+      if (state?.screeningStarted) {
+        navigate("/vision-screening", { replace: true, state: { screeningStarted: true } });
+      } else {
+        navigate("/shop");
+      }
     }
   };
 
@@ -87,7 +92,7 @@ export default function LoginPage() {
     <>
       <Header />
       <main className="bg-[#F8F7F4] min-h-[calc(100vh-200px)] flex items-center justify-center px-6 md:px-12 lg:px-20 py-12">
-        <div className="max-w-7xl mx-auto w-full grid md:grid-cols-2 gap-12 items-center shadow-sm rounded-xl overflow-hidden bg-white">
+        <div className="max-w-[calc(80rem+var(--acebedo-customer-width-growth))] mx-auto w-full grid md:grid-cols-2 gap-12 items-center shadow-sm rounded-xl overflow-hidden bg-white">
           <div className="hidden md:block h-full">
             <img
               src={loginImage}
@@ -96,7 +101,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="px-8 py-12 md:px-12">
+          <div className="px-5 py-10 sm:px-8 md:px-12">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-[#1A1816]">
                 Welcome Back
@@ -126,7 +131,7 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                 />
                 {touched.email && !email.trim() && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-[#B3131B] text-sm mt-1">
                     Email is required.
                   </p>
                 )}
@@ -174,7 +179,7 @@ export default function LoginPage() {
                   </button>
                 </div>
                 {touched.password && !password.trim() && (
-                  <p className="text-red-500 text-xs mt-1">
+                  <p className="text-[#B3131B] text-sm mt-1">
                     Password is required.
                   </p>
                 )}
@@ -200,7 +205,7 @@ export default function LoginPage() {
             >
               Continue as Guest
             </button>
-            <p className="text-xs text-[#5C574F] text-center mt-2">
+            <p className="text-sm text-[#5C574F] text-center mt-2">
               Guest accounts can browse & AR try‑on, but not take the vision
               test.
             </p>

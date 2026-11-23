@@ -158,6 +158,7 @@ export default function AdminAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [availabilityRevision, setAvailabilityRevision] = useState(0);
   const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -166,6 +167,7 @@ export default function AdminAppointments() {
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setAvailabilityRevision((current) => current + 1);
     setLoadError(false);
     const today = toLocalDateKey(new Date());
     const [appointmentsResult, slotsResult] = await Promise.all([
@@ -234,15 +236,6 @@ export default function AdminAppointments() {
     await loadData();
   };
 
-  const slotsByDate = useMemo(() => {
-    const grouped = new Map();
-    openSlots.slice(0, 16).forEach((slot) => {
-      if (!grouped.has(slot.slot_date)) grouped.set(slot.slot_date, []);
-      grouped.get(slot.slot_date).push(slot);
-    });
-    return [...grouped.entries()];
-  }, [openSlots]);
-
   return (
     <div className="apo-appointments-page">
       <header className="apo-appointments-header">
@@ -295,24 +288,7 @@ export default function AdminAppointments() {
         <footer className="apo-appointments-directory-footer"><span>Showing {filteredAppointments.length} of {appointments.length} appointments</span><span>Clinical details stay in the approved optometrist workflow</span></footer>
       </section>
 
-      <AppointmentAvailability onSaved={loadData} />
-
-      <section className="apo-appointments-availability">
-        <div className="apo-appointments-availability-heading">
-          <div><h2>Upcoming availability</h2><p>Open appointment slots and remaining capacity.</p></div>
-          <span>{openSlots.length} open {openSlots.length === 1 ? "slot" : "slots"}</span>
-        </div>
-        {loading ? <div className="apo-appointments-availability-empty"><Loader2 size={16} className="is-spinning" /> Loading available slots…</div>
-          : loadError ? <div className="apo-appointments-availability-empty">Availability could not be loaded.</div>
-            : slotsByDate.length === 0 ? <div className="apo-appointments-availability-empty">No future slots with remaining capacity.</div>
-              : <div className="apo-appointments-slot-days">{slotsByDate.map(([date, daySlots]) => (
-                <article className="apo-appointments-slot-day" key={date}>
-                  <h3>{formatAppointmentDate(date, { weekday: "short", month: "short", day: "numeric" })}</h3>
-                  <div>{daySlots.map((slot) => <span className="apo-appointments-slot-chip" key={slot.id}><Clock3 size={12} />{formatAppointmentTime(slot.start_time)}<small>{slot.capacity - slot.booked_count} open</small></span>)}</div>
-                </article>
-              ))}</div>}
-        <p className="apo-appointments-schedule-note"><AlertCircle size={14} /> Showing the next 16 open slots. Use Manage availability to view or edit all slots for a date.</p>
-      </section>
+      <AppointmentAvailability revision={availabilityRevision} refreshing={loading} onRefresh={loadData} />
 
       {selectedAppointment && <AppointmentDetails appointment={selectedAppointment} onClose={() => setSelectedAppointment(null)} onStatusSaved={handleStatusSaved} />}
     </div>

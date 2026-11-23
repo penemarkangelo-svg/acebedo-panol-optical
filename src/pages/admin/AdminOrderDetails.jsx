@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
+import { formatPaymentDate, getPaymentMethod, getPaymentStatus, paymentStatuses } from "./paymentDetails";
 import "../../styles/AdminOrderDetails.css";
 
 const PICKUP_STEPS = ["Order received", "Processing", "Ready for pickup", "Picked up"];
@@ -49,6 +50,17 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
   const [selectedStatus, setSelectedStatus] = useState(order?.order_status || "pending");
   const [savingStatus, setSavingStatus] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
+  const [paymentRecords, setPaymentRecords] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen || !order?.id) return;
+    let active = true;
+    supabase.rpc("get_order_payment_records", { p_order_id: order.id })
+      .then(({ data, error }) => {
+        if (active) setPaymentRecords({ orderId: order.id, data, error });
+      });
+    return () => { active = false; };
+  }, [isOpen, order?.id, order?.order_status, order?.step_statuses]);
 
   useEffect(() => {
     setSelectedStatus(order?.order_status || "pending");
@@ -143,7 +155,9 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
 
   const isManualReview = order.order_status === "manual_review";
   const isClosed = ["completed", "cancelled"].includes(order.order_status);
+  const isCancelled = order.order_status === "cancelled";
   const paymentVerified = order.step_statuses?.["2"] === "Completed";
+  const paymentResult = paymentRecords?.orderId === order.id ? paymentRecords : null;
   const isBlocked = !paymentVerified || isManualReview || isClosed;
   const subtotal = Number(order.subtotal ?? orderItems.reduce((sum, item) => sum + Number(item.subtotal || 0), 0));
   const shipping = Number(order.shipping_fee || 0);
@@ -211,7 +225,7 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
               Placed {order.created_at ? new Date(order.created_at).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "—"}
             </p>
             <div className="apo-order-tags">
-              <span className={`apo-order-status-tag status-${order.order_status}`}>{order.order_status === "pending" ? "Awaiting payment" : order.order_status === "confirmed" && !paymentVerified ? "Payment unverified" : formatStatus(order.order_status)}</span>
+              <span className={`apo-order-status-tag status-${order.order_status}`}>{order.order_status === "pending" ? "Awaiting payment" : isCancelled ? "Order closed" : order.order_status === "confirmed" && !paymentVerified ? "Payment unverified" : formatStatus(order.order_status)}</span>
               <span className="apo-order-method-tag">{isPickup ? "Pickup" : "Delivery"}</span>
             </div>
           </div>
@@ -324,8 +338,41 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
             <div className="apo-order-section-heading"><h3>Payment</h3><CreditCard size={17} aria-hidden="true" /></div>
             <div className="apo-order-payment-card">
               <div className="apo-order-payment-total"><span>Order total</span><strong>{formatPrice(total)}</strong></div>
-              <div className="apo-order-payment-state"><span>QR Ph payment</span><span className="apo-order-status-tag is-neutral">{paymentVerified ? "Verified" : "Awaiting verification"}</span></div>
-              <p>PayMongo confirms payment automatically. Refresh Orders to see the latest status.</p>
+              <div className="apo-order-payment-state"><span>QR Ph payment</span><span className="apo-order-status-tag is-neutral">{paymentVerified ? "Payment received" : "No payment confirmed"}</span></div>
+              {!paymentResult && <p role="status">Loading payment records…</p>}
+              {paymentResult?.error && <p role="status">Payment record details are unavailable.</p>}
+              {paymentResult?.data?.length === 0 && <p>No linked payment record.</p>}
+              {paymentResult?.data?.map((payment) => {
+                const status = getPaymentStatus(payment);
+                const hasPayBy = order.order_status === "pending" && status === "pending"
+                  && payment.reservation_status === "reserved"
+                  && new Date(payment.reservation_expires_at).getTime() > Date.now();
+                const reference = payment.paymongo_payment_id || payment.paymongo_checkout_session_id;
+                const referenceLabel = payment.paymongo_payment_id ? "PayMongo payment reference" : "Checkout Session ID";
+                return (
+                  <dl className="apo-order-info-grid" key={payment.id}>
+                    <div><dt>Payment record</dt><dd>PAY-{payment.id} · {getPaymentMethod(payment.payment_method)} · {paymentStatuses[status] ?? "Unknown status"}</dd></div>
+                    <div><dt>{status === "paid" ? "Amount paid" : "Payment amount"}</dt><dd>{formatPrice(payment.amount)}</dd></div>
+                    {payment.paid_at && <div><dt>Paid at (PH time)</dt><dd>{formatPaymentDate(payment.paid_at)}</dd></div>}
+                    <div><dt>Payment record created (PH time)</dt><dd>{formatPaymentDate(payment.created_at)}</dd></div>
+                    {hasPayBy && <div><dt>Pay by (PH time)</dt><dd>{formatPaymentDate(payment.reservation_expires_at)}</dd></div>}
+                    {status === "expired" && payment.reservation_expires_at && <div><dt>Payment deadline (PH time)</dt><dd>{formatPaymentDate(payment.reservation_expires_at)}</dd></div>}
+                    {reference && <div><dt>{referenceLabel}</dt><dd>{reference} <button type="button" aria-label={`Copy ${referenceLabel}`} onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(reference);
+                        toast.success("Reference copied.");
+                      } catch {
+                        toast.error("Could not copy. You can select the reference to copy it.");
+                      }
+                    }}>Copy</button></dd></div>}
+                  </dl>
+                );
+              })}
+              {isCancelled ? (
+                <p>{paymentVerified ? "This order is closed. Review the payment before taking any further action." : "This order is closed. If the customer reports a charge, look up the payment using the order reference."}</p>
+              ) : !paymentVerified && (
+                <p>Fulfillment can begin once PayMongo confirms payment. Refresh Orders to see the latest status.</p>
+              )}
             </div>
           </section>
 
@@ -341,7 +388,7 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
 
         <footer className="apo-order-footer">
           {isBlocked ? (
-            <div className="apo-order-footer-message">{isManualReview ? "Fulfillment is blocked pending review." : isClosed ? `This order is ${formatStatus(order.order_status).toLowerCase()}.` : "Fulfillment opens after PayMongo verifies payment."}</div>
+            <div className="apo-order-footer-message">{isManualReview ? "Fulfillment is blocked pending review." : isCancelled ? "Fulfillment is closed for this order." : isClosed ? "This order is completed." : "Fulfillment opens after PayMongo verifies payment."}</div>
           ) : (
             <>
               <label htmlFor="apo-order-status">Next order status</label>
