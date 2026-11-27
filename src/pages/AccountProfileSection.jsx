@@ -2,13 +2,27 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { supabase } from "../lib/supabaseClient";
+import { AccountSkeleton } from "../components/AccountLoading";
 
 const splitName = (value = "") => {
   const [first_name = "", ...rest] = value.trim().split(/\s+/);
   return { first_name, last_name: rest.join(" ") };
 };
 
-function SecurityCard() {
+function ProfileField({ title, loading, skeletonWidth, ...inputProps }) {
+  return (
+    <label>
+      {title}
+      {loading ? (
+        <span className="account-skeleton-field">
+          <AccountSkeleton width={skeletonWidth} />
+        </span>
+      ) : <input {...inputProps} />}
+    </label>
+  );
+}
+
+function SecurityCard({ disabled }) {
   const [open, setOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -29,7 +43,7 @@ function SecurityCard() {
   };
   return <section className="account-panel-card account-profile-subcard">
     <div className="account-subcard-heading"><div><h3>Security</h3><p>Keep your account protected.</p></div></div>
-    {!open ? <div className="account-security-row"><div><small>Password</small><span>••••••••</span></div><button type="button" className="account-text-action" onClick={() => setOpen(true)}>Change password →</button></div> : <form className="account-password-form" onSubmit={savePassword}>
+    {!open ? <div className="account-security-row"><div><small>Password</small><span>••••••••</span></div><button type="button" className="account-text-action" disabled={disabled} onClick={() => setOpen(true)}>Change password →</button></div> : <form className="account-password-form" onSubmit={savePassword}>
       <label>Current password<input type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} autoComplete="current-password" required /></label>
       <label>New password<input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} autoComplete="new-password" minLength={8} required /></label>
       <label>Confirm new password<input type="password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} autoComplete="new-password" minLength={8} required /></label>
@@ -38,10 +52,10 @@ function SecurityCard() {
   </section>;
 }
 
-function OpticalRecordsCard({ recordCount }) {
+function OpticalRecordsCard({ recordCount, loading }) {
   return <section className="account-panel-card account-profile-subcard">
     <div className="account-subcard-heading"><div><h3>Optical records</h3><p>Your saved prescriptions, together in one place.</p></div></div>
-    <div className="account-optical-row"><span className="account-optical-mark">Rx</span><div><strong>{recordCount ? `${recordCount} saved ${recordCount === 1 ? "record" : "records"}` : "No saved prescriptions"}</strong><span>Prescription records saved to your account</span></div></div>
+    <div className="account-optical-row"><span className="account-optical-mark">Rx</span><div>{loading ? <AccountSkeleton width="9rem" /> : <strong>{recordCount ? `${recordCount} saved ${recordCount === 1 ? "record" : "records"}` : "No saved prescriptions"}</strong>}<span>Prescription records saved to your account</span></div></div>
     <Link to="/account/prescriptions" className="account-text-action account-optical-link">View records →</Link>
   </section>;
 }
@@ -52,6 +66,7 @@ export default function AccountProfileSection({ user }) {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [recordCount, setRecordCount] = useState(0);
+  const profileLoading = !user || !profileLoaded;
 
   useEffect(() => {
     let active = true;
@@ -76,6 +91,7 @@ export default function AccountProfileSection({ user }) {
 
   const saveProfile = async (event) => {
     event.preventDefault();
+    if (profileLoading || saving) return;
     if (!form.first_name.trim() || !form.last_name.trim()) return toast.error("Enter your first and last name.");
     setSaving(true);
     const { data: savedProfile, error } = await supabase.from("customer_profiles").update({
@@ -93,19 +109,20 @@ export default function AccountProfileSection({ user }) {
   };
 
   return <div className="account-profile-content">
-    <form className="account-panel-card account-profile-details" onSubmit={saveProfile}>
+    {profileLoading && <p className="sr-only" role="status">Loading your profile…</p>}
+    <form className="account-panel-card account-profile-details" onSubmit={saveProfile} aria-busy={profileLoading}>
       <div className="account-profile-card-heading">
         <div><h2>Personal details</h2><p>Manage your name and contact details.</p></div>
       </div>
       <div className="account-profile-fields">
-        <label>First name<input name="first_name" value={form.first_name} onChange={setField} disabled={!profileLoaded} required /></label>
-        <label>Last name<input name="last_name" value={form.last_name} onChange={setField} disabled={!profileLoaded} required /></label>
-        <label>Email address<input value={user?.email || ""} readOnly /></label>
-        <label>Phone number<input name="phone_number" type="tel" value={form.phone_number} onChange={setField} disabled={!profileLoaded} placeholder="Add phone number" /></label>
+        <ProfileField title="First name" name="first_name" value={form.first_name} onChange={setField} loading={profileLoading} skeletonWidth="6rem" required />
+        <ProfileField title="Last name" name="last_name" value={form.last_name} onChange={setField} loading={profileLoading} skeletonWidth="8rem" required />
+        <ProfileField title="Email address" value={user?.email || ""} loading={profileLoading} skeletonWidth="12rem" readOnly />
+        <ProfileField title="Phone number" name="phone_number" type="tel" value={form.phone_number} onChange={setField} loading={profileLoading} skeletonWidth="9rem" placeholder="Add phone number" />
       </div>
-      <div className="account-profile-form-footer"><button type="submit" className="account-save-button" disabled={saving || !profileLoaded}>{saving ? "Saving…" : "Save changes"}</button></div>
+      <div className="account-profile-form-footer"><button type="submit" className="account-save-button" disabled={saving || profileLoading}>{saving ? "Saving…" : "Save changes"}</button></div>
     </form>
-    <div className="account-profile-card-grid"><SecurityCard /><OpticalRecordsCard recordCount={recordCount} /></div>
+    <div className="account-profile-card-grid"><SecurityCard disabled={!user} /><OpticalRecordsCard recordCount={recordCount} loading={profileLoading} /></div>
     <section className="account-panel-card account-address-card"><div><h3>Delivery address</h3><p>Add an address to make frame and lens checkout faster.</p><span>No saved delivery address</span></div><button type="button" className="account-secondary-action" disabled title="Address saving is not available yet">Add address +</button></section>
   </div>;
 }

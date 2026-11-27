@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useAccountUpdates } from "../context/AccountUpdatesContext";
+import { AccountSkeleton } from "../components/AccountLoading";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import MyAppointmentsPage from "./MyAppointmentsPage";
@@ -26,11 +27,11 @@ function AccountUpdateBadge({ count }) {
   return <span className="account-update-badge" role="img" aria-label={`${count} unread updates`}>{count > 99 ? "99+" : count}</span>;
 }
 
-function AccountSection({ section, user }) {
-  if (section === "appointments") return <MyAppointmentsPage embedded />;
-  if (section === "orders") return <OrderHistoryPage embedded />;
+function AccountSection({ section, user, checkingAccess }) {
+  if (section === "appointments") return <MyAppointmentsPage embedded checkingAccess={checkingAccess} />;
+  if (section === "orders") return <OrderHistoryPage embedded checkingAccess={checkingAccess} />;
   if (section === "profile") return <AccountProfileSection user={user} />;
-  if (section === "prescriptions") return <AccountPrescriptionsSection />;
+  if (section === "prescriptions") return <AccountPrescriptionsSection checkingAccess={checkingAccess} />;
   const messages = {
     prescriptions: "Prescription records will appear here when they are available in your account.",
     wishlist: "Your saved frames will appear here when wishlist support is available.",
@@ -40,16 +41,18 @@ function AccountSection({ section, user }) {
   return <section className="account-panel-card account-panel-placeholder"><p className="account-panel-eyebrow">YOUR ACCOUNT</p><h2>{SECTION_TITLES[section]}</h2><p>{messages[section]}</p></section>;
 }
 
-export default function AccountPage() {
-  const { section = "profile" } = useParams();
+export default function AccountPage({ checkingAccess = false }) {
+  const { section: routeSection = "profile" } = useParams();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { orders, appointments } = useAccountUpdates();
+  const updates = useAccountUpdates();
+  const { orders, appointments } = checkingAccess ? { orders: 0, appointments: 0 } : updates;
   const sectionUpdates = { orders, appointments };
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sectionRefresh, setSectionRefresh] = useState(0);
-  const validSection = Object.hasOwn(SECTION_TITLES, section);
-  if (!validSection) return <Navigate to="/account/profile" replace />;
+  const validSection = Object.hasOwn(SECTION_TITLES, routeSection);
+  if (!validSection && !checkingAccess) return <Navigate to="/account/profile" replace />;
+  const section = validSection ? routeSection : "profile";
   const nameSource = user?.user_metadata?.first_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Customer";
   const firstName = nameSource.trim().split(/\s+/)[0] || "Customer";
   const displayName = firstName.toUpperCase();
@@ -65,7 +68,19 @@ export default function AccountPage() {
       <div className="account-heading-divider" />
       <div className="account-layout">
         <aside className="account-sidebar" aria-label="Account navigation">
-          <div className="account-sidebar-identity"><span className="account-sidebar-avatar account-sidebar-avatar--large">{initial}</span><div><strong>{displayName}</strong></div></div>
+          <div className="account-sidebar-identity">
+            {checkingAccess ? (
+              <>
+                <AccountSkeleton className="account-skeleton-avatar" />
+                <AccountSkeleton width="5rem" />
+              </>
+            ) : (
+              <>
+                <span className="account-sidebar-avatar account-sidebar-avatar--large">{initial}</span>
+                <div><strong>{displayName}</strong></div>
+              </>
+            )}
+          </div>
           <button type="button" className="account-mobile-selector" aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((open) => !open)}><span className="account-mobile-selector-icon">☰</span>{selectedLink?.[1]}<span className="account-mobile-selector-chevron">⌄</span><AccountUpdateBadge count={orders + appointments} /></button>
           <nav className={`account-sidebar-nav${mobileNavOpen ? " is-open" : ""}`}>
             {NAV_GROUPS.map((group) => (
@@ -83,10 +98,10 @@ export default function AccountPage() {
               </section>
             ))}
           </nav>
-          <button type="button" className="account-signout" onClick={logout}>Sign out</button>
+          <button type="button" className="account-signout" onClick={logout} disabled={checkingAccess}>Sign out</button>
         </aside>
         <section className="account-content" aria-label={SECTION_TITLES[section]}>
-          <AccountSection key={sectionRefresh} section={section} user={user} />
+          <AccountSection key={sectionRefresh} section={section} user={checkingAccess ? null : user} checkingAccess={checkingAccess} />
         </section>
       </div>
     </main>

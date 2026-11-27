@@ -4,11 +4,12 @@ import { useAuth } from "../context/AuthContext";
 import { useAccountUpdates } from "../context/AccountUpdatesContext";
 import { supabase } from "../lib/supabaseClient";
 import { FaEye } from "react-icons/fa";
+import AccountLoading, { AccountSkeleton } from "../components/AccountLoading";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import "../styles/OrderHistoryPage.css";
 
-export default function OrderHistoryPage({ embedded = false }) {
+export default function OrderHistoryPage({ embedded = false, checkingAccess = false }) {
   const { user } = useAuth();
   const { acknowledge } = useAccountUpdates();
   const [orders, setOrders] = useState([]);
@@ -16,8 +17,11 @@ export default function OrderHistoryPage({ embedded = false }) {
   const [activeTab, setActiveTab] = useState("All");
   const [paymentRetryByOrder, setPaymentRetryByOrder] = useState({});
   const [retryingOrderId, setRetryingOrderId] = useState(null);
+  const ordersLoading = checkingAccess || loading;
+  const Content = embedded ? "div" : "main";
 
   useEffect(() => {
+    if (checkingAccess) return;
     let active = true;
     const fetchOrders = async () => {
       if (!user) {
@@ -86,7 +90,7 @@ export default function OrderHistoryPage({ embedded = false }) {
     };
     fetchOrders();
     return () => { active = false; };
-  }, [user, acknowledge]);
+  }, [user, acknowledge, checkingAccess]);
 
   const handleRetryPayment = async (orderId) => {
     setRetryingOrderId(orderId);
@@ -155,22 +159,10 @@ export default function OrderHistoryPage({ embedded = false }) {
     }
   };
 
-  if (loading) {
-    return (
-      <>
-        {!embedded && <Header />}
-        <main className="order-history__loading">
-          <p className="text-gray-400">Loading your orders...</p>
-        </main>
-        {!embedded && <Footer />}
-      </>
-    );
-  }
-
   return (
     <>
       {!embedded && <Header />}
-      <main className={`order-history ${embedded ? "order-history--embedded" : "order-history--standalone"}`}>
+      <Content className={`order-history ${embedded ? "order-history--embedded" : "order-history--standalone"}`}>
         <div className="order-history__inner">
           <header className="order-history__heading">
             <p className="order-history__eyebrow">YOUR ACCOUNT</p>
@@ -188,12 +180,12 @@ export default function OrderHistoryPage({ embedded = false }) {
                 onClick={() => setActiveTab(tab)}
                 className={activeTab === tab ? "order-history__filter is-active" : "order-history__filter"}
               >
-                {tab} <span>({counts[tab]})</span>
+                {tab} {ordersLoading ? <AccountSkeleton className="account-skeleton-count" width="1rem" /> : <span>({counts[tab]})</span>}
               </button>
             ))}
           </div>
 
-          {filteredOrders.length === 0 ? (
+          {ordersLoading ? <AccountLoading section="orders" /> : filteredOrders.length === 0 ? (
             <div className="order-history__empty">
               <h2>{orders.length === 0 ? "No orders yet" : "No orders found"}</h2>
               <p>{orders.length === 0 ? "Your orders will appear here after checkout." : `No orders match the “${activeTab}” filter.`}</p>
@@ -296,7 +288,7 @@ export default function OrderHistoryPage({ embedded = false }) {
             </div>
           )}
         </div>
-      </main>
+      </Content>
       {!embedded && <Footer />}
     </>
   );

@@ -4,7 +4,7 @@
 
 .catalog-skeleton {
   background-color: #e7e3dc;
-  animation: catalog-skeleton-pulse 1.8s ease-in-out infinite alternate;
+  animation: catalog-skeleton-pulse 1.8s ease-in-out infinite;
 }
 
 .catalog-skeleton--photo {
@@ -16,7 +16,7 @@
 }
 
 @keyframes catalog-skeleton-pulse {
-  to {
+  50% {
     background-color: #efede8;
   }
 }
