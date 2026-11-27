@@ -5,17 +5,19 @@ import { useAuth } from "../context/AuthContext";
 import { useAccountUpdates } from "../context/AccountUpdatesContext";
 import { supabase } from "../lib/supabaseClient";
 import { AppointmentFooter } from "../appointments/AppointmentChrome";
+import AccountLoading from "../components/AccountLoading";
 import Header from "../components/Header";
 import { APPOINTMENT_TYPE, formatAppointmentDate, formatAppointmentTime, getAppointmentReference, getStatusLabel } from "../appointments/appointmentUtils";
 import "../styles/AppointmentPage.css";
 
-export default function MyAppointmentsPage({ embedded = false }) {
+export default function MyAppointmentsPage({ embedded = false, checkingAccess = false }) {
   const { user } = useAuth();
   const { acknowledge } = useAccountUpdates();
-  const userId = user?.id;
+  const userId = checkingAccess ? null : user?.id;
   const [appointments, setAppointments] = useState([]);
   const [checkoutVisits, setCheckoutVisits] = useState(null);
   const [loading, setLoading] = useState(true);
+  const Content = embedded ? "div" : "main";
 
   useEffect(() => {
     if (!userId) return;
@@ -47,10 +49,10 @@ export default function MyAppointmentsPage({ embedded = false }) {
   return (
     <div className={`appointment-page appointment-my-page${embedded ? " appointment-my-page--embedded" : ""}`}>
       {!embedded && <Header />}
-      <main className={`appointment-my-main${embedded ? " appointment-my-main--embedded" : ""}`}>
+      <Content className={`appointment-my-main${embedded ? " appointment-my-main--embedded" : ""}`}>
         <p className="appointment-eyebrow">Appointments</p>
         <div className="appointment-my-title-row"><div><h1>Appointments</h1><p>Review your upcoming and past visits.</p></div><Link className="appointment-primary-button" to="/appointments/book">Book an Appointment <span>→</span></Link></div>
-        {loading ? <p className="appointment-inline-message">Loading your appointments…</p> : appointments.length === 0 ? (
+        {checkingAccess || loading ? <AccountLoading section="appointments" /> : appointments.length === 0 ? (
           <section className="appointment-empty-card"><h2>No appointments yet</h2><p>Choose a date and time for your eye examination.</p><Link className="appointment-primary-button" to="/appointments/book">Book an Appointment <span>→</span></Link></section>
         ) : (
           <div className="appointment-list">
@@ -67,7 +69,7 @@ export default function MyAppointmentsPage({ embedded = false }) {
             ))}
           </div>
         )}
-      </main>
+      </Content>
       {!embedded && <AppointmentFooter />}
     </div>
   );
