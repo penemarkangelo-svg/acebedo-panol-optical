@@ -205,10 +205,6 @@ export default function LoginPage() {
             >
               Continue as Guest
             </button>
-            <p className="text-sm text-[#5C574F] text-center mt-2">
-              Guest accounts can browse & AR try‑on, but not take the vision
-              test.
-            </p>
 
             <p className="text-center text-sm text-[#5C574F] mt-6">
               Don't have an account?{" "}

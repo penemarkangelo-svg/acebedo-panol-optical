@@ -568,7 +568,7 @@
   outline-offset: 2px;
 }
 
-.checkout-prescription-upload button:disabled {
+.checkout-prescription-upload > button:disabled {
   cursor: wait;
 }
 
@@ -630,67 +630,6 @@
 
 .checkout-prescription-file button:hover:not(:disabled) {
   background: #f7e7e5;
-}
-
-.checkout-prescription-dialog {
-  width: min(28rem, calc(100% - 2rem));
-  margin: auto;
-  padding: clamp(1rem, 4vw, 1.5rem);
-  border: 1px solid #dedbd4;
-  border-radius: 8px;
-  background: #f8f7f4;
-  color: #1A1816;
-}
-
-.checkout-prescription-dialog::backdrop {
-  background: rgb(26 24 22 / 45%);
-}
-
-.checkout-prescription-dialog h2 {
-  margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 1.4rem;
-  font-weight: 400;
-  line-height: 1.2;
-}
-
-.checkout-prescription-dialog p {
-  margin: 0.65rem 0 0;
-  color: #5C574F;
-  font-size: var(--acebedo-font-body);
-  line-height: 1.45;
-}
-
-.checkout-prescription-dialog-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1.15rem;
-}
-
-.checkout-prescription-dialog-actions button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  min-height: var(--acebedo-control-height);
-  padding: 0.45rem 0.7rem;
-  border: 1px solid #dedbd4;
-  border-radius: 6px;
-  background: transparent;
-  color: #1A1816;
-  font-size: var(--acebedo-font-body);
-  cursor: pointer;
-}
-
-.checkout-prescription-dialog-actions button:hover {
-  background: #eeece6;
-}
-
-.checkout-prescription-dialog-actions button:last-child {
-  color: #9A1C26;
-  font-weight: 600;
 }
 
 /* =========================================================

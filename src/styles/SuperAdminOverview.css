@@ -1,0 +1,191 @@
+.apo-super-overview {
+  display: grid;
+  gap: 16px;
+  padding-block: 22px 34px;
+  color: var(--apo-admin-ink, #1a1816);
+}
+
+.apo-super-header,
+.apo-super-controls,
+.apo-super-controls label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.apo-super-header { justify-content: space-between; flex-wrap: wrap; }
+.apo-super-header h1 {
+  margin: 0;
+  font-family: var(--font-brand, Georgia, serif);
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 400;
+  letter-spacing: -.035em;
+}
+
+.apo-super-header p, .apo-super-period, .apo-super-panel header p {
+  margin: 4px 0 0;
+  color: var(--apo-admin-muted, #5c574f);
+  font-size: 13px;
+}
+
+.apo-super-controls label { gap: 8px; font-size: 13px; }
+.apo-super-controls button, .apo-super-controls select {
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--apo-admin-line, #ded9cf);
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+.apo-super-controls button { display: grid; place-items: center; cursor: pointer; }
+.apo-super-controls button:disabled { opacity: .55; cursor: wait; }
+.apo-super-period { margin: 0; }
+.apo-super-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.apo-super-metric, .apo-super-panel {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--apo-admin-line, #ded9cf);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.apo-super-metric { display: grid; gap: 8px; }
+.apo-super-metric > div { display: flex; align-items: start; justify-content: space-between; gap: 8px; font-size: 13px; }
+.apo-super-metric svg { flex: none; color: #397862; }
+.apo-super-metric strong { font-size: clamp(19px, 2.3vw, 29px); letter-spacing: -.03em; overflow-wrap: anywhere; }
+.apo-super-metric small { color: var(--apo-admin-muted, #5c574f); font-size: 12px; }
+.apo-super-metric.is-featured { background: #173e34; color: #fff; border-color: #173e34; }
+.apo-super-metric.is-featured svg, .apo-super-metric.is-featured small { color: #d9eee4; }
+
+.apo-super-columns { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; }
+.apo-super-panel header h2 { margin: 0; font-size: 16px; font-weight: 650; }
+.apo-super-panel header p { line-height: 1.45; }
+.apo-super-empty { padding-block: 21px 10px; color: var(--apo-admin-muted, #5c574f); font-size: 13px; }
+.apo-super-sales-panel, .apo-super-order-panel { container-type: inline-size; }
+.apo-super-sales-readout {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  width: fit-content;
+  min-width: 135px;
+  margin: 12px 0 17px;
+  padding: 5px 10px;
+  border: 1px solid #d4e5db;
+  border-radius: 6px;
+  background: #edf5f0;
+  color: #285c49;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.apo-super-sales-readout strong { font-size: 14px; }
+.apo-super-sales-chart { display: grid; grid-template-columns: max-content minmax(0, 1fr); grid-template-rows: 136px auto; gap: 11px 10px; }
+.apo-super-sales-scale {
+  position: relative;
+  display: grid;
+  width: max-content;
+  min-width: 4ch;
+  color: var(--apo-admin-muted, #5c574f);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.apo-super-sales-scale span { position: relative; grid-area: 1 / 1; align-self: start; text-align: right; transform: translateY(-50%); }
+.apo-super-sales-plot { position: relative; }
+.apo-super-sales-guides { position: absolute; inset: 0; pointer-events: none; }
+.apo-super-sales-guides i { position: absolute; inset-inline: 0; border-top: 1px solid #ebe8df; }
+.apo-super-sales-guides i:last-child { border-color: #d5d2c9; }
+.apo-super-sales-bars, .apo-super-chart-dates { display: grid; grid-template-columns: repeat(var(--sales-days), minmax(0, 1fr)); }
+.apo-super-sales-bars { position: absolute; inset: 0; }
+.apo-super-sales-day {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 4px 4px 0 0;
+  background: transparent;
+  cursor: pointer;
+  outline-offset: 2px;
+}
+.apo-super-sales-day.is-selected { background: #eff5f1; }
+.apo-super-sales-day:focus-visible { z-index: 1; outline: 2px solid #2d664f; }
+.apo-super-sales-day span {
+  width: min(55%, 35px);
+  min-width: 2px;
+  min-height: 2px;
+  border-radius: 5px 5px 0 0;
+  background: #79ac92;
+}
+.apo-super-sales-day.is-selected span { background: #295d49; }
+.apo-super-sales-day.is-zero span { width: min(42%, 14px); background: #a3aba6; }
+.apo-super-sales-day.is-zero.is-selected span { background: #295d49; }
+.apo-super-chart-dates {
+  grid-column: 2;
+  color: var(--apo-admin-muted, #5c574f);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.apo-super-chart-dates span { justify-self: center; white-space: nowrap; }
+.apo-super-chart-dates span:first-child { justify-self: start; }
+.apo-super-chart-dates span:last-child { justify-self: end; }
+
+.apo-super-breakdown {
+  display: grid;
+  grid-template-columns: clamp(140px, 43cqi, 184px) minmax(0, 218px);
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 4cqi, 22px);
+  margin: 23px auto 9px;
+}
+.apo-super-donut { display: grid; place-items: center; width: 100%; aspect-ratio: 1; border-radius: 50%; background: #eeeae3; }
+.apo-super-donut > div { display: grid; place-content: center; width: 76%; aspect-ratio: 1; border-radius: 50%; background: #fff; text-align: center; }
+.apo-super-donut strong { font-size: 30px; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.apo-super-donut small { color: var(--apo-admin-muted, #5c574f); font-size: 12px; }
+.apo-super-breakdown ul { display: grid; list-style: none; margin: 0; padding: 0; }
+.apo-super-breakdown li {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) minmax(2ch, auto) minmax(5ch, auto);
+  align-items: center;
+  gap: 7px;
+  padding-block: 6px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.apo-super-breakdown li + li { border-top: 1px solid #eeeae3; }
+.apo-super-breakdown li i { width: 8px; height: 8px; border-radius: 50%; }
+.apo-super-breakdown li strong, .apo-super-breakdown li small { text-align: right; font-variant-numeric: tabular-nums; }
+.apo-super-breakdown li small { color: var(--apo-admin-muted, #5c574f); font-size: 11px; }
+
+@container (max-width: 355px) {
+  .apo-super-chart-dates .is-secondary { display: none; }
+}
+
+@container (max-width: 310px) {
+  .apo-super-breakdown { grid-template-columns: minmax(0, 245px); justify-items: center; gap: 14px; }
+  .apo-super-donut { width: min(66%, 164px); }
+  .apo-super-breakdown ul { width: 100%; }
+}
+
+.apo-super-recent header { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 12px; }
+.apo-super-recent header a { display: inline-flex; align-items: center; gap: 4px; }
+.apo-super-recent a { color: #285c49; font-size: 13px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.apo-super-table-wrap { overflow-x: auto; }
+.apo-super-table { width: 100%; margin-top: 13px; border-collapse: collapse; font-size: 13px; text-align: left; }
+.apo-super-table th, .apo-super-table td { padding: 9px 12px 9px 0; border-top: 1px solid #eeeae3; }
+.apo-super-table thead { color: var(--apo-admin-muted, #5c574f); }
+.apo-super-order-status { text-transform: capitalize; }
+.apo-super-top-products { display: grid; list-style: none; margin: 13px 0 0; padding: 0; }
+.apo-super-top-products li { display: flex; justify-content: space-between; gap: 14px; padding-block: 9px; border-top: 1px solid #eeeae3; font-size: 13px; }
+.apo-super-top-products strong { flex: none; }
+
+@media (max-width: 1050px) {
+  .apo-super-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .apo-super-columns { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .apo-super-metric, .apo-super-panel { padding: 12px; }
+  .apo-super-table th, .apo-super-table td { padding-right: 8px; }
+}

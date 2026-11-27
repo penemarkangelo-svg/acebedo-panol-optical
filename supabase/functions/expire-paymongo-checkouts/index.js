@@ -17,34 +17,42 @@ function matchesSecret(provided, expected) {
   return difference === 0;
 }
 
-async function expireCheckoutSession(paymongoSecretKey, sessionId) {
-  const headers = { Authorization: `Basic ${btoa(`${paymongoSecretKey}:`)}` };
-  const expireResponse = await fetch(`https://api.paymongo.com/v2/checkout_sessions/${encodeURIComponent(sessionId)}/expire`, {
-    method: "POST",
-    headers,
-  }).catch(() => null);
-  if (expireResponse?.ok) return "expired";
-
-  const retrieveResponse = await fetch(`https://api.paymongo.com/v2/checkout_sessions/${encodeURIComponent(sessionId)}`, {
-    headers,
+async function getCheckoutSessionState(url, headers) {
+  const retrieveResponse = await fetch(url, {
+    headers, signal: AbortSignal.timeout(5000),
   }).catch(() => null);
   const body = await retrieveResponse?.json().catch(() => null);
   if (!retrieveResponse?.ok || !body?.data?.attributes) return "unknown";
 
   const attributes = body.data.attributes;
-  const payments = Array.isArray(attributes.payments) ? attributes.payments : [];
-  if (payments.some((payment) => payment?.status === "paid")) return "paid";
+  const paymentStatuses = (Array.isArray(attributes.payments) ? attributes.payments : [])
+    .map((payment) => payment?.attributes?.status ?? payment?.status);
+  const intentStatus = attributes.payment_intent?.attributes?.status ?? attributes.payment_intent?.status;
+  if (paymentStatuses.includes("paid") || intentStatus === "succeeded") return "paid";
   if (attributes.status === "expired") return "expired";
-  if (payments.some((payment) => ["pending", "processing"].includes(payment?.status))) return "processing";
+  if (intentStatus === "processing" || paymentStatuses.some((status) => ["pending", "processing"].includes(status))) return "processing";
   return attributes.status === "active" ? "active" : "unknown";
+}
+
+async function expireCheckoutSession(paymongoSecretKey, sessionId) {
+  const url = `https://api.paymongo.com/v1/checkout_sessions/${encodeURIComponent(sessionId)}`;
+  const headers = { Authorization: `Basic ${btoa(`${paymongoSecretKey}:`)}` };
+  const state = await getCheckoutSessionState(url, headers);
+  if (state !== "active") return state;
+  const expireResponse = await fetch(`${url}/expire`, {
+    method: "POST", headers, signal: AbortSignal.timeout(5000),
+  }).catch(() => null);
+  if (expireResponse?.ok) return "expired";
+  return getCheckoutSessionState(url, headers);
 }
 
 Deno.serve(async (request) => {
   if (request.method !== "POST") return response({ error: "Use POST to expire overdue checkout sessions." }, 405);
 
-  const expectedSecret = Deno.env.get("PAYMONGO_EXPIRY_JOB_SECRET");
   const providedSecret = request.headers.get("x-expiry-job-secret");
-  if (!matchesSecret(providedSecret, expectedSecret)) return response({ error: "Not authorized." }, 401);
+  if (!providedSecret || !/^[0-9a-f]{64}$/.test(providedSecret)) {
+    return response({ error: "Not authorized." }, 401);
+  }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -56,6 +64,12 @@ Deno.serve(async (request) => {
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  const { data: expectedHash, error: secretError } = await adminClient.rpc("get_paymongo_expiry_job_secret_hash");
+  if (secretError || !expectedHash) return response({ error: "PayMongo expiry job is not configured." }, 503);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(providedSecret));
+  const providedHash = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  if (!matchesSecret(providedHash, expectedHash)) return response({ error: "Not authorized." }, 401);
+
   const { data: payments, error: paymentError } = await adminClient
     .from("payments")
     .select("id, order_id, paymongo_checkout_session_id")
@@ -79,7 +93,7 @@ Deno.serve(async (request) => {
       .select("payment_id, status, expires_at")
       .in("payment_id", paymentIds),
     adminClient.from("orders")
-      .select("id, order_status")
+      .select("id, order_status, step_statuses")
       .in("id", orderIds),
   ]);
   if (reservationError || orderError) {
@@ -96,10 +110,10 @@ Deno.serve(async (request) => {
   for (const payment of payments) {
     const reservation = reservationsByPayment.get(payment.id);
     const order = ordersById.get(payment.order_id);
-    const reservationIsActive = reservation?.status === "reserved"
-      && reservation.expires_at
-      && new Date(reservation.expires_at).getTime() > now;
-    if (order?.order_status === "pending" && reservationIsActive) continue;
+    if (!order || order.step_statuses?.["2"] === "Completed") continue;
+    const reservationClosed = ["expired", "released"].includes(reservation?.status)
+      || (reservation?.status === "reserved" && Date.parse(reservation.expires_at) <= now);
+    if (order.order_status !== "cancelled" && !(order.order_status === "pending" && reservationClosed)) continue;
 
     const sessionState = await expireCheckoutSession(paymongoSecretKey, payment.paymongo_checkout_session_id);
     if (sessionState !== "expired") {

@@ -10,16 +10,13 @@ import {
   EyeIcon,
   GalleryIcon,
   ShopIcon,
-  SettingsIcon,
-  UsersGroupRoundedIcon,
   WidgetIcon,
 } from "@solar-icons/react/linear";
 
 const navItems = [
   { name: "Dashboard", path: "/admin/dashboard", icon: WidgetIcon, group: "Workspace" },
-  { name: "Team", path: "/admin/staff", icon: UsersGroupRoundedIcon, group: "Workspace" },
   { name: "Products", path: "/admin/products", icon: BoxIcon, group: "Commerce" },
-  { name: "Product media", icon: GalleryIcon, group: "Commerce" },
+  { name: "Product media", path: "/admin/product-media", icon: GalleryIcon, group: "Commerce" },
   { name: "Inventory", path: "/admin/inventory", icon: BoxIcon, group: "Commerce" },
   { name: "Orders", path: "/admin/orders", icon: BagIcon, group: "Commerce" },
   { name: "Payments", path: "/admin/payments", icon: CardIcon, group: "Commerce" },
@@ -28,10 +25,11 @@ const navItems = [
   { name: "Appointments", path: "/admin/appointments", icon: CalendarIcon, group: "Eye care" },
   { name: "Prescriptions", path: "/admin/prescriptions", icon: DocumentTextIcon, group: "Eye care" },
   { name: "Vision screening", path: "/admin/screenings", icon: EyeIcon, group: "Eye care" },
-  { name: "Reports", icon: ChartIcon, group: "Business" },
-  { name: "Settings", icon: SettingsIcon, group: "Business" },
 ];
 
-export default function AdminLayout() {
-  return <WorkspaceLayout name="Admin" dashboardPath="/admin/dashboard" navItems={navItems} />;
+export default function AdminLayout({ canManageAdmins }) {
+  const links = canManageAdmins
+    ? [...navItems, { name: "Super Admin", path: "/super-admin/overview", icon: ChartIcon, group: "Workspace" }]
+    : navItems;
+  return <WorkspaceLayout name="System Admin" dashboardPath="/admin/dashboard" navItems={links} />;
 }

@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AlertTriangle, ArrowRight, ClipboardList, RefreshCw, Search } from "lucide-react";
 import AdminOrderDetails from "./AdminOrderDetails";
 import { supabase } from "../../lib/supabaseClient";
+import { getPrescriptionReviewBlock, isPaymentVerified } from "./orderPrescriptionReview";
+import { readOrderPrescriptionReviews } from "../../lib/orderPrescriptionUploads";
 import "../../styles/AdminOrders.css";
 
 const STATUS_OPTIONS = [
@@ -25,16 +27,17 @@ const PRESCRIPTION_LABELS = {
 const ORDERS_PER_PAGE = 5;
 const money = (value) => `₱${Number(value || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const orderNumber = (order) => `#APO-${order.id}`;
-const isPaymentVerified = (order) => order.step_statuses?.["2"] === "Completed";
 const humanize = (value = "pending") => value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-function getOrderStatusLabel(order) {
-  if (order.order_status === "pending") return "Awaiting payment";
+function getOrderStatusDisplay(order) {
+  if (order.order_status === "pending") return { tone: "pending", label: "Awaiting payment" };
   if (order.order_status === "cancelled") {
-    return isPaymentVerified(order) ? "Closed · Payment received" : "Closed · No payment confirmed";
+    return { tone: "cancelled", label: isPaymentVerified(order) ? "Closed · Payment received" : "Closed · No payment confirmed" };
   }
-  if (order.order_status === "confirmed" && !isPaymentVerified(order)) return "Payment unverified";
-  return humanize(order.order_status);
+  if (order.order_status === "confirmed" && !isPaymentVerified(order)) {
+    return { tone: "pending", label: "Payment unverified" };
+  }
+  return { tone: order.order_status || "pending", label: humanize(order.order_status) };
 }
 
 export default function AdminOrders() {
@@ -83,12 +86,7 @@ export default function AdminOrders() {
     if (rows.length) {
       const closedOrderIds = rows.filter((order) => order.order_status === "cancelled").map((order) => order.id);
       const [{ data: uploads, error: uploadError }, archiveResult] = await Promise.all([
-        supabase
-          .from("order_prescription_uploads")
-          // Staff need the status only; do not request document paths or clinical details.
-          .select("order_id, status, uploaded_at")
-          .in("order_id", rows.map((row) => row.id))
-          .order("uploaded_at", { ascending: false }),
+        readOrderPrescriptionReviews(rows.map((row) => row.id)),
         closedOrderIds.length
           ? supabase.rpc("get_archived_unpaid_order_ids", { p_order_ids: closedOrderIds })
           : { data: [] },
@@ -179,10 +177,12 @@ export default function AdminOrders() {
     setSelectedOrder((current) => current?.id === orderId ? { ...current, order_status: newStatus } : current);
   };
 
-  const getPrescriptionDisplay = (orderId) => {
+  const getPrescriptionDisplay = (order) => {
     if (prescriptionStatusUnavailable) return { label: "Status unavailable", tone: "neutral" };
-    const statuses = prescriptionStatuses[orderId] || [];
+    const statuses = prescriptionStatuses[order.id] || [];
     if (!statuses.length) return { label: "Not uploaded", tone: "neutral" };
+    const reviewBlock = getPrescriptionReviewBlock(order);
+    if (reviewBlock) return { label: reviewBlock, tone: "neutral" };
     if (statuses.includes("pending_review")) return { label: PRESCRIPTION_LABELS.pending_review, tone: "attention" };
     if (statuses.includes("rejected")) return { label: PRESCRIPTION_LABELS.rejected, tone: "attention" };
     return { label: PRESCRIPTION_LABELS.validated, tone: "complete" };
@@ -262,7 +262,8 @@ export default function AdminOrders() {
               ) : filteredOrders.length === 0 ? (
                 <tr><td colSpan="8" className="apo-orders-empty"><ClipboardList size={18} /> {showArchived && archiveUnavailable ? "Archived orders are unavailable. Refresh to try again." : "No orders match these filters."}</td></tr>
               ) : paginatedOrders.map((order) => {
-                const prescription = getPrescriptionDisplay(order.id);
+                const prescription = getPrescriptionDisplay(order);
+                const status = getOrderStatusDisplay(order);
                 return <tr key={order.id}>
                   <td><strong className="apo-orders-id">{orderNumber(order)}</strong></td>
                   <td><strong className="apo-orders-customer">{order.customer_name || "Guest"}</strong><small>{order.email || order.contact_number || "Contact not provided"}</small></td>
@@ -270,7 +271,7 @@ export default function AdminOrders() {
                   <td><span className="apo-orders-fulfillment">{order.fulfillment_method === "delivery" ? "Delivery" : "Pickup"}</span></td>
                   <td><span className={`apo-orders-prescription is-${prescription.tone}`}><i aria-hidden="true" />{prescription.label}</span></td>
                   <td className="apo-orders-money">{money(order.total)}</td>
-                  <td><span className={`apo-orders-status is-${order.order_status || "pending"}`}>{getOrderStatusLabel(order)}</span></td>
+                  <td><span className={`apo-orders-status is-${status.tone}`}>{status.label}</span></td>
                   <td><button className="apo-orders-view" type="button" onClick={() => setSelectedOrder(order)}>View details <ArrowRight size={14} /></button></td>
                 </tr>;
               })}

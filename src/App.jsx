@@ -24,8 +24,12 @@ import AppointmentConfirmationPage from "./pages/AppointmentConfirmationPage";
 import AccountPage from "./pages/AccountPage";
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import SuperAdminLayout from "./pages/admin/SuperAdminLayout";
+import SuperAdminOverview from "./pages/admin/SuperAdminOverview";
+import SuperAdminReports from "./pages/admin/SuperAdminReports";
 import AdminStaffManagement from "./pages/admin/AdminStaffManagement";
 import AdminProducts from "./pages/admin/AdminProducts";
+import AdminProductMedia from "./pages/admin/AdminProductMedia";
 import AdminInventoryManagement from "./pages/admin/AdminInventoryManagement";
 import AdminBrands from "./pages/admin/AdminBrands";
 import AdminProductForm from "./pages/admin/AdminProductForm";
@@ -34,7 +38,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminAppointments from "./pages/admin/AdminAppointments";
 import AdminPrescriptionDocuments from "./pages/admin/AdminPrescriptionDocuments";
 import AdminPayments from "./pages/admin/AdminPayments";
-import AdminScreeningRecords from "./pages/admin/AdminScreeningRecords";
+import ScreeningRecords from "./pages/admin/AdminScreeningRecords";
 import ClinicStaffLayout from "./pages/staff/ClinicStaffLayout";
 import StaffDashboard from "./pages/staff/StaffDashboard";
 import OptometristWorkspace, { OptometristSection } from "./pages/optometrist/OptometristWorkspace";
@@ -43,15 +47,31 @@ import OptometristAppointments from "./pages/optometrist/OptometristAppointments
 import OptometristClinicalRecords from "./pages/optometrist/OptometristClinicalRecords";
 // other admin pages will be imported later here
 
+const toastClassName = "!max-w-[min(24rem,calc(100vw_-_2rem))] !rounded-xl !border !border-[#E7E1DB] !bg-white !px-3 !py-2.5 !text-sm !font-medium !leading-snug !text-[#1A1816] !shadow-lg break-words sm:!px-4 sm:!py-3";
+
+const toastOptions = {
+  duration: 2000,
+  className: toastClassName,
+  success: {
+    className: `${toastClassName} !border-l-4 !border-l-[#316746]`,
+    iconTheme: { primary: "#316746", secondary: "#fff" },
+  },
+  error: {
+    className: `${toastClassName} !border-l-4 !border-l-[#B8242F]`,
+    iconTheme: { primary: "#B8242F", secondary: "#fff" },
+  },
+};
+
 function App() {
   const { state } = useLocation();
 
   return (
     <>
-      <Toaster position="top-right" toastOptions={{ duration: 2000 }} />
+      <Toaster position="top-right" toastOptions={toastOptions} />
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<HomeRoute />} />
+        <Route path="/about" element={<Navigate to="/#about" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/accept-invite" element={<AcceptTeamInvitationPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -125,14 +145,16 @@ function App() {
           path="/admin"
           element={
             <AdminRoute>
-              <AdminLayout />
+              {({ canManageAdmins }) => <AdminLayout canManageAdmins={canManageAdmins} />}
             </AdminRoute>
           }
         >
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="staff" element={<AdminStaffManagement />} />
+          <Route path="staff" element={<Navigate to="/super-admin/team" replace />} />
           <Route path="products" element={<AdminProducts />} />
+          <Route path="product-media" element={<AdminProductMedia />} />
+          <Route path="product-media/:id" element={<AdminProductForm key="product-media" fromMedia />} />
           <Route path="inventory" element={<AdminInventoryManagement />} />
           <Route path="products/new" element={<AdminProductForm />} />
           <Route path="brands" element={<AdminBrands />} />
@@ -143,9 +165,15 @@ function App() {
           <Route path="appointments" element={<AdminAppointments />} />
           <Route path="prescriptions" element={<AdminPrescriptionDocuments />} />
           <Route path="payments" element={<AdminPayments />} />
-          <Route path="screenings" element={<AdminScreeningRecords />} />
+          <Route path="screenings" element={<ScreeningRecords />} />
 
           {/* Add other admin routes here (brands, orders, etc.) */}
+        </Route>
+        <Route path="/super-admin" element={<AdminRoute key="super-admin" requireSuperAdmin><SuperAdminLayout /></AdminRoute>}>
+          <Route index element={<Navigate to="/super-admin/overview" replace />} />
+          <Route path="overview" element={<SuperAdminOverview />} />
+          <Route path="reports" element={<SuperAdminReports />} />
+          <Route path="team" element={<AdminStaffManagement />} />
         </Route>
         <Route path="/staff" element={<StaffRoute><ClinicStaffLayout /></StaffRoute>}>
           <Route index element={<Navigate to="/staff/dashboard" replace />} />
@@ -157,9 +185,9 @@ function App() {
           <Route index element={<Navigate to="/optometrist/dashboard" replace />} />
           <Route path="dashboard" element={<OptometristDashboard />} />
           <Route path="appointments" element={<OptometristAppointments />} />
-          <Route path="screenings" element={<OptometristSection section="screenings" />} />
+          <Route path="screenings" element={<ScreeningRecords clinical />} />
           <Route path="prescriptions" element={<AdminPrescriptionDocuments reviewMode />} />
-          <Route path="review-history" element={<OptometristSection section="review-history" />} />
+          <Route path="review-history" element={<Navigate to="/optometrist/prescriptions" replace />} />
           <Route path="clinical-records" element={<OptometristClinicalRecords />} />
           <Route path="notifications" element={<OptometristSection section="notifications" />} />
         </Route>

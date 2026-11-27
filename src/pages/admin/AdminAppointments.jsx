@@ -42,6 +42,57 @@ function isSlotOpen(slot, now = new Date()) {
     && new Date(`${slot.slot_date}T${slot.start_time}`).getTime() > now.getTime();
 }
 
+function AppointmentCheckout({ appointmentId }) {
+  const [checkout, setCheckout] = useState(null);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    supabase.rpc("staff_visit_checkout", { p_appointment_id: appointmentId }).then(({ data, error: loadError }) => {
+      if (!active) return;
+      if (loadError) setError(loadError.code === "22023" ? loadError.message : "In-clinic checkout could not be loaded.");
+      else setCheckout(data);
+    });
+    return () => { active = false; };
+  }, [appointmentId]);
+
+  async function start() {
+    setStarting(true);
+    setError("");
+    try {
+      const { data, error: startError } = await supabase.rpc("staff_visit_checkout", {
+        p_appointment_id: appointmentId, p_start: true,
+      });
+      if (startError) throw startError;
+      setCheckout(data);
+    } catch {
+      setError("In-clinic checkout could not be started. Try again.");
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  const order = checkout?.order;
+  const orderLabel = order?.status === "manual_review" ? "Payment under review"
+    : order?.status === "cancelled" ? (order.paid ? "Closed · Paid" : "Closed")
+      : order?.paid ? "Paid" : order?.payment_window_expired ? "Payment window expired" : "Awaiting payment";
+  return (
+    <section className="apo-appointment-detail-section">
+      <div className="apo-appointment-detail-heading"><h3>In-clinic checkout</h3></div>
+      {error && <p role="alert">{error}</p>}
+      {!checkout && !error && <p role="status">Checking in-clinic checkout.</p>}
+      {order && <p>Order #APO-{order.id} · {orderLabel}</p>}
+      {checkout?.open && <p role="status">Checkout started. The customer can order from their account today.</p>}
+      {checkout && !checkout.open && (!order || (order.status === "cancelled" && !order.paid)) && (
+        <div className="apo-appointment-status-actions">
+          <button type="button" disabled={starting} onClick={start}>{starting ? "Starting…" : "Start in-clinic checkout"}</button>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function AppointmentDetails({ appointment, onClose, onStatusSaved }) {
   const [nextStatus, setNextStatus] = useState(appointment.status);
   const [saving, setSaving] = useState(false);
@@ -123,6 +174,8 @@ function AppointmentDetails({ appointment, onClose, onStatusSaved }) {
               <p className="apo-appointment-notes">{appointment.notes}</p>
             </section>
           )}
+
+          {appointment.status === "completed" && <AppointmentCheckout appointmentId={appointment.id} />}
 
           <div className="apo-appointment-clinical-note">
             <AlertCircle size={16} />

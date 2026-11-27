@@ -15,6 +15,7 @@ export default function Header() {
   const [guestMenuOpen, setGuestMenuOpen] = useState(false);
   const guestMenuRef = useRef(null);
   const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
+  const isAbout = location.pathname === "/" && location.hash === "#about";
 
   useEffect(() => {
     const closeOnOutside = (event) => {
@@ -39,11 +40,11 @@ export default function Header() {
         <span>ACEBEDO</span><small>PANOL OPTICAL</small>
       </Link>
       {!isAuthPage && <nav className="system-header__nav" aria-label="Main navigation">
-        {!user && navLink("/", "Home", location.pathname === "/")}
+        {!user && navLink("/", "Home", location.pathname === "/" && !isAbout)}
         {navLink("/shop", "Shop Frames", location.pathname.startsWith("/shop"))}
         <ScreeningLink className="system-header__link">Vision Screening</ScreeningLink>
         {navLink("/appointments/book", "Appointments", location.pathname.startsWith("/appointments"))}
-        {!user && navLink("/about", "About Us", location.pathname.startsWith("/about"))}
+        {!user && navLink("/#about", "About Us", isAbout)}
       </nav>}
       <div className="system-header__actions">
         {!isAuthPage && <>

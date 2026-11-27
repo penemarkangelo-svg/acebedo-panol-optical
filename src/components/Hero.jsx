@@ -25,7 +25,7 @@ export default function Hero({ featuredFrame, onTryOn }) {
         <div className="landing-hero__actions">
           {featuredFrame ? (
             <button className="landing-button landing-button--primary" type="button" onClick={tryOnFeaturedFrame}>
-              Try on a featured frame <span aria-hidden="true">→</span>
+              Try on a featured frame<span aria-hidden="true"></span>
             </button>
           ) : (
             <Link className="landing-button landing-button--primary" to="/shop">

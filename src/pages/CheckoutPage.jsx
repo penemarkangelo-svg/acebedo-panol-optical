@@ -9,15 +9,11 @@ import { supabase } from "../lib/supabaseClient";
 import toast from "react-hot-toast";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import PrescriptionUploadModal from "../components/PrescriptionUploadGuide";
+import { getAppointmentReference } from "../appointments/appointmentUtils";
 import "../styles/checkout.css";
 
 const PAYMENT_RETURN_KEY = "apo-payment-return";
-const PRESCRIPTION_FILE_TYPES = new Map([
-  ["application/pdf", "pdf"],
-  ["image/jpeg", "jpg"],
-  ["image/png", "png"],
-]);
-const PRESCRIPTION_FILE_LIMIT = 5 * 1024 * 1024;
 
 function readPaymentReturn(userId) {
   try {
@@ -88,7 +84,8 @@ export default function CheckoutPage() {
   const [touched, setTouched] = useState({});
   const [prescription, setPrescription] = useState(null);
   const [prescriptionError, setPrescriptionError] = useState("");
-  const prescriptionInput = useRef(null);
+  const [clinicVisits, setClinicVisits] = useState(null);
+  const [selectedVisitId, setSelectedVisitId] = useState(null);
   const prescriptionButton = useRef(null);
   const prescriptionDialog = useRef(null);
   const restoredOrder = useRef(null);
@@ -138,25 +135,38 @@ export default function CheckoutPage() {
   };
 
   const selectedItems = savedPayment?.items || cartItems;
-  const requiresPrescription = !savedPayment && selectedItems.some(
-    (item) => item.selectedOptions?.visionMode === "Prescription Lens",
-  );
+  const requiresPrescription = !savedPayment && selectedItems.some(({ selectedOptions }) => (
+    selectedOptions?.visionMode === "Prescription Lens"
+    || (selectedOptions?.lensType && (selectedOptions.lensType !== "sv" || selectedOptions.visionMode !== "Plano"))
+  ));
   const selectedPrescription = prescription?.userId === user?.id ? prescription : null;
+  const visitOptions = clinicVisits?.userId === user?.id ? clinicVisits : null;
+  const visits = visitOptions?.visits || [];
+  const clinicVisit = visits.find((visit) => visit.id === selectedVisitId)
+    || (visits.length === 1 ? visits[0] : null);
 
-  const handlePrescriptionChange = (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+  useEffect(() => {
+    const userId = user?.id;
+    if (!requiresPrescription || !userId) return;
+    let active = true;
+    const loadVisits = async () => {
+      const { data, error } = await supabase.rpc("customer_visit_checkouts");
+      if (active) setClinicVisits({
+        userId,
+        visits: data || [],
+        legacy: error?.code === "PGRST202",
+        error: Boolean(error && error.code !== "PGRST202"),
+      });
+    };
+    loadVisits();
+    window.addEventListener("focus", loadVisits);
+    return () => { active = false; window.removeEventListener("focus", loadVisits); };
+  }, [requiresPrescription, user?.id]);
 
-    const extension = PRESCRIPTION_FILE_TYPES.get(file.type);
-    if (!extension || file.size === 0 || file.size > PRESCRIPTION_FILE_LIMIT) {
-      setPrescriptionError("Choose a non-empty PDF, JPG, or PNG file up to 5 MB.");
-      return;
-    }
-
-    setPrescription({ file, extension, id: crypto.randomUUID(), userId: user?.id });
+  function confirmPrescription({ file, extension, fileId }) {
+    setPrescription({ file, extension, id: fileId, userId: user?.id });
     setPrescriptionError("");
-  };
+  }
 
   const totalItems = selectedItems.reduce(
     (sum, item) => sum + item.quantity,
@@ -208,7 +218,15 @@ export default function CheckoutPage() {
       toast.error("Your cart is still syncing. Please try again in a moment.");
       return;
     }
-    if (requiresPrescription && !selectedPrescription) {
+    if (requiresPrescription && (!visitOptions || visitOptions.error)) {
+      toast.error("Unable to check prescription options. Refresh checkout and try again.");
+      return;
+    }
+    if (requiresPrescription && visits.length > 0 && !clinicVisit) {
+      toast.error("Choose the clinic visit to use for this order.");
+      return;
+    }
+    if (requiresPrescription && !clinicVisit && !selectedPrescription) {
       prescriptionDialog.current?.showModal();
       return;
     }
@@ -227,6 +245,18 @@ export default function CheckoutPage() {
         sessionStorage.setItem(idempotencyStorageKey, idempotencyKey);
       }
 
+      let prescriptionPath;
+      if (requiresPrescription && !clinicVisit && !visitOptions?.legacy && selectedPrescription) {
+        const { file, id, extension } = selectedPrescription;
+        prescriptionPath = `${user.id}/checkout/${idempotencyKey}/${id}.${extension}`;
+        const { error: uploadError } = await supabase.storage.from("prescription-uploads")
+          .upload(prescriptionPath, await file.arrayBuffer(), { contentType: file.type, cacheControl: "0", upsert: false });
+        if (uploadError && !["Duplicate", "KeyAlreadyExists", "409"].includes(uploadError.statusCode)) {
+          setPrescriptionError("Your prescription could not be uploaded. Try again before continuing to payment.");
+          return;
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("create-paymongo-checkout", {
         body: {
           cartId,
@@ -236,6 +266,9 @@ export default function CheckoutPage() {
           contactNumber: phone.trim(),
           fulfillmentMethod: shippingMethod,
           deliveryAddress,
+          clinicAppointmentId: requiresPrescription ? clinicVisit?.id : undefined,
+          prescriptionPath,
+          prescriptionFilename: prescriptionPath ? selectedPrescription.file.name : undefined,
         },
       });
 
@@ -245,7 +278,7 @@ export default function CheckoutPage() {
       const recoverableOrder = responseBody?.canResumeOrder && responseBody?.orderId;
       const orderId = data?.orderId || recoverableOrder;
 
-      if (requiresPrescription && selectedPrescription && orderId) {
+      if (requiresPrescription && visitOptions?.legacy && selectedPrescription && orderId) {
         try {
           await attachPrescription(selectedPrescription, user.id, orderId);
         } catch {
@@ -925,22 +958,35 @@ export default function CheckoutPage() {
                 </strong>
               </div>
 
-              {requiresPrescription && (
+              {requiresPrescription && visits.length > 0 && (
                 <div className="checkout-prescription-upload">
-                  <input
-                    ref={prescriptionInput}
-                    type="file"
-                    accept={Array.from(PRESCRIPTION_FILE_TYPES.keys()).join(",")}
-                    onChange={handlePrescriptionChange}
-                    hidden
-                  />
+                  <div className="checkout-prescription-file">
+                    <FileText size={16} aria-hidden="true" />
+                    <span><strong>Eye exam completed at Acebedo</strong>{clinicVisit && ` · ${getAppointmentReference(clinicVisit)}`}</span>
+                  </div>
+                  {visits.length > 1 && (
+                    <label>
+                      Clinic visit{" "}
+                      <select value={clinicVisit?.id || ""} onChange={(event) => setSelectedVisitId(Number(event.target.value) || null)} disabled={saving}>
+                        <option value="">Choose a completed visit</option>
+                        {visits.map((visit) => <option key={visit.id} value={visit.id}>{getAppointmentReference(visit)}</option>)}
+                      </select>
+                    </label>
+                  )}
+                </div>
+              )}
+              {requiresPrescription && !visitOptions && <p role="status">Checking prescription options.</p>}
+              {requiresPrescription && visitOptions?.error && <p className="checkout-error" role="alert">Prescription options could not be checked. Refresh checkout to try again.</p>}
+              {requiresPrescription && visitOptions && !visitOptions.error && visits.length === 0 && (
+                <div className="checkout-prescription-upload">
                   <button
                     ref={prescriptionButton}
                     type="button"
                     className="checkout-prescription-upload-button"
                     aria-labelledby="checkout-prescription-upload-label"
                     aria-describedby="checkout-prescription-file-hint"
-                    onClick={() => prescriptionInput.current?.click()}
+                    aria-haspopup="dialog"
+                    onClick={() => prescriptionDialog.current?.showModal()}
                     disabled={saving}
                   >
                     <span className="checkout-prescription-upload-icon">
@@ -972,36 +1018,12 @@ export default function CheckoutPage() {
                     </div>
                   )}
                   {prescriptionError && <p className="checkout-error" role="alert">{prescriptionError}</p>}
-                  <dialog
-                    ref={prescriptionDialog}
-                    className="checkout-prescription-dialog"
-                    aria-labelledby="checkout-prescription-dialog-title"
-                    aria-describedby="checkout-prescription-dialog-instructions checkout-prescription-dialog-privacy"
-                  >
-                    <h2 id="checkout-prescription-dialog-title">Prescription required</h2>
-                    <p id="checkout-prescription-dialog-instructions">
-                      Please upload a clear copy of your eyeglass prescription so we can verify the lens details for your order.
-                    </p>
-                    <p id="checkout-prescription-dialog-privacy">
-                      Your prescription is stored privately. Only authorized clinic personnel can view it, and we use it only to review and process this order.
-                    </p>
-                    <div className="checkout-prescription-dialog-actions">
-                      <button type="button" onClick={() => prescriptionDialog.current?.close()}>
-                        Back to checkout
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          prescriptionDialog.current?.close();
-                          prescriptionButton.current?.focus();
-                          prescriptionInput.current?.click();
-                        }}
-                      >
-                        <Upload size={16} aria-hidden="true" />
-                        Upload prescription
-                      </button>
-                    </div>
-                  </dialog>
+                  <PrescriptionUploadModal
+                    dialogRef={prescriptionDialog}
+                    title={selectedPrescription ? "Replace your prescription" : "Upload your prescription"}
+                    confirmLabel="Attach and continue"
+                    onConfirm={confirmPrescription}
+                  />
                 </div>
               )}
 

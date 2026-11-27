@@ -170,8 +170,16 @@
 .apo-dashboard-topbar { display: flex; min-height: 62px; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 12px; border-bottom: 1px solid var(--apo-admin-line); }
 .apo-workspace-topbar { flex-wrap: nowrap; }
 .apo-workspace-greeting { min-width: 0; margin: 0 auto 0 0; color: var(--apo-admin-ink); font-family: var(--font-brand, Georgia, serif); font-size: clamp(16px, 2vw, 22px); line-height: 1.25; overflow-wrap: anywhere; }
-.apo-workspace-account { position: relative; flex-shrink: 0; }
-.apo-workspace-account-trigger { display: inline-flex; min-height: 40px; align-items: center; gap: 6px; padding: 4px 9px 4px 5px; border: 1px solid var(--apo-admin-line); border-radius: 24px; background: var(--apo-admin-card); color: var(--apo-admin-muted); cursor: pointer; }
+.apo-workspace-topbar-actions { display: flex; min-width: 0; align-items: center; gap: 8px; }
+.apo-workspace-clock { flex: 0 0 auto; color: var(--apo-admin-muted); font-size: 11px; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.apo-workspace-account { position: relative; min-width: 0; }
+.apo-workspace-account-trigger { display: inline-flex; max-width: 100%; min-height: 44px; align-items: center; gap: 8px; padding: 4px 10px 4px 5px; border: 1px solid var(--apo-admin-line); border-radius: 24px; background: var(--apo-admin-card); color: var(--apo-admin-muted); cursor: pointer; }
+.apo-admin-workspace-shell .apo-workspace-account-trigger .apo-admin-avatar { width: 32px; height: 32px; background: #1d4cb7; color: #fff; font-size: 11px; }
+.apo-workspace-account-summary { display: grid; min-width: 0; max-width: 170px; gap: 2px; text-align: left; line-height: 1.15; }
+.apo-workspace-account-summary strong, .apo-workspace-account-summary small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.apo-workspace-account-summary strong { color: var(--apo-admin-ink); font-size: 12px; font-weight: 650; }
+.apo-workspace-account-summary small { color: var(--apo-admin-muted); font-size: 11px; }
+.apo-workspace-account-trigger > svg { flex: 0 0 auto; }
 .apo-workspace-account-trigger:hover, .apo-workspace-account-trigger[aria-expanded="true"] { border-color: #c8c2b8; color: var(--apo-admin-ink); }
 .apo-workspace-account-trigger[aria-expanded="true"] > svg { transform: rotate(180deg); }
 .apo-workspace-account-panel { position: absolute; z-index: 20; inset-block-start: calc(100% + 6px); inset-inline-end: 0; width: min(250px, calc(100vw - 82px)); padding: 6px; border: 1px solid var(--apo-admin-line); border-radius: 10px; background: var(--apo-admin-card); box-shadow: 0 5px 16px rgb(35 31 24 / 10%); }
@@ -266,16 +274,14 @@
 .apo-status-pill--cancelled, .apo-status-pill--failed, .apo-status-pill--no-show { color: #9d3234; border-color: #e6c0c1; background: #fbefed; }
 .apo-stock-flag { display: inline-flex; align-items: center; gap: 5px; color: var(--apo-admin-brand); font-size: 11px; }
 
-.apo-dashboard-side-column { display: flex; min-width: 0; flex-direction: column; align-self: start; background: var(--apo-admin-side); border: 0; border-radius: 5px; box-shadow: 0 1px 3px rgb(35 31 24 / 5%); }
-.apo-side-section { min-height: 180px; padding: 16px 15px 14px; }
-.apo-actions-section, .apo-appointments-section { min-height: 0; }
-.apo-activity-section { min-height: 190px; }
-.apo-side-section + .apo-side-section { border-top: 1px solid #d6d2c8; }
+.apo-dashboard-side-column { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr); gap: 14px; align-self: start; }
+.apo-side-section { min-width: 0; padding: 16px 15px 14px; border-radius: 5px; background: var(--apo-admin-side); box-shadow: 0 1px 3px rgb(35 31 24 / 5%); }
 .apo-side-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #d6d2c8; }
 .apo-side-heading h2 { font-size: 14px; }
 .apo-side-heading > span { color: var(--apo-admin-muted); font-size: 11px; white-space: nowrap; }
-.apo-side-subheading { padding: 12px 0 7px; color: #5C574F; font-size: 12px; font-weight: 700; }
 .apo-action-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 16px; gap: 9px; align-items: center; min-height: 54px; color: inherit; border-top: 1px solid #d9d5cb; text-decoration: none; }
+.apo-side-section > .apo-side-heading + .apo-action-row { border-top: 0; }
+.apo-side-heading + .apo-action-unavailable { margin-top: 0; border-top: 0; }
 .apo-action-row > svg { color: #5C574F; }
 .apo-action-row > span:nth-child(2) { min-width: 0; }
 .apo-action-row strong, .apo-action-row small, .apo-appointment-row strong, .apo-appointment-row small, .apo-activity-row strong, .apo-activity-row small { display: block; }
@@ -342,18 +348,19 @@
   .apo-admin-workspace-shell .apo-admin-sidebar-footer { display: none; }
   .apo-admin-main { padding-right: 18px; padding-left: 18px; }
   .apo-dashboard-columns { grid-template-columns: 1fr; }
-  .apo-dashboard-side-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .apo-dashboard-side-column { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .apo-activity-section { grid-column: 1 / -1; }
   .apo-dashboard-table:not(.apo-dashboard-table--stock) { min-width: 560px; }
   .apo-dashboard-table--stock { min-width: 420px; }
-  .apo-side-section + .apo-side-section { border-top: 0; }
-  .apo-side-section:nth-child(even) { border-left: 1px solid #d6d2c8; }
-  .apo-side-section:nth-child(n + 3) { border-top: 1px solid #d6d2c8; }
 }
 
 @media (max-width: 560px) {
   .apo-admin-sidebar { flex-basis: 52px; padding-right: 5px; padding-left: 5px; }
   .apo-admin-main { padding: 0 12px 18px; }
   .apo-dashboard-topbar { min-height: 54px; }
+  .apo-workspace-topbar { flex-wrap: wrap; padding-block: 5px; }
+  .apo-workspace-topbar-actions { margin-inline-start: auto; }
+  .apo-workspace-clock span { display: block; }
   .apo-dashboard-search { width: 100%; min-height: 44px; }
   .apo-dashboard-title-row { align-items: start; flex-wrap: wrap; }
   .apo-dashboard-header-actions { width: 100%; }
@@ -361,9 +368,7 @@
   .apo-dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .apo-metric-card:nth-child(3)::before { display: none; }
   .apo-metric-card:nth-child(n + 3) { border-top: 1px solid var(--apo-admin-line); }
-  .apo-dashboard-side-column { grid-template-columns: 1fr; }
-  .apo-side-section:nth-child(even) { border-left: 0; }
-  .apo-side-section:nth-child(n + 2) { border-top: 1px solid #d6d2c8; }
+  .apo-dashboard-side-column { grid-template-columns: minmax(0, 1fr); }
   .apo-dashboard-footer { flex-direction: column; gap: 5px; }
 }
 

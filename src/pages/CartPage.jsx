@@ -390,9 +390,7 @@ export default function CartPage() {
                 disabled={isSyncing}
                 className="cart-button cart-button--checkout"
               >
-                {isSyncing
-                  ? "Saving Changes..."
-                  : `Checkout ${formatPrice(total)}`}
+                {isSyncing ? "Saving Changes..." : "Checkout"}
               </button>
 
               <Link to="/shop" className="cart-continue-shopping">

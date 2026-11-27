@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Eye, Glasses } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabaseClient";
@@ -144,10 +145,29 @@ export default function AppointmentPage() {
       <Header />
       <main className="appointment-main">
         <div className="appointment-intro">
-          <p className="appointment-eyebrow">Appointments / Book a visit</p>
           <h1>Book an Appointment</h1>
-          <p>Choose a convenient time for your eye examination. Review your details before confirming.</p>
+          <p>Choose a date and time to visit Acebedo Panol Optical.</p>
         </div>
+
+        <section className="appointment-visit-guide" aria-labelledby="appointment-visit-guide-title">
+          <h2 id="appointment-visit-guide-title">What to expect at your visit</h2>
+          <ul>
+            <li>
+              <Eye size={20} aria-hidden="true" />
+              <div>
+                <strong>Eye examination</strong>
+                <p>Have your vision checked and discuss the findings with the optometrist.</p>
+              </div>
+            </li>
+            <li>
+              <Glasses size={20} aria-hidden="true" />
+              <div>
+                <strong>Frame fitting</strong>
+                <p>Try on available frames. Clinic staff can help you find a comfortable fit.</p>
+              </div>
+            </li>
+          </ul>
+        </section>
 
         <div className="appointment-layout">
           <div className="appointment-form-column">
@@ -262,7 +282,7 @@ export default function AppointmentPage() {
             <p className="appointment-summary-reminder">Please check your selected date and time before confirming your appointment.</p>
             {error && selectedSlot ? <p className="appointment-inline-error">{error}</p> : null}
             <button className="appointment-primary-button" type="button" onClick={handleBook} disabled={!selectedSlot || submitting}>
-              {submitting ? "Booking…" : "Confirm Appointment"}<span aria-hidden="true">→</span>
+              {submitting ? "Booking…" : "Confirm Appointment"}
             </button>
             <Link className="appointment-summary-link" to="/appointments">View Appointments</Link>
           </aside>

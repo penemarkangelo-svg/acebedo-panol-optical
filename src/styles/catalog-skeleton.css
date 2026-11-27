@@ -1,0 +1,28 @@
+:root {
+  --catalog-photo-background: #efefec;
+}
+
+.catalog-skeleton {
+  background-color: #e7e3dc;
+  animation: catalog-skeleton-pulse 1.8s ease-in-out infinite alternate;
+}
+
+.catalog-skeleton--photo {
+  position: absolute;
+  inset: 0;
+  background-color: var(--catalog-photo-background);
+  animation: none;
+  pointer-events: none;
+}
+
+@keyframes catalog-skeleton-pulse {
+  to {
+    background-color: #efede8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-skeleton {
+    animation: none;
+  }
+}

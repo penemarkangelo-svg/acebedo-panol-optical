@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import { readOrderPrescriptionReviews } from "../lib/orderPrescriptionUploads";
 import toast from "react-hot-toast";
 import {
   FaArrowLeft,
@@ -16,6 +17,7 @@ import {
 } from "react-icons/fa";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import PrescriptionReplacementForm from "../components/PrescriptionReplacementForm";
 import "../styles/OrderConfirmationPage.css";
 
 async function readCheckoutResponse(data, error) {
@@ -47,6 +49,9 @@ export default function OrderConfirmationPage() {
   const [searchParams] = useSearchParams();
   const [order, setOrder] = useState(null);
   const [items, setItems] = useState([]);
+  const [prescriptionReview, setPrescriptionReview] = useState(null);
+  const [prescriptionReviewVersion, setPrescriptionReviewVersion] = useState(0);
+  const [uploadedReplacementOrder, setUploadedReplacementOrder] = useState(null);
   const stepStatuses = order?.step_statuses || {};
   const [loading, setLoading] = useState(true);
   const [paymentRetryAvailability, setPaymentRetryAvailability] = useState("not-applicable");
@@ -59,6 +64,32 @@ export default function OrderConfirmationPage() {
   const [previewImage, setPreviewImage] = useState(null);
   const isPickup = order?.fulfillment_method === "pickup";
   const paymentReturn = searchParams.get("payment");
+  const currentReview = prescriptionReview?.orderId === orderId ? prescriptionReview.data : null;
+  const reviewOrderStatus = order?.order_status;
+  const reviewProgress = order?.step_statuses?.["3"];
+
+  useEffect(() => {
+    if (!reviewOrderStatus) return undefined;
+    let active = true;
+    async function refreshReview() {
+      const { data, error } = await readOrderPrescriptionReviews([Number(orderId)]);
+      if (active && !error) setPrescriptionReview({ orderId, data: data?.[0] ?? null });
+    }
+    refreshReview();
+    window.addEventListener("focus", refreshReview);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", refreshReview);
+    };
+  }, [orderId, reviewOrderStatus, reviewProgress, prescriptionReviewVersion]);
+
+  function refreshPrescriptionReview(uploaded = false) {
+    if (uploaded) {
+      setPrescriptionReview({ orderId, data: { status: "pending_review" } });
+      setUploadedReplacementOrder(orderId);
+    }
+    setPrescriptionReviewVersion((version) => version + 1);
+  }
 
   useEffect(() => {
     let active = true;
@@ -189,7 +220,7 @@ export default function OrderConfirmationPage() {
   const canCancel = order
     && ["pending", "verifying"].includes(order.order_status)
     && stepStatuses[3] !== "Completed";
-  const hasPrescription = items.some((item) => item.prescription_data);
+  const hasPrescription = Boolean(currentReview) || items.some((item) => item.prescription_data);
 
   const handleRetryPayment = async () => {
     setRetryingPayment(true);
@@ -333,6 +364,10 @@ export default function OrderConfirmationPage() {
     "6": "Pending",
   };
   const normalizedStepStatuses = { ...defaultSteps, ...stepStatuses };
+  const needsReplacement = isPaid && currentReview?.status === "rejected" && ["confirmed", "processing"].includes(status);
+  if (isPaid && currentReview?.status === "validated") normalizedStepStatuses["3"] = "Completed";
+  if (isPaid && currentReview?.status === "pending_review") normalizedStepStatuses["3"] = "Pending";
+  if (needsReplacement) normalizedStepStatuses["3"] = "Resubmission needed";
   const paymentProgressLabel = paymentRetryAvailability === "available"
     ? "Awaiting payment"
     : paymentRetryAvailability === "expired"
@@ -504,8 +539,18 @@ export default function OrderConfirmationPage() {
 
               {hasPrescription && (
                 <section className="order-details__panel order-details__prescription">
-                  <div className="order-details__panel-heading"><div><p className="order-details__eyebrow">PRESCRIPTION</p><h2>Prescription submitted</h2></div><span className="order-details__prescription-status">{stepStatuses[3] === "Completed" ? "Review complete" : status === "pending" ? "Waiting for payment" : "Awaiting optometrist review"}</span></div>
-                  <p>Your prescription details are attached to this order. Clinical values are kept in the prescription review workflow.</p>
+                  <div className="order-details__panel-heading"><div><p className="order-details__eyebrow">PRESCRIPTION</p><h2>{needsReplacement ? "New prescription copy needed" : "Prescription submitted"}</h2></div><span className="order-details__prescription-status">{status === "cancelled" ? "Review closed" : needsReplacement ? "Resubmission needed" : normalizedStepStatuses["3"] === "Completed" ? "Verified" : !isPaid ? "Waiting for payment" : "Awaiting optometrist review"}</span></div>
+                  {needsReplacement ? (
+                    <>
+                      <p>{currentReview.review_notes || "Please send a new copy of your prescription for this order."}</p>
+                      {currentReview.can_replace ? (
+                        <PrescriptionReplacementForm key={currentReview.upload_id} orderId={order.id} userId={order.user_id}
+                          previousUploadId={currentReview.upload_id} onRefresh={refreshPrescriptionReview} />
+                      ) : <p>Online replacement is currently unavailable. Please contact the clinic.</p>}
+                    </>
+                  ) : uploadedReplacementOrder === orderId && currentReview?.status === "pending_review" ? (
+                    <p role="status">Your replacement was received and is awaiting optometrist review.</p>
+                  ) : <p>Your prescription is attached to this order.</p>}
                 </section>
               )}
 

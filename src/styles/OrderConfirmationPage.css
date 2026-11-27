@@ -121,6 +121,8 @@
 .order-details__prescription .order-details__panel-heading { align-items: center; }
 .order-details__prescription-status { color: #5C574F; font-size: var(--acebedo-font-sm); text-align: right; }
 .order-details__prescription > p { margin: 11px 0 0; color: #5C574F; font-size: var(--acebedo-font-sm); line-height: 1.5; }
+.order-details__prescription-replacement { margin-top: 12px; font-size: var(--acebedo-font-sm); }
+.order-details__prescription-replacement > button { padding: 8px 12px; border: 1px solid #d8d4cc; border-radius: 6px; color: #1a1816; background: #fff; font: inherit; font-weight: 650; cursor: pointer; }
 .order-details__cancel { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: -14px; padding: 8px 0 13px; border-bottom: 1px solid #D8D4CC; }
 .order-details__cancel h2 { margin: 0; font-size: var(--acebedo-font-md); font-weight: 650; }
 .order-details__cancel p { margin: 4px 0 0; color: #5C574F; font-size: var(--acebedo-font-sm); }

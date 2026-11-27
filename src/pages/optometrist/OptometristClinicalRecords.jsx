@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowRight, FileText, Loader2, Plus, RefreshCw, Search, Upload, X } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { supabase } from "../../lib/supabaseClient";
@@ -236,6 +237,8 @@ function ClinicalRecordDetails({ record, onClose }) {
 }
 
 export default function OptometristClinicalRecords() {
+  const { state } = useLocation();
+  const navigate = useNavigate();
   const [records, setRecords] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -245,8 +248,8 @@ export default function OptometristClinicalRecords() {
   const [search, setSearch] = useState("");
   const [searchError, setSearchError] = useState("");
   const [reference, setReference] = useState(null);
-  const [selectedRecord, setSelectedRecord] = useState(null);
-  const [creating, setCreating] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(state?.prescription || null);
+  const [creating, setCreating] = useState(Boolean(state?.visit));
 
   useEffect(() => {
     let active = true;
@@ -298,6 +301,7 @@ export default function OptometristClinicalRecords() {
 
   function openCreatedRecord(record) {
     setCreating(false);
+    if (state?.visit) navigate(".", { replace: true, state: null });
     setSelectedRecord(record);
     setSearch("");
     setSearchError("");
@@ -370,8 +374,14 @@ export default function OptometristClinicalRecords() {
           </footer>
         )}
       </section>
-      {creating && <CreateClinicalPrescription onClose={() => setCreating(false)} onCreated={openCreatedRecord} />}
-      {selectedRecord && <ClinicalRecordDetails key={selectedRecord.id} record={selectedRecord} onClose={() => setSelectedRecord(null)} />}
+      {creating && <CreateClinicalPrescription initialVisit={state?.visit} onClose={() => {
+        setCreating(false);
+        if (state?.visit) navigate(".", { replace: true, state: null });
+      }} onCreated={openCreatedRecord} />}
+      {selectedRecord && <ClinicalRecordDetails key={selectedRecord.id} record={selectedRecord} onClose={() => {
+        setSelectedRecord(null);
+        if (state?.prescription) navigate(".", { replace: true, state: null });
+      }} />}
     </div>
   );
 }

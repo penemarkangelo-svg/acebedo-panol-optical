@@ -42,7 +42,8 @@
 .apo-orders-prescription.is-attention { border-color: #e7d4ad; background: #faf4e9; color: #775720; }
 .apo-orders-prescription.is-complete { border-color: #c7d7d1; background: #eef4f0; color: #315b49; }
 .apo-orders-status { text-transform: capitalize; }
-.apo-orders-status.is-pending, .apo-orders-status.is-confirmed { border-color: #e7d4ad; background: #faf4e9; color: #775720; }
+.apo-orders-status.is-pending { border-color: #e7d4ad; background: #faf4e9; color: #775720; }
+.apo-orders-status.is-confirmed { border-color: #c8dece; background: #eff7f0; color: #316746; }
 .apo-orders-status.is-processing, .apo-orders-status.is-ready_for_pickup, .apo-orders-status.is-out_for_delivery, .apo-orders-status.is-completed { border-color: #c7d7d1; background: #eef4f0; color: #315b49; }
 .apo-orders-status.is-cancelled, .apo-orders-status.is-manual_review { border-color: #e5c4c1; background: #fbefee; color: #a22c27; }
 .apo-orders-money { color: #1A1816 !important; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }

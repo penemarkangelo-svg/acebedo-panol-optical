@@ -6,8 +6,7 @@ const navItems = [
   { name: "Dashboard", path: "/optometrist/dashboard", icon: WidgetIcon, group: "Workspace" },
   { name: "Appointments", path: "/optometrist/appointments", icon: CalendarIcon, group: "Eye care" },
   { name: "Vision screening", path: "/optometrist/screenings", icon: EyeIcon, group: "Clinical review" },
-  { name: "Prescriptions", path: "/optometrist/prescriptions", icon: DocumentTextIcon, group: "Clinical review" },
-  { name: "Review history", path: "/optometrist/review-history", icon: DocumentTextIcon, group: "Clinical review" },
+  { name: "Prescription review", path: "/optometrist/prescriptions", icon: DocumentTextIcon, group: "Clinical review" },
   { name: "Clinical records", path: "/optometrist/clinical-records", icon: DocumentTextIcon, group: "Clinical review" },
   { name: "Notifications", icon: BellIcon, group: "Updates" },
 ];
@@ -17,8 +16,6 @@ export default function OptometristWorkspace() {
 }
 
 const sections = {
-  screenings: { title: "Vision screening records", description: "Review preliminary questionnaire responses and recorded test results only when the screening is linked to a confirmed or completed appointment." },
-  "review-history": { title: "Prescription review history", description: "Previously reviewed documents, decisions, and notes will appear here when the review workflow is connected." },
   notifications: { title: "Notifications", description: "In-app appointment and prescription-review notifications are planned for a later release." },
 };
 

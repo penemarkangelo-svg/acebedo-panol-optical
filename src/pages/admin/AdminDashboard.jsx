@@ -203,7 +203,11 @@ export default function AdminDashboard() {
         </div>
 
         <aside className="apo-dashboard-side-column" aria-label="Today and activity">
-          <section className="apo-side-section apo-actions-section"><div className="apo-side-heading"><h2>Today</h2><span>{new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", timeZone: "Asia/Manila" }).format(new Date())}</span></div><div className="apo-side-subheading">Action required</div>
+          <section className="apo-side-section">
+            <div className="apo-side-heading">
+              <h2>Action required</h2>
+              <span>{new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", timeZone: "Asia/Manila" }).format(new Date())}</span>
+            </div>
             {loading ? <p className="apo-side-empty" role="status">Checking tasks…</p> : <>
               {!failures.pendingPayments && data.pendingPayments.length > 0 && <Link to="/admin/orders" className="apo-action-row"><span className="apo-action-icon"><CardIcon size={16} /></span><span><strong>Review {data.pendingPayments.length} pending {data.pendingPayments.length === 1 ? "payment" : "payments"}</strong><small>Check the linked orders</small></span><ArrowRightIcon size={15} /></Link>}
               {!failures.appointments && pendingAppointments.length > 0 && <Link to="/admin/appointments" className="apo-action-row"><span className="apo-action-icon"><CalendarIcon size={16} /></span><span><strong>Review {pendingAppointments.length} pending {pendingAppointments.length === 1 ? "appointment" : "appointments"}</strong><small>Pending appointments today</small></span><ArrowRightIcon size={15} /></Link>}
@@ -213,14 +217,14 @@ export default function AdminDashboard() {
             </>}
           </section>
 
-          <section className="apo-side-section apo-appointments-section"><div className="apo-side-heading"><h2>Today’s appointments</h2><span>{loading || failures.appointments ? "—" : `${data.appointmentCount} scheduled`}</span></div>
+          <section className="apo-side-section"><div className="apo-side-heading"><h2>Today’s appointments</h2><span>{loading || failures.appointments ? "—" : `${data.appointmentCount} scheduled`}</span></div>
             {visibleAppointments.slice(0, 5).map((appointment) => <div className="apo-appointment-row" key={appointment.id}><time>{formatTime(appointment.appointment_time)}</time><span><strong>{appointment.customer_name || "Customer"}</strong><small>Eye care appointment</small></span><span className={`apo-status-pill apo-status-pill--${(appointment.status || "unknown").toLowerCase()}`}>{appointment.status || "Unknown"}</span></div>)}
             {!loading && failures.appointments && <p className="apo-side-empty">Appointment information is unavailable right now.</p>}
             {!loading && !failures.appointments && visibleAppointments.length === 0 && <p className="apo-side-empty">{normalizedSearch && data.appointments.length > 0 ? "No matching appointments today." : "No appointments scheduled for today."}</p>}
             {loading && <p className="apo-side-empty">Loading appointments…</p>}
           </section>
 
-          <section className="apo-side-section apo-activity-section"><div className="apo-side-heading"><h2>Recent order activity</h2><span>Latest</span></div>
+          <section className="apo-side-section apo-activity-section"><div className="apo-side-heading"><h2>Recent order activity</h2></div>
             {latestActivity.map((order) => <div className="apo-activity-row" key={order.id}><span className="apo-activity-icon"><PulseIcon size={14} /></span><span><strong>Order #{order.id} received</strong><small>{order.customer_name || "Customer"} · {(order.order_status || "pending").replaceAll("_", " ")}</small></span><time>{formatRelativeTime(order.created_at)}</time></div>)}
             {!loading && failures.orders && <p className="apo-side-empty">Recent order activity is unavailable right now.</p>}
             {!loading && !failures.orders && latestActivity.length === 0 && <p className="apo-side-empty">No recent order activity.</p>}

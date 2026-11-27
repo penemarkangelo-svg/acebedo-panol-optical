@@ -6,6 +6,7 @@ import { ArrowLeftIcon, ArrowRightIcon, GlassesIcon } from "@solar-icons/react/l
 import toast from "react-hot-toast";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import ProductPhoto from "../components/ProductPhoto";
 import TryOnModal from "../components/TryOnModal";
 import { getProductCategory, isEyewearType, requiresLensPackage } from "../utils/productTypes";
 import "../styles/ProductDetail.css";
@@ -485,7 +486,12 @@ export default function ProductDetailPage() {
             <div className="pdp-care-layout">
               <section className="pdp-gallery pdp-care-gallery" aria-label={`${product.name} images`}>
                 <div className="pdp-gallery__main pdp-care-image">
-                  <img src={mainImage} alt={`${product.name} packaging`} className="pdp-gallery__image" />
+                  <ProductPhoto
+                    key={mainImage}
+                    src={mainImage}
+                    alt={`${product.name} packaging`}
+                    className="pdp-gallery__image"
+                  />
                 </div>
                 <div className="pdp-care-image-caption">
                   <span className="pdp-care-image-index">01 / 01</span>
@@ -571,7 +577,7 @@ export default function ProductDetailPage() {
                   ♡
                 </button>
 
-                <img
+                <ProductPhoto
                   key={galleryImages[activeImageIndex]}
                   src={galleryImages[activeImageIndex]}
                   alt={`${product.name} - ${selectedColor?.color_name || "selected color"}`}
@@ -624,7 +630,7 @@ export default function ProductDetailPage() {
                       }`}
                       aria-label={`View product image ${index + 1}`}
                     >
-                      <img src={image} alt="" />
+                      <ProductPhoto key={image} src={image} alt="" />
                     </button>
                   ))}
                 </div>

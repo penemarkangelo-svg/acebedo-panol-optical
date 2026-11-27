@@ -355,17 +355,21 @@ Deno.serve(async (request) => {
   const contactNumber = typeof payload.contactNumber === "string" ? payload.contactNumber.trim().slice(0, 40) : "";
   const fulfillmentMethod = payload.fulfillmentMethod;
   const deliveryAddress = typeof payload.deliveryAddress === "string" ? payload.deliveryAddress.trim().slice(0, 500) : null;
+  const clinicAppointmentId = payload.clinicAppointmentId ?? null;
+  const prescriptionPath = typeof payload.prescriptionPath === "string" ? payload.prescriptionPath : null;
+  const prescriptionFilename = typeof payload.prescriptionFilename === "string" ? payload.prescriptionFilename.slice(0, 255) : null;
 
   if (!Number.isSafeInteger(cartId) || cartId <= 0
     || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)
     || !contactName || !contactNumber
+    || (clinicAppointmentId !== null && (!Number.isSafeInteger(clinicAppointmentId) || clinicAppointmentId < 1 || clinicAppointmentId > 2147483647))
     || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)
     || !["pickup", "delivery"].includes(fulfillmentMethod)
     || (fulfillmentMethod === "delivery" && !deliveryAddress)) {
     return response({ error: "Complete the required contact and delivery details, then try again." }, 400);
   }
 
-  const { data: checkoutResult, error: checkoutError } = await userClient.rpc("create_checkout_order", {
+  const checkoutArgs = {
     p_cart_id: cartId,
     p_checkout_idempotency_key: idempotencyKey,
     p_customer_name: contactName,
@@ -374,7 +378,16 @@ Deno.serve(async (request) => {
     p_fulfillment_method: fulfillmentMethod,
     p_delivery_address: deliveryAddress,
     p_delivery_notes: null,
-  });
+  };
+  const { data: checkoutResult, error: checkoutError } = clinicAppointmentId !== null || prescriptionPath
+    ? await userClient.rpc("create_checkout_order_with_prescription", {
+      ...checkoutArgs,
+      p_appointment_id: clinicAppointmentId,
+      p_prescription_path: prescriptionPath,
+      p_prescription_filename: prescriptionFilename,
+    })
+    : await userClient.rpc("create_checkout_order", checkoutArgs);
+  if (checkoutError?.code === "22023") return response({ error: checkoutError.message }, 400);
   if (checkoutError) return safeError(checkoutError, "Could not reserve the items in your cart.");
 
   const newOrderId = Number(checkoutResult?.order_id);
@@ -422,7 +435,7 @@ Deno.serve(async (request) => {
     p_checkout_url: checkoutUrl,
   });
   if (attachError) {
-    await fetch(`https://api.paymongo.com/v2/checkout_sessions/${encodeURIComponent(sessionId)}/expire`, {
+    await fetch(`https://api.paymongo.com/v1/checkout_sessions/${encodeURIComponent(sessionId)}/expire`, {
       method: "POST",
       headers: { Authorization: `Basic ${btoa(`${paymongoSecretKey}:`)}` },
     }).catch(() => null);
