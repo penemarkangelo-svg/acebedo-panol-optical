@@ -1,10 +1,18 @@
-import { Link } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { ScreeningLink } from "../vision-screening/components/ScreeningEntry";
 import "../styles/Footer.css";
 
 export default function Footer() {
+  const { hash, key } = useLocation();
+  const footerRef = useRef(null);
+
+  useEffect(() => {
+    if (hash === "#about") footerRef.current?.scrollIntoView();
+  }, [hash, key]);
+
   return (
-    <footer className="acebedo-footer">
+    <footer id="about" className="acebedo-footer" ref={footerRef}>
       <div className="acebedo-footer__inner">
         <div className="acebedo-footer__main">
           <div className="acebedo-footer__brand">
@@ -37,13 +45,6 @@ export default function Footer() {
               <h2>Connect</h2>
               <span>Rosario, Cavite</span>
               <a href="#store-location">Store location</a>
-              <a
-                href="https://www.google.com/maps/search/?api=1&query=Acebedo+Panol+Optical%2C+CV36%2BC68%2C+General+Trias+Drive%2C+Rosario%2C+Cavite"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Get directions ↗
-              </a>
             </div>
           </nav>
         </div>
@@ -53,14 +54,6 @@ export default function Footer() {
             <p className="acebedo-footer__eyebrow">VISIT ACEBEDO</p>
             <h2 id="acebedo-footer-location-title">Find us in Rosario.</h2>
             <p>CV36+C68, General Trias Drive<br />Rosario, Cavite 4106</p>
-            <a
-              className="acebedo-footer__directions"
-              href="https://www.google.com/maps/search/?api=1&query=Acebedo+Panol+Optical%2C+CV36%2BC68%2C+General+Trias+Drive%2C+Rosario%2C+Cavite"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Get directions <span aria-hidden="true">↗</span>
-            </a>
           </div>
           <div className="acebedo-footer__map">
             <iframe

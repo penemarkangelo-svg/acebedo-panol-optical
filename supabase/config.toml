@@ -9,3 +9,7 @@ entrypoint = "./functions/create-paymongo-checkout/index.js"
 [functions.paymongo-webhook]
 verify_jwt = false
 entrypoint = "./functions/paymongo-webhook/index.js"
+
+[functions.expire-paymongo-checkouts]
+verify_jwt = false
+entrypoint = "./functions/expire-paymongo-checkouts/index.js"

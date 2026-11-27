@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
+import { indexCurrentPrescriptionUploads } from "../../lib/orderPrescriptionUploads";
+import { PRESCRIPTION_REVIEW_ORDER_STATUSES, VERIFIED_PAYMENT_STEP } from "./orderPrescriptionReview";
 import "../../styles/AdminPrescriptionDocuments.css";
 
 const REVIEW_FILTERS = [
@@ -46,6 +48,7 @@ function DocumentPreview({ document, onClose, reviewMode, onReviewSaved, onRevie
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [history, setHistory] = useState(null);
   const isImage = document.mime_type?.startsWith("image/");
   const StatusIcon = REVIEW_DISPLAY[document.status]?.icon || FileText;
 
@@ -71,6 +74,19 @@ function DocumentPreview({ document, onClose, reviewMode, onReviewSaved, onRevie
     loadPreview();
     return () => { cancelled = true; };
   }, [document.id, document.storage_path]);
+
+  useEffect(() => {
+    if (!reviewMode) return undefined;
+    let active = true;
+    supabase.from("order_prescription_uploads")
+      .select("id, original_filename, uploaded_at, status, reviewed_at, review_notes")
+      .eq("order_id", document.order_id)
+      .order("id", { ascending: false })
+      .then(({ data, error: historyError }) => {
+        if (active) setHistory(historyError ? false : data);
+      });
+    return () => { active = false; };
+  }, [document.order_id, reviewMode]);
 
   return (
     <div className="apo-prescription-overlay" role="presentation">
@@ -110,6 +126,7 @@ function DocumentPreview({ document, onClose, reviewMode, onReviewSaved, onRevie
               <StatusIcon size={17} />
               <div><strong>{REVIEW_DISPLAY[document.status]?.label || "Status unavailable"}</strong><small>{document.reviewed_at ? `Reviewed ${formatDate(document.reviewed_at)}` : "Review status is managed by an Optometrist."}</small></div>
             </div>
+            {reviewMode && document.review_notes && <p className="apo-prescription-permission-note">Reason shared with customer: {document.review_notes}</p>}
             {!reviewMode && <p className="apo-prescription-permission-note">Admins can view this file for order administration. Only an Optometrist can verify it or request a replacement.</p>}
           </section>
 
@@ -126,6 +143,23 @@ function DocumentPreview({ document, onClose, reviewMode, onReviewSaved, onRevie
           {reviewMode && document.status === "pending_review" && (
             <ReviewDecision documentId={document.id} previewReady={Boolean(url)} onSaved={onReviewSaved} onConflict={onReviewConflict} />
           )}
+          {reviewMode && (history === false || history?.some((upload) => upload.id !== document.id)) && (
+            <section className="apo-prescription-detail-section">
+              <div className="apo-prescription-section-heading"><Clock3 size={16} /><h3>Previous uploads for this order</h3></div>
+              {history === false ? <p>Previous uploads could not be loaded.</p> : (
+                <ul className="apo-prescription-upload-history">
+                  {history.filter((upload) => upload.id !== document.id).map((upload) => (
+                    <li key={upload.id}>
+                      <strong>{upload.original_filename || "Prescription document"}</strong>
+                      <small>Uploaded {formatDate(upload.uploaded_at)}</small>
+                      <small>{REVIEW_DISPLAY[upload.status]?.label || "Review status unavailable"}{upload.reviewed_at ? ` · ${formatDate(upload.reviewed_at)}` : ""}</small>
+                      {upload.review_notes && <p>{upload.review_notes}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
         </div>
 
         <footer className="apo-prescription-drawer-footer">
@@ -140,21 +174,34 @@ function DocumentPreview({ document, onClose, reviewMode, onReviewSaved, onRevie
 function ReviewDecision({ documentId, previewReady, onSaved, onConflict }) {
   const { user } = useAuth();
   const [decision, setDecision] = useState("");
+  const [replacementReason, setReplacementReason] = useState("");
+  const [reviewedLegibility, setReviewedLegibility] = useState(false);
   const [saving, setSaving] = useState(false);
+  const isRequestingReplacement = decision === "rejected";
+  const canSaveReview = Boolean(user?.id && previewReady && !saving && (
+    (decision === "validated" && reviewedLegibility) ||
+    (isRequestingReplacement && replacementReason.trim())
+  ));
 
   async function saveDecision(event) {
     event.preventDefault();
-    if (!user?.id || !previewReady || saving || !["validated", "rejected"].includes(decision)) return;
+    if (!canSaveReview) return;
 
     setSaving(true);
     try {
       const reviewedAt = new Date().toISOString();
       const { data, error } = await supabase
         .from("order_prescription_uploads")
-        .update({ status: decision, reviewed_by: user.id, reviewed_at: reviewedAt, updated_at: reviewedAt })
+        .update({
+          status: decision,
+          reviewed_by: user.id,
+          reviewed_at: reviewedAt,
+          updated_at: reviewedAt,
+          review_notes: isRequestingReplacement ? replacementReason.trim() : null,
+        })
         .eq("id", documentId)
         .eq("status", "pending_review")
-        .select("id, status, reviewed_at")
+        .select("id, status, reviewed_at, review_notes")
         .maybeSingle();
 
       if (error) throw error;
@@ -182,7 +229,20 @@ function ReviewDecision({ documentId, previewReady, onSaved, onConflict }) {
           <option value="validated">Verify prescription</option>
           <option value="rejected">Request replacement</option>
         </select>
-        <button type="submit" disabled={!user?.id || !previewReady || !decision || saving}>{saving ? "Saving…" : "Save review"}</button>
+        {decision === "validated" && (
+          <label className="apo-prescription-verification-check">
+            <input type="checkbox" checked={reviewedLegibility} onChange={(event) => setReviewedLegibility(event.target.checked)} disabled={!previewReady || saving} />
+            <span>I checked that the whole prescription and its issue date are readable.</span>
+          </label>
+        )}
+        {isRequestingReplacement && (
+          <label className="apo-prescription-replacement-reason">Reason shown to the customer
+            <textarea rows={3} maxLength={300} required disabled={saving}
+              placeholder="For example, please upload a clearer photo that shows the date issued."
+              value={replacementReason} onChange={(event) => setReplacementReason(event.target.value)} />
+          </label>
+        )}
+        <button type="submit" disabled={!canSaveReview}>{saving ? "Saving…" : "Save review"}</button>
       </div>
     </form>
   );
@@ -192,7 +252,6 @@ export default function AdminPrescriptionDocuments({ reviewMode = false }) {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [orderDataUnavailable, setOrderDataUnavailable] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
@@ -203,36 +262,25 @@ export default function AdminPrescriptionDocuments({ reviewMode = false }) {
 
     async function loadDocuments() {
       try {
-        const { data: uploads, error: uploadError } = await supabase
+        const uploadColumns = "id, order_id, storage_path, original_filename, mime_type, status, uploaded_at, reviewed_at";
+        let query = supabase
           .from("order_prescription_uploads")
-          .select("id, order_id, storage_path, original_filename, mime_type, status, uploaded_at, reviewed_at")
-          .order("uploaded_at", { ascending: false })
+          .select(reviewMode ? `${uploadColumns}, review_notes` : `${uploadColumns}, order:orders!inner(customer_name, email, order_status, created_at)`);
+        if (!reviewMode) {
+          query = query.in("order.order_status", PRESCRIPTION_REVIEW_ORDER_STATUSES)
+            .eq("order.step_statuses->>2", VERIFIED_PAYMENT_STEP);
+        }
+        const { data: uploads, error: uploadError } = await query
+          .order("id", { ascending: false })
           .limit(500);
         if (!active) return;
         if (uploadError) throw uploadError;
 
-        const rows = uploads || [];
-        const orderIds = [...new Set(rows.map((upload) => upload.order_id))];
-        let orders = [];
-        let orderDetailsFailed = false;
-        if (!reviewMode && orderIds.length) {
-          const { data: orderRows, error: orderError } = await supabase
-            .from("orders")
-            .select("id, customer_name, email, order_status, created_at")
-            .in("id", orderIds);
-          if (!active) return;
-          orders = orderRows || [];
-          orderDetailsFailed = Boolean(orderError);
-        }
-
-        const orderById = new Map(orders.map((order) => [order.id, order]));
-        setDocuments(rows.map((upload) => ({ ...upload, order: orderById.get(upload.order_id) || null })));
-        setOrderDataUnavailable(orderDetailsFailed);
+        setDocuments(Array.from(indexCurrentPrescriptionUploads(uploads || []).values()));
         setLoadError(false);
       } catch {
         if (!active) return;
         setDocuments([]);
-        setOrderDataUnavailable(false);
         setLoadError(true);
       } finally {
         if (active) setLoading(false);
@@ -276,7 +324,7 @@ export default function AdminPrescriptionDocuments({ reviewMode = false }) {
         <div>
           <p className="apo-prescriptions-eyebrow">{reviewMode ? "Clinical review" : "Eye care"}</p>
           <h1>{reviewMode ? "Prescription review" : "Prescription Documents"}</h1>
-          <p className="apo-prescriptions-subtitle">{reviewMode ? "Review prescriptions uploaded with customer orders. Verify the file or request a replacement." : "Track customer-uploaded prescriptions and their Optometrist review status."}</p>
+          <p className="apo-prescriptions-subtitle">{reviewMode ? "Review prescriptions uploaded with customer orders. Verify the file or request a replacement." : "Track uploaded prescriptions and their review status for orders with verified payment."}</p>
         </div>
         <button className="apo-prescriptions-refresh" type="button" onClick={refreshDocuments} disabled={loading} aria-label="Refresh prescription documents">
           {loading ? <Loader2 size={15} className="is-spinning" /> : <RefreshCw size={15} />} Refresh
@@ -314,11 +362,11 @@ export default function AdminPrescriptionDocuments({ reviewMode = false }) {
                   </tr>;
                 })}
           </tbody></table></div>
-        <footer className="apo-prescriptions-directory-footer"><span>Showing {filteredDocuments.length} of {documents.length} uploaded documents{documents.length === 500 ? " (latest 500)" : ""}</span>{!reviewMode && <span>{orderDataUnavailable ? "Related order details are unavailable" : "Review decisions are managed by Optometrists"}</span>}</footer>
+        <footer className="apo-prescriptions-directory-footer"><span>Showing {filteredDocuments.length} of {documents.length} uploaded documents{documents.length === 500 ? " (latest 500)" : ""}</span>{!reviewMode && <span>Review decisions are managed by Optometrists</span>}</footer>
       </section>
 
       <p className="apo-prescriptions-privacy-note"><ShieldCheck size={14} /> Only customer-uploaded order prescriptions appear here. Clinic-issued prescriptions remain in their separate workflow.</p>
-      {selectedDocument && (
+      {!loading && selectedDocument && (
         <DocumentPreview key={selectedDocument.id} document={selectedDocument} onClose={() => setSelectedDocumentId(null)} reviewMode={reviewMode} onReviewSaved={handleReviewSaved} onReviewConflict={refreshDocuments} />
       )}
     </div>

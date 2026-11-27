@@ -1,51 +1,40 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-export default function AdminRoute({ children }) {
+export default function AdminRoute({ children, requireSuperAdmin = false }) {
   const { user, loading } = useAuth();
-  const [role, setRole] = useState(null);
-  const [checking, setChecking] = useState(true);
-  const [checkError, setCheckError] = useState(false);
+  const { pathname } = useLocation();
+  const userId = user?.id;
+  const [access, setAccess] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let active = true;
 
     async function checkRole() {
-      if (loading) return;
-      if (!user) {
-        setRole(null);
-        setCheckError(false);
-        setChecking(false);
-        return;
-      }
-
-      setChecking(true);
-      setCheckError(false);
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
+      if (loading || !userId) return;
+      const [role, profile] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
+        supabase.from("staff_profiles").select("employment_status, can_manage_admins").eq("user_id", userId).maybeSingle(),
+      ]);
       if (!active) return;
-      setRole(data?.role || null);
-      setCheckError(Boolean(error));
-      setChecking(false);
+      setAccess({ userId, retryCount, error: Boolean(role.error || profile.error),
+        role: role.data?.role,
+        isAdmin: role.data?.role === "admin" && profile.data?.employment_status === "active",
+        canManageAdmins: profile.data?.can_manage_admins === true });
     }
 
     checkRole().catch(() => {
       if (!active) return;
-      setCheckError(true);
-      setChecking(false);
+      setAccess({ userId, retryCount, error: true });
     });
 
     return () => { active = false; };
-  }, [user?.id, loading, retryCount]);
+  }, [userId, loading, retryCount]);
 
-  if (loading || checking) {
+  if (loading || (userId && (access?.userId !== userId || access.retryCount !== retryCount))) {
     return <div className="text-center py-10">Loading...</div>;
   }
 
@@ -53,7 +42,7 @@ export default function AdminRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (checkError) {
+  if (access.error) {
     return (
       <div className="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-3 px-6 text-center">
         <p role="alert">Admin access could not be checked right now. Your session is still active.</p>
@@ -64,9 +53,16 @@ export default function AdminRoute({ children }) {
     );
   }
 
-  if (role !== "admin") {
+  if (!access.isAdmin) {
+    if (access.role === "admin") {
+      return <div className="mx-auto max-w-lg px-6 py-10 text-center" role="alert">Your account does not have active Admin access.</div>;
+    }
     return <Navigate to="/" replace />;
   }
 
-  return children;
+  if (requireSuperAdmin && !access.canManageAdmins) return <Navigate to="/admin/dashboard" replace />;
+  if (pathname === "/admin" || pathname === "/admin/") {
+    return <Navigate to={access.canManageAdmins ? "/super-admin/overview" : "/admin/dashboard"} replace />;
+  }
+  return typeof children === "function" ? children(access) : children;
 }

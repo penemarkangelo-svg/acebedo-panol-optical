@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { GlassesIcon } from "@solar-icons/react/linear";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import ProductPhoto from "../components/ProductPhoto";
 import TryOnModal from "../components/TryOnModal";
 import { supabase } from "../lib/supabaseClient";
 import { getProductCategory, usesVariantStock } from "../utils/productTypes";
@@ -17,6 +18,59 @@ const ALL_PRODUCTS_PRIORITY = {
   accessory: 1,
   eyedrops: 2,
 };
+
+function ShopFilterSkeleton() {
+  return (
+    <aside className="shop-filters" aria-hidden="true">
+      {["Shape", "Material", "Brand"].map((label) => (
+        <div className="shop-filter-section" key={label}>
+          <div className="shop-filter-heading">
+            <h2>{label}</h2>
+          </div>
+          <div className="shop-filter-options">
+            {[0, 1, 2, 3].map((index) => (
+              <div className="shop-filter-option" key={index}>
+                <span className="shop-checkbox catalog-skeleton" />
+                <span className="catalog-skeleton shop-skeleton__line shop-skeleton__line--filter" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </aside>
+  );
+}
+
+function ShopProductGridSkeleton() {
+  return (
+    <div className="shop-product-grid" aria-hidden="true">
+      {Array.from({ length: 6 }, (_, index) => (
+        <div className="shop-product" key={index}>
+          <div className="shop-product__image-wrap">
+            <span className="catalog-skeleton catalog-skeleton--photo" />
+            <span className="shop-product__try-on shop-skeleton__action" />
+          </div>
+          <div className="shop-product__details">
+            <div className="shop-product__brand-row">
+              <span className="catalog-skeleton shop-skeleton__line shop-skeleton__line--short" />
+            </div>
+            <div className="shop-product__name-row">
+              <span className="catalog-skeleton shop-skeleton__line shop-skeleton__line--name" />
+              <span className="shop-product__color catalog-skeleton" />
+            </div>
+            <div className="shop-product__attributes">
+              <span className="catalog-skeleton shop-skeleton__line" />
+            </div>
+            <div className="shop-product__bottom">
+              <span className="catalog-skeleton shop-skeleton__line shop-skeleton__line--short" />
+              <span className="catalog-skeleton shop-skeleton__line shop-skeleton__line--details" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function ShopPage() {
   const navigate = useNavigate();
@@ -236,23 +290,6 @@ export default function ShopPage() {
     return color?.color_code || "#d9d8d1";
   };
 
-  if (loading) {
-    return (
-      <>
-        <Header />
-
-        <main className="shop-page shop-page--loading">
-          <div className="shop-loading">
-            <div className="shop-loading__line" />
-            <p>Loading frames...</p>
-          </div>
-        </main>
-
-        <Footer />
-      </>
-    );
-  }
-
   return (
     <>
       <Header />
@@ -346,7 +383,11 @@ export default function ShopPage() {
             </div>
 
             <p className="shop-collection__statement">
-              {filteredProducts.length} thoughtfully selected {productTypeLabel}
+              {loading ? (
+                <span className="catalog-skeleton shop-skeleton__line shop-skeleton__line--statement" aria-hidden="true" />
+              ) : (
+                <>{filteredProducts.length} thoughtfully selected {productTypeLabel}</>
+              )}
             </p>
           </div>
 
@@ -364,9 +405,13 @@ export default function ShopPage() {
                 Clear all
               </button>
 
-              <span className="shop-toolbar__count">
-                {filteredProducts.length} {productTypeLabel}
-              </span>
+              {loading ? (
+                <span className="shop-loading-status" role="status">Loading products…</span>
+              ) : (
+                <span className="shop-toolbar__count">
+                  {filteredProducts.length} {productTypeLabel}
+                </span>
+              )}
             </div>
 
             <div className="shop-sort">
@@ -384,8 +429,9 @@ export default function ShopPage() {
             </div>
           </div>
 
-          <div className="shop-collection__body">
-            <aside className="shop-filters">
+          <div className="shop-collection__body" aria-busy={loading}>
+            {loading && <ShopFilterSkeleton />}
+            <aside className="shop-filters" hidden={loading}>
               <div className="shop-filter-section">
                 <div className="shop-filter-heading">
                   <h2>Shape</h2>
@@ -569,7 +615,9 @@ export default function ShopPage() {
             </aside>
 
             <section className="shop-products">
-              {filteredProducts.length === 0 ? (
+              {loading ? (
+                <ShopProductGridSkeleton />
+              ) : filteredProducts.length === 0 ? (
                 <div className="shop-empty">
                   <h2>
                     No {productTypeLabel} found
@@ -591,6 +639,7 @@ export default function ShopPage() {
                   <div className="shop-product-grid">
                     {paginatedProducts.map((product) => {
                       const colors = getProductColors(product);
+                      const imageUrl = getPrimaryImage(product);
 
                       return (
                         <article
@@ -619,8 +668,9 @@ export default function ShopPage() {
                               }
                               aria-label={`View ${product.name}`}
                             >
-                              <img
-                                src={getPrimaryImage(product)}
+                              <ProductPhoto
+                                key={imageUrl}
+                                src={imageUrl}
                                 alt={product.name}
                                 loading="lazy"
                               />

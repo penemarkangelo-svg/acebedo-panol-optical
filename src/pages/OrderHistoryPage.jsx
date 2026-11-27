@@ -268,6 +268,9 @@ export default function OrderHistoryPage({ embedded = false }) {
 
                     <footer className="order-history__card-footer">
                       <Link to={`/order-status/${order.id}`} className="order-history__details-link">View details <span aria-hidden="true">→</span></Link>
+                      {["confirmed", "processing"].includes(order.order_status) && order.step_statuses?.["3"] === "Resubmission needed" && (
+                        <span className="order-history__rx">New prescription copy needed</span>
+                      )}
                       {order.order_status?.toLowerCase() === "pending" && paymentRetryByOrder[order.id]?.status === "available" && (
                         <button
                           type="button"

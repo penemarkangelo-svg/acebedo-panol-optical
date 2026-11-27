@@ -39,9 +39,10 @@
 .apo-screenings-table-message.is-error { color: #9e3832 !important; }
 .apo-screenings-directory-footer { display: flex; justify-content: space-between; gap: 12px; padding-top: 9px; color: #5C574F; font-size: 11px; }
 
-.apo-screening-overlay { position: fixed; z-index: 80; inset: 0; display: flex; justify-content: flex-end; }
-.apo-screening-backdrop { position: absolute; inset: 0; border: 0; background: rgb(25 24 21 / 40%); cursor: default; }
-.apo-screening-drawer { position: relative; display: flex; width: min(660px, 96vw); height: 100%; flex-direction: column; border-left: 1px solid #d6d1c6; background: #fbfaf8; box-shadow: -12px 0 36px rgb(25 24 21 / 12%); }
+.apo-optometrist-screenings .apo-screenings-table-wrap { overflow-x: auto; }
+.apo-screening-drawer { position: fixed; inset: 0 0 0 auto; display: flex; width: min(660px, 96vw); height: 100%; max-width: none; max-height: none; flex-direction: column; margin: 0; padding: 0; border: 0; border-left: 1px solid #d6d1c6; background: #fbfaf8; box-shadow: -12px 0 36px rgb(25 24 21 / 12%); }
+.apo-screening-drawer:not([open]) { display: none; }
+.apo-screening-drawer::backdrop { background: rgb(25 24 21 / 40%); }
 .apo-screening-drawer-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 20px 22px 15px; border-bottom: 1px solid #d6d1c6; background: #f2f0ec; }
 .apo-screening-drawer-header h2 { margin: 0; color: #1A1816; font-family: var(--font-brand, Georgia, serif); font-size: 22px; font-weight: 500; }
 .apo-screening-drawer-header p:not(.apo-screening-eyebrow) { margin: 4px 0 0; color: #5C574F; font-size: 12px; }
@@ -53,6 +54,10 @@
 .apo-screening-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px 16px; margin: 0; }
 .apo-screening-detail-grid dt { margin-bottom: 3px; color: #5C574F; font-size: 10px; }
 .apo-screening-detail-grid dd { overflow-wrap: anywhere; margin: 0; color: #1A1816; font-size: 12px; font-weight: 550; }
+.apo-screening-questionnaire { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.apo-screening-questionnaire > div { padding: 10px; border: 1px solid #e2ded6; border-radius: 4px; background: #fff; }
+.apo-screening-questionnaire dt { margin-bottom: 5px; color: #5C574F; font-size: 12px; }
+.apo-screening-questionnaire dd { margin: 0; color: #1A1816; font-size: 13px; font-weight: 550; white-space: pre-wrap; overflow-wrap: anywhere; }
 .apo-screening-results-section > .apo-screening-section-heading { margin-bottom: 12px; }
 .apo-screening-finding { padding: 12px 0; border-top: 1px solid #e2ded6; }
 .apo-screening-finding-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
@@ -72,9 +77,15 @@
 .apo-screening-disclaimer svg { flex: 0 0 auto; margin-top: 1px; }
 .apo-screening-disclaimer p { margin: 0; font-size: 11px; line-height: 1.5; }
 .apo-screening-disclaimer strong { display: block; margin-bottom: 2px; font-size: 12px; }
-.apo-screening-drawer-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 21px; border-top: 1px solid #d6d1c6; background: #fff; }
+.apo-screening-demo-note { margin: 0 0 14px; }
+.apo-screening-drawer-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 21px; border-top: 1px solid #d6d1c6; background: #fff; }
 .apo-screening-drawer-footer span { display: inline-flex; align-items: center; gap: 5px; color: #5C574F; font-size: 11px; }
 .apo-screening-drawer-footer button { min-height: 36px; padding: 0 12px; border: 1px solid #292721; border-radius: 4px; background: #292721; color: #fff; font: inherit; font-size: 11px; cursor: pointer; }
+.apo-screening-export-error { flex: 1 0 100%; margin: 0; color: #9e3832; font-size: 12px; }
+.apo-screening-drawer-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-left: auto; }
+.apo-screening-drawer-footer .apo-screening-download { display: inline-flex; align-items: center; gap: 6px; border-color: #d6d1c6; background: #fff; color: #26241f; }
+.apo-screening-download:hover:enabled { border-color: #a81f2a; color: #a81f2a; }
+.apo-screening-download:disabled { opacity: .6; cursor: default; }
 .is-spinning { animation: apo-screening-spin 1s linear infinite; }
 @keyframes apo-screening-spin { to { transform: rotate(360deg); } }
 
@@ -96,5 +107,5 @@
   .apo-screening-drawer-content { padding: 14px; }
   .apo-screening-drawer-footer { padding: 10px 14px; }
   .apo-screening-detail-grid { gap: 10px; }
-  .apo-screening-eyes { grid-template-columns: 1fr; }
+  .apo-screening-eyes, .apo-screening-questionnaire { grid-template-columns: 1fr; }
 }

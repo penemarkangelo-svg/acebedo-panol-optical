@@ -12,7 +12,7 @@ import "../../styles/AdminDashboard.css";
 import "../../styles/AdminStaffManagement.css";
 
 const emptyStaff = [];
-const roleLabels = { admin: "Administrator", clinic_staff: "Clinic Staff", optometrist: "Optometrist" };
+const roleLabels = { admin: "System Admin", super_admin: "Super Admin", clinic_staff: "Clinic Staff", optometrist: "Optometrist" };
 
 function formatDate(value) {
   if (!value) return "—";
@@ -75,7 +75,7 @@ export default function AdminStaffManagement() {
       setLoading(true);
       const profilesResult = await supabase
         .from("staff_profiles")
-        .select("user_id, first_name, last_name, phone_number, position, employment_status, created_at")
+        .select("user_id, first_name, last_name, phone_number, position, employment_status, created_at, can_manage_admins")
         .order("created_at", { ascending: false });
 
       if (!current) return;
@@ -89,7 +89,10 @@ export default function AdminStaffManagement() {
           : { data: [], error: null };
         if (!current) return;
         const rolesByUser = new Map((rolesResult.error ? [] : rolesResult.data || []).map(({ user_id, role }) => [user_id, role]));
-        setStaff(profiles.map((profile) => ({ ...profile, role: rolesByUser.get(profile.user_id) || null })));
+        setStaff(profiles.map((profile) => {
+          const role = rolesByUser.get(profile.user_id) || null;
+          return { ...profile, role: role === "admin" && profile.can_manage_admins ? "super_admin" : role };
+        }));
         setLoadError(false);
       }
       setLoading(false);

@@ -16,14 +16,15 @@ function parseOptionalThreshold(value) {
   return Number.isInteger(parsed) && parsed >= 0 ? parsed : Number.NaN;
 }
 
-export default function AdminProductForm() {
+export default function AdminProductForm({ fromMedia = false }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const [savedProductId, setSavedProductId] = useState(id ? parseInt(id, 10) : null);
-  const [step, setStep] = useState(location.state?.step === 2 ? 2 : 1);
+  const returnPath = fromMedia ? "/admin/product-media" : "/admin/products";
+  const [step, setStep] = useState(fromMedia || location.state?.step === 2 ? 2 : 1);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(id));
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -87,6 +88,7 @@ export default function AdminProductForm() {
   ]);
 
   useEffect(() => {
+    if (fromMedia) return;
     const fetchReferenceData = async () => {
       const [brandsRes, attributesRes] = await Promise.all([
         supabase.from("brands").select("id, name").order("name"),
@@ -103,10 +105,11 @@ export default function AdminProductForm() {
       }
     };
     fetchReferenceData();
-  }, []);
+  }, [fromMedia]);
 
   useEffect(() => {
     if (!id) return;
+    let current = true;
     const fetchProduct = async () => {
       setLoading(true);
       const { data, error } = await supabase
@@ -114,9 +117,10 @@ export default function AdminProductForm() {
         .select("*, product_colors(*, product_color_images(product_image_id, sort_order, is_primary, product_images!product_color_images_image_product_fkey(id, image_url, is_primary, sort_order))), product_images(*)")
         .eq("id", id)
         .single();
+      if (!current) return;
       if (error) {
         toast.error("Failed to load product.");
-        navigate("/admin/products");
+        navigate(returnPath, { replace: true });
       } else {
         savedStateUpdate.current = true;
         setMediaDirty(false);
@@ -148,6 +152,7 @@ export default function AdminProductForm() {
           return { ...color, gallery_images: galleryImages, pending_gallery_files: [], removed_gallery_ids: [] };
         }));
         setOriginalColorIds((data.product_colors || []).map((color) => color.id));
+        if (fromMedia) setExpandedColorIndex(data.product_colors?.length ? 0 : null);
         setImages(productImages);
         setBrandId(data.brand_id?.toString() || "");
         setFrameShapeId(data.frame_shape_id?.toString() || "");
@@ -157,7 +162,8 @@ export default function AdminProductForm() {
       setHasUnsavedChanges(false);
     };
     fetchProduct();
-  }, [id, navigate]);
+    return () => { current = false; };
+  }, [fromMedia, id, navigate, returnPath]);
 
   const addColor = () => {
     setMediaDirty(true);
@@ -300,13 +306,13 @@ export default function AdminProductForm() {
     if (hasUnsavedChanges) {
       setShowCancelModal(true);
     } else {
-      navigate("/admin/products");
+      navigate(returnPath);
     }
   };
 
   const confirmCancel = () => {
     setShowCancelModal(false);
-    navigate("/admin/products");
+    navigate(returnPath);
   };
 
   const handleSaveDetails = async (e) => {
@@ -588,18 +594,18 @@ export default function AdminProductForm() {
     <div className="apo-dashboard apo-product-editor">
       <header className="mb-5 flex items-start justify-between gap-4 border-b border-[#d8d4ca] pb-4">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a92727]">Product catalog</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#a92727]">{fromMedia ? "Product media" : "Product catalog"}</p>
           <h1 className="mt-1 font-serif text-2xl text-[#26241f]">{step === 2 ? usesVariantStock(type) ? "Colors & images" : "Product images" : id ? "Edit product" : "Add new product"}</h1>
-          <p className="mt-1 text-sm text-[#625f58]">{usesVariantStock(type) ? "Add product details, then manage colors and their photos." : "Add product details, then upload its photos."}</p>
+          {!fromMedia && <p className="mt-1 text-sm text-[#625f58]">{usesVariantStock(type) ? "Add product details, then manage colors and their photos." : "Add product details, then upload its photos."}</p>}
         </div>
         <button type="button" disabled={saving} onClick={handleCancel} aria-label="Close product editor" className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-lg text-[#625f58] hover:bg-white hover:text-[#26241f]">×</button>
       </header>
 
-      <div className="mb-4 flex w-full items-center gap-2 text-xs text-[#625f58]">
+      {!fromMedia && <div className="mb-4 flex w-full items-center gap-2 text-xs text-[#625f58]">
         <span className={`rounded-full px-3 py-1 ${step === 1 ? "bg-[#26241f] text-white" : "bg-white"}`}>1&nbsp; Product details</span>
         <span className="h-px flex-1 bg-[#d8d4ca]" />
         <button type="button" disabled={saving || !savedProductId || (step === 1 && hasUnsavedChanges)} onClick={() => setStep(2)} title={hasUnsavedChanges ? "Save product details before continuing" : undefined} className={`rounded-full px-3 py-1 disabled:cursor-not-allowed disabled:opacity-50 ${step === 2 ? "bg-[#26241f] text-white" : "bg-white hover:bg-white/70"}`}>2&nbsp; {usesVariantStock(type) ? "Colors & images" : "Images"}</button>
-      </div>
+      </div>}
 
       <form
         onSubmit={step === 1 ? handleSaveDetails : usesVariantStock(type) ? handleSaveVariants : handleSaveProductImages}
@@ -755,13 +761,13 @@ export default function AdminProductForm() {
         <div className="apo-product-editor-footer">
           <button
             type="button"
-            onClick={() => setStep(1)}
+            onClick={fromMedia ? handleCancel : () => setStep(1)}
             disabled={saving}
             className="rounded-md border border-[#d8d4ca] bg-white px-4 py-2.5 text-sm text-[#26241f] hover:bg-[#f7f5f1]"
           >
-            Back
+            {fromMedia ? "Back to product media" : "Back"}
           </button>
-          <div className="apo-editor-footer-actions"><button type="button" disabled={saving} onClick={handleCancel} className="apo-editor-secondary">Close</button><button
+          <div className="apo-editor-footer-actions">{!fromMedia && <button type="button" disabled={saving} onClick={handleCancel} className="apo-editor-secondary">Close</button>}<button
             type="submit"
             disabled={saving}
             className="rounded-md bg-[#26241f] px-4 py-2.5 text-sm font-medium text-white hover:bg-black disabled:opacity-50"

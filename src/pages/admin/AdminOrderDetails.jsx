@@ -15,7 +15,10 @@ import {
   X,
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
+import { getAppointmentReference } from "../../appointments/appointmentUtils";
 import { formatPaymentDate, getPaymentMethod, getPaymentStatus, paymentStatuses } from "./paymentDetails";
+import { getPrescriptionReviewBlock, isPaymentVerified } from "./orderPrescriptionReview";
+import { readOrderPrescriptionReviews } from "../../lib/orderPrescriptionUploads";
 import "../../styles/AdminOrderDetails.css";
 
 const PICKUP_STEPS = ["Order received", "Processing", "Ready for pickup", "Picked up"];
@@ -51,6 +54,21 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
   const [savingStatus, setSavingStatus] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [paymentRecords, setPaymentRecords] = useState(null);
+  const [clinicOrder, setClinicOrder] = useState(null);
+
+  const clinicAppointmentId = order?.clinic_appointment_id;
+  const currentOrderId = order?.id;
+  useEffect(() => {
+    if (!isOpen || !currentOrderId || !clinicAppointmentId) return;
+    let active = true;
+    async function loadClinicOrder() {
+      const { data } = await supabase.rpc("staff_clinic_order_status", { p_order_id: currentOrderId });
+      if (active) setClinicOrder({ orderId: currentOrderId, ready: data?.prescription_ready === true, date: data?.appointment_date });
+    }
+    loadClinicOrder();
+    window.addEventListener("focus", loadClinicOrder);
+    return () => { active = false; window.removeEventListener("focus", loadClinicOrder); };
+  }, [isOpen, currentOrderId, clinicAppointmentId]);
 
   useEffect(() => {
     if (!isOpen || !order?.id) return;
@@ -81,12 +99,7 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
           .select(`*, product:product_id (id, name, product_images (image_url, is_primary))`)
           .eq("order_id", order.id)
           .order("id", { ascending: true }),
-        // Deliberately request status metadata only. Staff must not receive file paths or clinical details here.
-        supabase
-          .from("order_prescription_uploads")
-          .select("id, status, uploaded_at, reviewed_at")
-          .eq("order_id", order.id)
-          .order("uploaded_at", { ascending: false }),
+        readOrderPrescriptionReviews([order.id]),
       ]);
 
       if (cancelled) return;
@@ -156,8 +169,14 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
   const isManualReview = order.order_status === "manual_review";
   const isClosed = ["completed", "cancelled"].includes(order.order_status);
   const isCancelled = order.order_status === "cancelled";
-  const paymentVerified = order.step_statuses?.["2"] === "Completed";
+  const paymentVerified = isPaymentVerified(order);
   const paymentResult = paymentRecords?.orderId === order.id ? paymentRecords : null;
+  const awaitingClinicPrescription = Boolean(clinicAppointmentId)
+    && (clinicOrder?.orderId !== currentOrderId || !clinicOrder?.ready);
+  const currentPrescription = prescriptionUploads[0];
+  const waitingForUploadReview = !clinicAppointmentId && Boolean(currentPrescription)
+    && currentPrescription.status !== "validated";
+  const fulfillmentOnHold = awaitingClinicPrescription || waitingForUploadReview || loading || prescriptionUnavailable;
   const isBlocked = !paymentVerified || isManualReview || isClosed;
   const subtotal = Number(order.subtotal ?? orderItems.reduce((sum, item) => sum + Number(item.subtotal || 0), 0));
   const shipping = Number(order.shipping_fee || 0);
@@ -168,7 +187,7 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
       onClose();
       return;
     }
-    if (isBlocked) return;
+    if (isBlocked || (fulfillmentOnHold && selectedStatus !== "cancelled")) return;
 
     setSavingStatus(true);
     const { data: updatedOrder, error } = await supabase
@@ -182,7 +201,9 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
 
     if (error) {
       console.error("Failed to update order status:", error);
-      toast.error(error.code === "42501" ? "You do not have permission to update this order." : "Could not update this order. Please try again.");
+      toast.error(error.message?.startsWith("Fulfillment is on hold")
+        ? "Fulfillment is on hold until the optometrist verifies the current prescription."
+        : error.code === "42501" ? "You do not have permission to update this order." : "Could not update this order. Please try again.");
       setSavingStatus(false);
       return;
     }
@@ -202,6 +223,8 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
   const getPrescriptionSummary = () => {
     if (prescriptionUnavailable) return { label: "Status unavailable", tone: "is-neutral" };
     if (!prescriptionUploads.length) return { label: "No prescription uploaded", tone: "is-neutral" };
+    const reviewBlock = getPrescriptionReviewBlock(order);
+    if (reviewBlock) return { label: reviewBlock, tone: "is-neutral" };
     if (prescriptionUploads.some((upload) => upload.status === "pending_review")) {
       return { label: PRESCRIPTION_LABELS.pending_review, tone: "is-pending" };
     }
@@ -291,6 +314,7 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
                       <span>
                         {item.color_name && <>{item.color_name} · </>}
                         Qty {item.quantity}
+                        {item.vision_mode && <> · {item.vision_mode === "prescription" ? "Prescription lens" : "Plano lens"}</>}
                         {item.lens_package_name && <> · {item.lens_package_name}</>}
                       </span>
                       {(item.brand_name || item.frame_shape || item.frame_material) && (
@@ -378,11 +402,19 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
 
           <section className="apo-order-section">
             <div className="apo-order-section-heading"><div><h3>Prescription status</h3><p>Review is handled by an Optometrist.</p></div><ClipboardCheck size={17} aria-hidden="true" /></div>
+            {clinicAppointmentId ? (
+              <div className={`apo-order-prescription-status ${awaitingClinicPrescription ? "is-attention" : "is-complete"}`}>
+                <ClipboardCheck size={18} aria-hidden="true" />
+                <span>{awaitingClinicPrescription ? "In-clinic eye exam · Awaiting prescription record before processing" : "In-clinic prescription recorded"}</span>
+                {clinicOrder?.date && <small>{getAppointmentReference({ id: clinicAppointmentId, appointment_date: clinicOrder.date })}</small>}
+              </div>
+            ) : (
             <div className={`apo-order-prescription-status ${prescriptionSummary.tone}`}>
               {prescriptionSummary.tone === "is-complete" ? <CheckCircle2 size={18} /> : prescriptionSummary.tone === "is-attention" ? <AlertTriangle size={18} /> : <Circle size={18} />}
               <span>{prescriptionSummary.label}</span>
-              {!prescriptionUnavailable && prescriptionUploads.length > 0 && <small>{prescriptionUploads.length} uploaded {prescriptionUploads.length === 1 ? "file" : "files"}</small>}
+              {currentPrescription?.upload_count > 0 && <small>{currentPrescription.upload_count} uploaded {Number(currentPrescription.upload_count) === 1 ? "file" : "files"}</small>}
             </div>
+            )}
           </section>
         </div>
 
@@ -392,15 +424,18 @@ export default function AdminOrderDetailPanel({ order, isOpen, onClose, onStatus
           ) : (
             <>
               <label htmlFor="apo-order-status">Next order status</label>
+              {waitingForUploadReview && <p className="apo-order-footer-message">{currentPrescription.status === "rejected"
+                ? "Fulfillment is on hold while the customer replaces the prescription."
+                : "Fulfillment is on hold until the optometrist verifies the current prescription."}</p>}
               <div className="apo-order-footer-controls">
                 <select id="apo-order-status" value={selectedStatus} onChange={(event) => setSelectedStatus(event.target.value)}>
                   {order.order_status === "confirmed" && <option value="confirmed" disabled>Confirmed</option>}
-                  <option value="processing">Processing</option>
-                  {isPickup ? <option value="ready_for_pickup">Ready for pickup</option> : <option value="out_for_delivery">Out for delivery</option>}
-                  <option value="completed">{isPickup ? "Picked up" : "Delivered"}</option>
+                  <option value="processing" disabled={fulfillmentOnHold}>Processing</option>
+                  {isPickup ? <option value="ready_for_pickup" disabled={fulfillmentOnHold}>Ready for pickup</option> : <option value="out_for_delivery" disabled={fulfillmentOnHold}>Out for delivery</option>}
+                  <option value="completed" disabled={fulfillmentOnHold}>{isPickup ? "Picked up" : "Delivered"}</option>
                   <option value="cancelled">Cancelled</option>
                 </select>
-                <button type="button" onClick={handleStatusSave} disabled={savingStatus}>
+                <button type="button" onClick={handleStatusSave} disabled={savingStatus || (fulfillmentOnHold && selectedStatus !== "cancelled")}>
                   {savingStatus && <Loader2 size={15} className="animate-spin" />}
                   {savingStatus ? "Saving…" : "Save status"}
                 </button>

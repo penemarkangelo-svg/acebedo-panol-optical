@@ -7,6 +7,8 @@ import { supabase } from "../lib/supabaseClient";
 import "../styles/AdminDashboard.css";
 
 const manilaHour = new Intl.DateTimeFormat("en-PH", { hour: "numeric", hourCycle: "h23", timeZone: "Asia/Manila" });
+const manilaDate = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric", timeZone: "Asia/Manila" });
+const manilaTime = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Asia/Manila" });
 
 function nameText(value) {
   return typeof value === "string" ? value.trim() : "";
@@ -20,6 +22,7 @@ function WorkspaceAccountMenu({ displayName, email, role }) {
   const accountRef = useRef(null);
   const triggerRef = useRef(null);
   const panelId = useId();
+  const accountName = displayName || "My account";
   const nameParts = (displayName || role).split(/\s+/);
   const initials = `${nameParts[0].charAt(0)}${nameParts.length > 1 ? nameParts.at(-1).charAt(0) : ""}`.toUpperCase();
 
@@ -58,8 +61,12 @@ function WorkspaceAccountMenu({ displayName, email, role }) {
     <div className="apo-workspace-account" ref={accountRef} onBlur={(event) => {
       if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setOpen(false);
     }}>
-      <button ref={triggerRef} className="apo-workspace-account-trigger" type="button" aria-label="Account options" aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((current) => !current)}>
+      <button ref={triggerRef} className="apo-workspace-account-trigger" type="button" aria-label={`${accountName}, ${role}. Account options`} aria-expanded={open} aria-controls={panelId} onClick={() => setOpen((current) => !current)}>
         <span className="apo-admin-avatar" aria-hidden="true">{initials}</span>
+        <span className="apo-workspace-account-summary">
+          <strong title={accountName}>{accountName}</strong>
+          <small>{role}</small>
+        </span>
         <ChevronDown size={15} aria-hidden="true" />
       </button>
       <div id={panelId} className="apo-workspace-account-panel" hidden={!open}>
@@ -71,6 +78,38 @@ function WorkspaceAccountMenu({ displayName, email, role }) {
         <button className="apo-admin-signout" type="button" onClick={handleSignOut} aria-disabled={signingOut}>
           <LogOut size={17} aria-hidden="true" />{signingOut ? "Signing out…" : "Sign out"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+function WorkspaceTopbar({ isDashboard, displayName, greetingName, email, role }) {
+  const { pathname } = useLocation();
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    let timer;
+    function scheduleNextMinute() {
+      timer = window.setTimeout(() => {
+        setNow(new Date());
+        scheduleNextMinute();
+      }, 60_000 - (Date.now() % 60_000));
+    }
+    scheduleNextMinute();
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  const hour = Number(manilaHour.format(now));
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  return (
+    <div className={`apo-dashboard-topbar apo-workspace-topbar${isDashboard ? " apo-dashboard" : ""}`}>
+      {isDashboard && <p className="apo-workspace-greeting">{greeting}{greetingName && `, ${greetingName}`}</p>}
+      <div className="apo-workspace-topbar-actions">
+        <time className="apo-workspace-clock" dateTime={now.toISOString()} title="Philippine time">
+          <span>{manilaDate.format(now)}</span>{" "}<span>{manilaTime.format(now)}</span>
+        </time>
+        <WorkspaceAccountMenu key={pathname} displayName={displayName} email={email} role={role} />
       </div>
     </div>
   );
@@ -129,8 +168,6 @@ export default function WorkspaceLayout({ name, dashboardPath, navItems }) {
   const lastName = nameText(staffProfile?.last_name) || nameText(metadata?.last_name);
   const displayName = [firstName, lastName].filter(Boolean).join(" ") || nameText(metadata?.full_name) || nameText(metadata?.name);
   const greetingName = (firstName || displayName).split(/\s+/)[0];
-  const hour = Number(manilaHour.format(new Date()));
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
   return (
     <div className={`apo-admin-shell apo-admin-workspace-shell${collapsed ? " is-sidebar-collapsed" : ""}`}>
@@ -176,10 +213,7 @@ export default function WorkspaceLayout({ name, dashboardPath, navItems }) {
         </div>
       </aside>
       <main className="apo-admin-main">
-        <div className={`apo-dashboard-topbar apo-workspace-topbar${isDashboard ? " apo-dashboard" : ""}`}>
-          {isDashboard && <p className="apo-workspace-greeting">{greeting}{greetingName && `, ${greetingName}`}</p>}
-          <WorkspaceAccountMenu key={pathname} displayName={displayName} email={user?.email} role={name} />
-        </div>
+        <WorkspaceTopbar isDashboard={isDashboard} displayName={displayName} greetingName={greetingName} email={user?.email} role={name} />
         <div>
           <Outlet />
         </div>

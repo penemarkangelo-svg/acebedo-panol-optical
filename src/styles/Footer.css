@@ -92,20 +92,6 @@
   line-height: 1.7;
 }
 
-.acebedo-footer__directions {
-  display: inline-flex;
-  gap: 9px;
-  margin-top: 16px;
-  color: #B8242F;
-  font-size: var(--acebedo-font-md);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.acebedo-footer__directions:hover {
-  color: #9A1C26;
-}
-
 .acebedo-footer__map {
   min-height: 220px;
   overflow: hidden;

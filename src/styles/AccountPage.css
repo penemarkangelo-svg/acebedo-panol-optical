@@ -171,3 +171,14 @@
 .account-signout:hover { background-color: #f5e0df; }
 .account-signout:active { background-color: #efd2d1; transform: translateY(1px); }
 .account-signout:focus-visible { outline: 2px solid #B8242F; outline-offset: 2px; }
+.account-prescription-download {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--acebedo-border, #e2dfd7);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--acebedo-text-brand, #b8242f);
+  font: inherit;
+  cursor: pointer;
+}
+.account-prescription-download:disabled { opacity: .6; cursor: wait; }

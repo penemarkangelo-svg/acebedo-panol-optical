@@ -1,0 +1,22 @@
+.apo-product-media-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(130px, 1fr);
+  gap: 8px;
+  max-width: 580px;
+  padding: 13px 0 11px;
+}
+
+.apo-product-media-table-wrap { overflow-x: auto; }
+.apo-product-media-table { min-width: 540px; }
+.apo-product-media-table th:first-child { width: 32%; }
+.apo-product-media-table th:last-child { width: 19%; }
+.apo-product-media .apo-products-product-cell img { object-fit: contain; }
+.apo-product-media .apo-products-product-cell strong { display: block; }
+.apo-product-media .apo-products-product-cell small { font-size: 11px; font-weight: 400; }
+.apo-product-media-link { display: inline-flex; align-items: center; gap: 5px; color: #316746; font-weight: 650; text-decoration: none; }
+.apo-product-media-link:hover { text-decoration: underline; }
+.apo-product-media .apo-products-pagination span { padding-inline: 5px; }
+
+@media (max-width: 520px) {
+  .apo-product-media-filters { grid-template-columns: minmax(0, 1fr); }
+}

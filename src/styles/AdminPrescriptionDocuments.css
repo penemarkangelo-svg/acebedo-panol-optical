@@ -92,6 +92,14 @@
 .apo-prescription-review-form > div { display: flex; flex-wrap: wrap; gap: 8px; }
 .apo-prescription-review-form :is(select, button) { min-height: 36px; padding: 0 10px; border: 1px solid #d6d1c6; border-radius: 4px; background: #fff; color: #1A1816; font: inherit; font-size: 12px; }
 .apo-prescription-review-form select { flex: 1 1 180px; }
+.apo-prescription-verification-check { display: flex; align-items: flex-start; gap: 7px; flex: 1 0 100%; line-height: 1.4; }
+.apo-prescription-verification-check input { flex: none; margin: 2px 0 0; accent-color: #b8242f; }
+.apo-prescription-replacement-reason { display: grid; gap: 5px; flex: 1 0 100%; }
+.apo-prescription-replacement-reason textarea { width: 100%; padding: 8px 10px; border: 1px solid #d6d1c6; border-radius: 4px; font: inherit; resize: vertical; }
+.apo-prescription-upload-history { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.apo-prescription-upload-history li { display: grid; gap: 3px; padding: 8px 0; border-bottom: 1px solid #d6d1c6; overflow-wrap: anywhere; }
+.apo-prescription-upload-history small { color: #5C574F; }
+.apo-prescription-upload-history p { margin: 0; }
 .apo-prescription-review-form button { border-color: #292721; background: #292721; color: #fff; cursor: pointer; }
 .apo-prescription-review-form button:disabled { opacity: .55; cursor: default; }
 .apo-prescription-drawer-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 21px; border-top: 1px solid #d6d1c6; background: #fff; }

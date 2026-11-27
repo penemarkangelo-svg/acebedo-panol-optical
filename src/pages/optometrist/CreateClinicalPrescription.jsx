@@ -10,11 +10,11 @@ const measurements = [
   ["axis", "Axis", "0", "180", "1"],
 ];
 
-export default function CreateClinicalPrescription({ onClose, onCreated }) {
+export default function CreateClinicalPrescription({ onClose, onCreated, initialVisit = null }) {
   const dialogRef = useRef(null);
   const requestId = useRef(null);
-  const [reference, setReference] = useState("");
-  const [patient, setPatient] = useState(null);
+  const [reference, setReference] = useState(() => getAppointmentReference(initialVisit));
+  const [patient, setPatient] = useState(initialVisit);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
@@ -62,9 +62,14 @@ export default function CreateClinicalPrescription({ onClose, onCreated }) {
       const field = `${eye}_${key}`;
       return [field, numeric(field)];
     })));
+    if (values.right_sphere == null && values.left_sphere == null) {
+      setError("Enter the prescribed sphere for at least one eye.");
+      return;
+    }
     setBusy("save");
     setError("");
     try {
+      requestId.current ??= crypto.randomUUID();
       const { data, error: saveError } = await supabase.rpc("create_clinic_prescription", {
         p_appointment_id: patient.id,
         p_visit_date_key: reference.trim().slice(3, 9),
@@ -78,6 +83,7 @@ export default function CreateClinicalPrescription({ onClose, onCreated }) {
       });
       if (saveError || !data) {
         if (saveError?.code === "22007") setError("Enter an expiry date on or after today.");
+        else if (saveError?.code === "22023") setError(saveError.message);
         else if (saveError?.code === "P0002") setError("This appointment is no longer eligible. Check the appointment reference again.");
         else if (saveError?.code === "23505") setError("This request already saved a record. Close this form and check the directory.");
         else setError("The prescription could not be confirmed. Retry to check the same save.");

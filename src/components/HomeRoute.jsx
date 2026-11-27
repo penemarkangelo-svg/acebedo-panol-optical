@@ -35,5 +35,5 @@ export default function HomeRoute({ children, loadingFallback }) {
       </div>
     );
   }
-  return result.role === "admin" ? <Navigate to="/admin/dashboard" replace /> : (children ?? <LandingPage />);
+  return result.role === "admin" ? <Navigate to="/admin" replace /> : (children ?? <LandingPage />);
 }

@@ -14,6 +14,7 @@ export default function MyAppointmentsPage({ embedded = false }) {
   const { acknowledge } = useAccountUpdates();
   const userId = user?.id;
   const [appointments, setAppointments] = useState([]);
+  const [checkoutVisits, setCheckoutVisits] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,13 +22,16 @@ export default function MyAppointmentsPage({ embedded = false }) {
     let active = true;
     async function loadAppointments() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("appointments")
-        .select("id, appointment_date, appointment_time, status")
-        .eq("user_id", userId)
-        .order("appointment_date", { ascending: false })
-        .order("appointment_time", { ascending: false });
+      const [{ data, error }, { data: eligibleVisits }] = await Promise.all([
+        supabase.from("appointments")
+          .select("id, appointment_date, appointment_time, status")
+          .eq("user_id", userId)
+          .order("appointment_date", { ascending: false })
+          .order("appointment_time", { ascending: false }),
+        supabase.rpc("customer_visit_checkouts"),
+      ]);
       if (!active) return;
+      setCheckoutVisits({ userId, ids: new Set((eligibleVisits || []).map((visit) => visit.id)) });
       if (error) toast.error("Unable to load appointments.");
       else {
         setAppointments(data || []);
@@ -36,7 +40,8 @@ export default function MyAppointmentsPage({ embedded = false }) {
       setLoading(false);
     }
     loadAppointments();
-    return () => { active = false; };
+    window.addEventListener("focus", loadAppointments);
+    return () => { active = false; window.removeEventListener("focus", loadAppointments); };
   }, [userId, acknowledge]);
 
   return (
@@ -56,6 +61,7 @@ export default function MyAppointmentsPage({ embedded = false }) {
                 <div className="appointment-list-actions">
                   <span className={`appointment-status-badge appointment-status-${appointment.status}`}>{getStatusLabel(appointment.status)}</span>
                   <Link to={`/appointments/confirmation/${appointment.id}`}>View details</Link>
+                  {checkoutVisits?.userId === userId && checkoutVisits?.ids.has(appointment.id) && <Link to="/shop">Shop prescription eyewear</Link>}
                 </div>
               </article>
             ))}
